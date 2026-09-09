@@ -5,9 +5,10 @@ import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { PageHeader } from './Components/page-header/page-header';
 import { PageFooter } from './Components/page-footer/page-footer';
+import { Homepage } from './Pages/homepage/homepage';
 
 @NgModule({
-  declarations: [App, PageHeader, PageFooter],
+  declarations: [App, PageHeader, PageFooter, Homepage],
   imports: [BrowserModule, AppRoutingModule],
   providers: [provideBrowserGlobalErrorListeners()],
   bootstrap: [App],
