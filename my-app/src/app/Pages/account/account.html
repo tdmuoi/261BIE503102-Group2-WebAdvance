@@ -1,0 +1,15 @@
+   <div class="account-layout">
+     <aside class="account-sidebar">
+       <a routerLink="/account/profile-info" routerLinkActive="active">Thông tin tài khoản</a>
+       <a routerLink="/account/address" routerLinkActive="active">Địa chỉ nhận hàng</a>
+       <a routerLink="/account/bookshelf-ebooks" routerLinkActive="active">Sách điện tử</a>
+       <a routerLink="/account/bookshelf-purchased" routerLinkActive="active">Sách đã mua</a>
+       <a routerLink="/account/wishlist" routerLinkActive="active">Wishlist</a>
+       <a routerLink="/account/orders" routerLinkActive="active">Quản lý đơn hàng</a>
+       <a routerLink="/account/notifications" routerLinkActive="active">Thông báo</a>
+     </aside>
+
+     <section class="account-content">
+       <router-outlet></router-outlet>
+     </section>
+   </div>

@@ -1,0 +1,4 @@
+   .account-layout { display: flex; gap: 24px; padding: 24px; }
+   .account-sidebar { display: flex; flex-direction: column; gap: 8px; width: 240px; }
+   .account-sidebar a.active { font-weight: 700; }
+   .account-content { flex: 1; }
