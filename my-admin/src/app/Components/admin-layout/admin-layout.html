@@ -1,1 +1,21 @@
-<p>admin-layout works!</p>
+<div class="admin">
+  <aside class="sidebar">
+    <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+    <a routerLink="/book-list" routerLinkActive="active">Sách</a>
+    <a routerLink="/orders" routerLinkActive="active">Đơn hàng</a>
+    <a routerLink="/buyback-requests" routerLinkActive="active">Yêu cầu thanh lý</a>
+    <a routerLink="/refunds" routerLinkActive="active">Đổi trả & hoàn tiền</a>
+    <a routerLink="/banners" routerLinkActive="active">Banner</a>
+    <a routerLink="/vouchers" routerLinkActive="active">Mã giảm giá</a>
+    <a routerLink="/news-list" routerLinkActive="active">Lightbook News</a>
+    <a routerLink="/accounts" routerLinkActive="active">Tài khoản</a>
+    <a routerLink="/settings" routerLinkActive="active">Cài đặt</a>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">Lightbook Admin</header>
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
