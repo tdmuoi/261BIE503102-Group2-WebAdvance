@@ -1,1 +1,257 @@
-/* You can add global styles to this file, and also import other style files */
+/* =====================================================================
+   LIGHTBOOK — STYLE CHUNG CHO WEB KHÁCH HÀNG (my-app/src/styles.css)
+   Lấy từ Figma: Lightbook / Palette, Lightbook / Semantic, Lightbook / Layout
+   và các Text style. KHÔNG tự đặt mã màu (#xxxxxx) trong component —
+   luôn dùng biến, ví dụ: color: var(--color-text-primary);
+   Muốn đổi / thêm màu → báo người giữ file này (Dung).
+   ===================================================================== */
+
+/* ---------- 0. FONT (phải nằm đầu file) ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+  /* ---------- 1. BẢNG MÀU GỐC (Palette) ---------- */
+  /* Trung tính & chữ */
+  --neutral-cream:    #fdfcf9;  /* nền trang */
+  --neutral-white:    #ffffff;  /* nền thẻ, input */
+  --neutral-ink:      #1c1917;  /* chữ chính, viền, shadow */
+  --neutral-charcoal: #292524;  /* chữ accent serif */
+  --stone-700: #44403c;         /* body text */
+  --stone-600: #57534e;         /* chữ phụ */
+  --stone-500: #78716c;         /* placeholder, giá gốc */
+  --stone-300: #d6d3d1;         /* divider, bìa placeholder */
+  --stone-100: #f5f5f4;         /* nền disabled */
+
+  /* Pastel hồng */
+  --pink-50:  #fdf2f8;          /* top bar, footer, hover, nút pill */
+  --pink-100: #ffd8eb;          /* tag, nút secondary */
+  --pink-200: #fcddec;          /* lưới hero */
+  --pink-300: #f9a8d4;          /* sticker giảm giá */
+  --pink-400: #ea84b0;          /* separator top bar */
+  --pink-600: #db2777;          /* dấu chấm logo */
+
+  /* Pastel vàng */
+  --yellow-100: #fef9c3;        /* marquee, thẻ highlight */
+  --yellow-300: #fde047;        /* sao đánh giá, "Bán chạy" */
+
+  /* Mint / xanh */
+  --green-50:  #eef8f6;         /* nền mint nhạt (trang Tài khoản) */
+  --green-100: #d8f0ed;         /* thẻ mint, avatar tài khoản */
+  --green-150: #cdebe6;         /* viền mảnh */
+  --green-700: #134e48;         /* chữ accent, thành công */
+  --green-900: #002a1f;         /* nút primary, ô đếm ngược */
+
+  /* Trạng thái & icon */
+  --sale-red:  #c72b2b;         /* giá bán, lỗi */
+  --rose-500:  #f43f5e;         /* chấm thông báo */
+  --slate-600: #475569;         /* icon header */
+  --gray-500:  #717680;         /* icon filter */
+
+  /* ---------- 2. MÀU THEO MỤC ĐÍCH (Semantic) — ƯU TIÊN DÙNG NHÓM NÀY ---------- */
+  --color-bg-page:        var(--neutral-cream);
+  --color-bg-surface:     var(--neutral-white);
+  --color-bg-subtle:      var(--pink-50);
+  --color-bg-inverse:     var(--green-900);
+  --color-bg-highlight:   var(--yellow-100);
+  --color-bg-placeholder: var(--stone-300);
+  --color-bg-disabled:    var(--stone-100);
+
+  --color-tint-pink:          var(--pink-100);
+  --color-tint-pink-strong:   var(--pink-300);
+  --color-tint-mint:          var(--green-100);
+  --color-tint-yellow:        var(--yellow-100);
+  --color-tint-yellow-strong: var(--yellow-300);
+  --color-tint-grid:          var(--pink-200);
+
+  --color-text-primary:   var(--neutral-ink);
+  --color-text-body:      var(--stone-700);
+  --color-text-secondary: var(--stone-600);
+  --color-text-muted:     var(--stone-500);
+  --color-text-inverse:   var(--neutral-white);
+  --color-text-price:     var(--sale-red);
+  --color-text-accent:    var(--green-700);
+  --color-text-serif:     var(--neutral-charcoal);
+
+  --color-border-strong:  var(--neutral-ink);
+  --color-border-subtle:  var(--green-150);
+  --color-border-divider: var(--stone-300);
+  --color-border-accent:  var(--pink-400);
+  --color-border-error:   var(--sale-red);
+
+  --color-icon-default: var(--slate-600);
+  --color-icon-muted:   var(--gray-500);
+  --color-icon-notify:  var(--rose-500);
+
+  --color-feedback-error:      var(--sale-red);
+  --color-feedback-error-bg:   var(--pink-50);
+  --color-feedback-success:    var(--green-700);
+  --color-feedback-success-bg: var(--green-100);
+
+  --color-brand-dot: var(--pink-600);
+
+  /* ---------- 3. KHOẢNG CÁCH, BO GÓC, VIỀN, BỐ CỤC (Layout) ---------- */
+  --space-2: 2px;   --space-4: 4px;   --space-6: 6px;   --space-8: 8px;
+  --space-10: 10px; --space-12: 12px; --space-14: 14px; --space-16: 16px;
+  --space-20: 20px; --space-24: 24px; --space-32: 32px; --space-40: 40px;
+  --space-56: 56px; --space-80: 80px; --space-100: 100px;
+
+  --radius-6: 6px;   --radius-8: 8px;   --radius-10: 10px; --radius-12: 12px;
+  --radius-14: 14px; --radius-16: 16px; --radius-18: 18px; --radius-20: 20px;
+  --radius-22: 22px; --radius-full: 9999px;
+
+  --border-default: 1px;
+  --border-strong:  1.5px;
+
+  --layout-container: 1216px;   /* bề rộng nội dung */
+  --layout-margin:    112px;    /* lề 2 bên trên khung 1440 */
+  --layout-gutter:    24px;     /* khoảng cách giữa các cột */
+
+  /* ---------- 4. ĐỔ BÓNG (Effect styles) ---------- */
+  /* Bóng "cứng" kiểu neo-brutalism: lệch xuống, không mờ */
+  --shadow-offset-xs: 0 2px 0 0 var(--neutral-ink);
+  --shadow-offset-sm: 0 3px 0 0 var(--neutral-ink);
+  --shadow-offset-md: 0 5px 0 0 var(--neutral-ink);
+  --shadow-offset-lg: 0 6px 0 0 var(--neutral-ink);
+  --shadow-soft-xs:   0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  /* ---------- 5. FONT ---------- */
+  --font-sans:    'Plus Jakarta Sans', system-ui, sans-serif;   /* chữ chính */
+  --font-display: 'Bricolage Grotesque', var(--font-sans);       /* tiêu đề H1–H4 */
+  --font-serif:   'Instrument Serif', Georgia, serif;            /* chữ nghiêng trang trí — CHỈ TIẾNG ANH */
+  --font-mono:    'Space Grotesk', var(--font-sans);             /* marquee, meta, footer heading */
+}
+
+/* ---------- 6. NỀN TẢNG CHUNG ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  background: var(--color-bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+.container {
+  width: 100%;
+  max-width: calc(var(--layout-container) + 2 * var(--layout-gutter));
+  margin: 0 auto;
+  padding: 0 var(--layout-gutter);
+}
+
+/* ---------- 7. CHỮ (Text styles trong Figma) ----------
+   Dùng: <h2 class="h2">Góc tác giả</h2>  hoặc  <span class="accent-h2">of the month</span>
+   Lưu ý: các class "accent-*" dùng Instrument Serif → chỉ viết TIẾNG ANH (font này lỗi dấu tiếng Việt). */
+.display-hero        { font: 800 72px/72px var(--font-sans);  letter-spacing: -1.8px; }
+.display-hero-accent { font: italic 400 72px/72px var(--font-serif); }
+.display-page-title  { font: 800 56px/62px var(--font-sans);  letter-spacing: -1.4px; }
+.display-number      { font: italic 400 64px/64px var(--font-serif); }
+
+h1, .h1   { font: 800 44px/1.2 var(--font-display); letter-spacing: -2px; margin: 0; }
+h2, .h2   { font: 800 34px/1.2 var(--font-display); letter-spacing: -2px; margin: 0; }
+h3, .h3   { font: 800 24px/1.25 var(--font-display); letter-spacing: -1px; margin: 0; }
+h4, .h4   { font: 800 20px/1.3 var(--font-display); margin: 0; }
+.accent-h1 { font: italic 400 50px/1.3 var(--font-serif); color: var(--color-text-serif); }
+.accent-h2 { font: italic 400 40px/1.2 var(--font-serif); letter-spacing: -0.9px; color: var(--color-text-serif); }
+.quote-pull { font: italic 400 30px/1.25 var(--font-serif); color: var(--color-text-serif); }
+
+.title-card-lg      { font: 800 17px/1.3 var(--font-sans); }
+.title-card         { font: 800 15px/1.3 var(--font-sans); }
+.title-card-sm      { font: 800 14px/1.3 var(--font-sans); }
+.title-card-display { font: 800 16px/1.25 var(--font-display); }
+
+.body-lg      { font: 400 16px/1.6 var(--font-sans); }
+.body-lead    { font: 400 15px/1.5 var(--font-sans); }
+.body         { font: 400 14px/1.55 var(--font-sans); }
+.body-sm      { font: 400 12px/20px var(--font-sans); }
+.body-quote   { font: italic 400 13px/1.6 var(--font-sans); }
+.caption      { font: 400 11px/1.3 var(--font-sans); }
+
+.label-button       { font: 700 14px/1.3 var(--font-sans); }
+.label-tag          { font: 700 13px/1.25 var(--font-sans); }
+.label-small        { font: 700 12px/1.3 var(--font-sans); }
+.label-eyebrow      { font: 700 12px/18px var(--font-sans); letter-spacing: 1.2px; text-transform: uppercase; }
+.label-nav          { font: 700 12px/18px var(--font-sans); }
+.label-announcement { font: 600 12px/16px var(--font-sans); }
+.link-sm            { font: 500 12px/16px var(--font-sans); }
+
+.price-lg     { font: 800 26px/1.2 var(--font-sans); color: var(--color-text-price); }
+.price        { font: 800 16px/1.25 var(--font-sans); color: var(--color-text-price); }
+.price-old    { font: 400 12px/1.3 var(--font-sans); color: var(--color-text-muted); text-decoration: line-through; }
+.price-old-lg { font: 400 16px/1.3 var(--font-sans); color: var(--color-text-muted); text-decoration: line-through; }
+
+.marquee-text  { font: 700 14px/20px var(--font-mono); letter-spacing: 1.4px; text-transform: uppercase; }
+.meta-mono     { font: 500 11px/17px var(--font-mono); }
+.meta-mono-md  { font: 500 12px/16px var(--font-mono); }
+.footer-heading{ font: 700 12px/16px var(--font-mono); letter-spacing: 1.2px; text-transform: uppercase; }
+.logo-wordmark { font: 400 36px/1.1 var(--font-serif); }
+
+/* ---------- 8. THÀNH PHẦN DÙNG CHUNG (bản khởi đầu — chỉnh cho khớp Figma khi code) ---------- */
+
+/* Nút */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8);
+  padding: 10px 18px;
+  border-radius: var(--radius-full);
+  border: var(--border-default) solid var(--color-border-strong);
+  font: 700 14px/1.3 var(--font-sans);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn:active { transform: translateY(2px); box-shadow: none; }
+.btn:disabled { background: var(--color-bg-disabled); color: var(--color-text-muted); box-shadow: none; cursor: not-allowed; }
+
+.btn-pill      { background: var(--pink-50);  color: var(--color-text-primary); box-shadow: var(--shadow-offset-sm); }  /* nút chính kiểu homepage */
+.btn-primary   { background: var(--color-bg-inverse); color: var(--color-text-inverse); }                                /* nút xanh đậm */
+.btn-secondary { background: var(--color-tint-pink); color: var(--color-text-primary); }
+.btn-ghost     { background: var(--color-bg-surface); color: var(--color-text-primary); }
+.btn-sm        { padding: 6px 12px; font-size: 12px; }
+
+/* Thẻ (card) */
+.card {
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-16);
+  box-shadow: var(--shadow-offset-md);
+}
+.card-mint   { background: var(--color-tint-mint); }
+.card-pink   { background: var(--color-tint-pink); }
+.card-yellow { background: var(--color-tint-yellow); }
+
+/* Tag / nhãn */
+.tag {
+  display: inline-flex; align-items: center; gap: var(--space-4);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: var(--border-default) solid var(--color-border-strong);
+  background: var(--color-tint-pink);
+  font: 700 13px/1.25 var(--font-sans);
+}
+.tag-mint   { background: var(--color-tint-mint); }
+.tag-yellow { background: var(--color-tint-yellow-strong); }
+
+/* Ô nhập */
+.input {
+  width: 100%; height: 44px; padding: 0 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+  font: 400 14px/1.55 var(--font-sans);
+}
+.input::placeholder { color: var(--color-text-muted); }
+.input:focus { outline: none; box-shadow: var(--shadow-offset-xs); }
+.input.is-error { border-color: var(--color-border-error); }
+
+/* Thông báo lỗi / thành công */
+.text-error   { color: var(--color-feedback-error); }
+.text-success { color: var(--color-feedback-success); }
+
+/* Đường kẻ */
+.divider { height: 1px; background: var(--color-border-divider); border: 0; }
