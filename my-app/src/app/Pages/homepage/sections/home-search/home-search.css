@@ -1,0 +1,100 @@
+/* Thanh tìm kiếm & lọc — Figma 799:4029 */
+
+.search-section { padding: 40px 0 8px; }
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  padding: var(--space-12);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.dropdown {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-8);
+  height: 44px;
+  padding: 0 var(--space-12) 0 var(--space-14);
+  background: var(--color-bg-page);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+  cursor: pointer;
+}
+
+.dropdown:focus-within { box-shadow: var(--shadow-offset-xs); }
+
+.dropdown select {
+  appearance: none;
+  field-sizing: content;
+  max-width: 160px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font: 700 14px/normal var(--font-sans);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.dropdown select:focus { outline: none; }
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 11px;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 100%;
+  padding: 0 110px 0 46px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+  font: 400 14px/normal var(--font-sans);
+}
+
+.search-input::placeholder { color: var(--color-text-muted); }
+
+.search-input:focus { outline: none; box-shadow: var(--shadow-offset-xs); }
+
+.search-button {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  padding: 6px 14px;
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 13px/normal var(--font-sans);
+}
+
+.search-button:hover { background: var(--color-tint-pink); }
+
+/* Tablet & mobile: dropdown chia lưới, ô tìm kiếm xuống hàng riêng */
+@media (max-width: 1100px) {
+  .filter-bar { flex-wrap: wrap; }
+
+  .dropdown { flex: 1 1 calc(25% - var(--space-10)); }
+
+  .dropdown select { flex: 1; max-width: none; }
+
+  .search-box { flex-basis: 100%; }
+}
+
+@media (max-width: 640px) {
+  .dropdown { flex-basis: calc(50% - var(--space-10)); padding: 0 var(--space-8) 0 var(--space-10); }
+}

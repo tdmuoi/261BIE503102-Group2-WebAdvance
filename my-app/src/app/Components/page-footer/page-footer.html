@@ -1,1 +1,55 @@
-<p>page-footer works!</p>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <!-- Cột 1: thông tin thương hiệu -->
+      <div class="footer-brand">
+        <a class="footer-logo" routerLink="/" aria-label="Lightbook - Trang chủ">lightbook<span class="footer-logo-dot">.</span></a>
+        <p class="footer-desc">
+          An independent neighborhood bookstore, reader-first community,
+          and coffee corner dedicated to slow reading and thoughtful living.
+        </p>
+        <p class="footer-meta">
+          <span>📍 442 Cộng Hòa, Hồ Chí Minh, Việt Nam</span>
+          <span aria-hidden="true">•</span>
+          <span>Open Daily 8am–8pm</span>
+        </p>
+      </div>
+
+      <!-- Cột 2: Explore -->
+      <nav class="footer-col" aria-label="Explore">
+        <h4 class="footer-heading">Explore</h4>
+        <ul class="footer-links">
+          @for (link of exploreLinks; track link.path) {
+            <li><a [routerLink]="link.path">{{ link.label }}</a></li>
+          }
+        </ul>
+      </nav>
+
+      <!-- Cột 3: Newsletter (chỉ giao diện, chưa gửi lên server) -->
+      <div class="footer-col">
+        <h4 class="footer-heading">Newsletter</h4>
+        <p class="footer-newsletter-text">Fresh releases &amp; indie reviews in your inbox every Thursday.</p>
+        <form class="newsletter-form" (submit)="onSubscribe($event, emailInput)">
+          <input #emailInput class="newsletter-input" type="email" name="email" required
+                 placeholder="Your email address" aria-label="Email nhận bản tin" />
+          <button class="newsletter-submit" type="submit" aria-label="Đăng ký nhận bản tin">
+            <img src="images/icons/newsletter-submit.svg" alt="" width="30.24" height="26.94" />
+          </button>
+        </form>
+        @if (subscribed()) {
+          <p class="newsletter-success" role="status">Cảm ơn bạn đã đăng ký!</p>
+        }
+      </div>
+    </div>
+
+    <!-- Thanh dưới cùng -->
+    <div class="footer-bottom">
+      <p class="footer-copyright">© {{ currentYear }} Lightbook Literary Space Ltd. All rights reserved.</p>
+      <ul class="footer-legal">
+        @for (link of legalLinks; track link.label) {
+          <li><a [href]="link.href">{{ link.label }}</a></li>
+        }
+      </ul>
+    </div>
+  </div>
+</footer>

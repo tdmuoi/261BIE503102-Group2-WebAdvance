@@ -1,0 +1,49 @@
+<section class="recommend">
+  <div class="container recommend-inner">
+    <div class="section-head">
+      <div class="recommend-heading">
+        <h2 class="section-title">
+          <span class="section-title-main">Gợi ý cho bạn</span>
+          <span class="section-title-accent recommend-accent">just browsing?</span>
+        </h2>
+        <span class="recommend-underline" aria-hidden="true"></span>
+      </div>
+      <a class="recommend-more" routerLink="/browse-book">Khám phá thêm →</a>
+    </div>
+
+    <div class="recommend-filters">
+      <div class="chips" role="group" aria-label="Lọc theo thể loại">
+        @for (chip of chips(); track chip.id) {
+          <button class="chip" type="button" [class.is-active]="chip.id === activeChip()"
+                  [attr.aria-pressed]="chip.id === activeChip()" (click)="selectChip(chip.id)">{{ chip.label }}</button>
+        }
+      </div>
+
+      <label class="sort">
+        <span>Sắp xếp:</span>
+        <select [value]="sort()" (change)="onSortChange($event)" aria-label="Sắp xếp sách">
+          @for (option of sortOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <span aria-hidden="true">▾</span>
+      </label>
+    </div>
+
+    @if (visible().length) {
+      <div class="book-grid">
+        @for (book of visible(); track book._id) {
+          <app-book-card [book]="book"></app-book-card>
+        }
+      </div>
+    } @else {
+      <p class="section-desc">Chưa có sách nào trong thể loại này.</p>
+    }
+
+    @if (remaining() > 0) {
+      <button class="pill-btn recommend-load" type="button" (click)="showMore()">
+        Xem thêm {{ remaining() }} cuốn
+      </button>
+    }
+  </div>
+</section>

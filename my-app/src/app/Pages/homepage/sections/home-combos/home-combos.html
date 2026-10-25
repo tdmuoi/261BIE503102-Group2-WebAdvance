@@ -1,0 +1,61 @@
+<section class="combos">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-heading">
+        <span class="section-tag">✦ Mua kèm tiết kiệm</span>
+        <h2 class="section-title">
+          <span class="section-title-main">Combo ưu đãi</span>
+          <span class="section-title-accent">bundle &amp; save</span>
+        </h2>
+        <p class="section-desc">Gom 2–3 cuốn cùng chủ đề – giá mềm hơn hẳn mua lẻ.</p>
+      </div>
+      <a class="pill-btn" routerLink="/browse-book">Xem tất cả combo →</a>
+    </div>
+
+    <div class="combo-grid">
+      @for (combo of combos(); track combo.name) {
+        <article class="combo-card">
+          <div class="combo-visual" [class]="'tint-' + combo.tint" [attr.data-size]="combo.books.length">
+            @for (book of combo.books; track book._id) {
+              <span class="cover combo-cover"><img [appTrimCover]="book.image" [alt]="book.title" loading="lazy" /></span>
+            }
+            <span class="combo-count">Combo {{ combo.books.length }} cuốn</span>
+            <span class="combo-discount">-{{ combo.discountPercent }}%</span>
+          </div>
+
+          <h3 class="combo-name">{{ combo.name }}</h3>
+
+          <ul class="combo-books">
+            @for (book of combo.books; track book._id) {
+              <li>{{ book.title }} — {{ book.authorName }}</li>
+            }
+            @if (combo.gift) {
+              <li class="combo-gift">{{ combo.gift }}</li>
+            }
+          </ul>
+
+          <div class="combo-prices">
+            <p>
+              <span class="sale-price">{{ combo.price | vnd }}</span>
+              <span class="old-price">{{ combo.originalPrice | vnd }}</span>
+            </p>
+            <span class="combo-saving">Tiết kiệm {{ combo.saving | vnd }}</span>
+          </div>
+
+          <a class="pill-btn combo-cta" routerLink="/cart">Thêm combo vào giỏ →</a>
+        </article>
+      }
+    </div>
+
+    <div class="custom-combo">
+      <div class="custom-copy">
+        <h3>Tự chọn combo của riêng bạn</h3>
+        <p>Chọn 2–3 cuốn bất kỳ trong kho – giảm thêm 10% và freeship toàn quốc.</p>
+      </div>
+      <div class="custom-slots" aria-hidden="true">
+        <span>+</span><span>+</span><span>+</span>
+      </div>
+      <a class="pill-btn combo-cta" routerLink="/browse-book">Bắt đầu chọn →</a>
+    </div>
+  </div>
+</section>

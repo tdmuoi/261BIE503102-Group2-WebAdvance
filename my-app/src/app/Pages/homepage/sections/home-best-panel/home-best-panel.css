@@ -1,0 +1,131 @@
+/* Panel chi tiết sách bán chạy — Figma 790:3144 */
+
+:host { display: block; min-width: 0; }
+
+/* Bìa và giá (chép từ section-shared.css để file nhẹ hơn) */
+.cover {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+  border: var(--border-default) solid var(--color-border-strong);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.sale-price { font-weight: 800; color: var(--color-text-price); white-space: nowrap; }
+
+.old-price { font-style: italic; color: var(--color-text-muted); text-decoration: line-through; white-space: nowrap; }
+
+.best-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  padding: 24px 28px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: 24px;
+  box-shadow: var(--shadow-offset-md);
+}
+
+.panel-overview { display: flex; gap: var(--space-24); }
+
+.panel-cover { flex-shrink: 0; width: 176px; height: 256px; border-radius: var(--radius-8); }
+
+.panel-info { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+
+.panel-info p { margin: 0; }
+
+.panel-badge {
+  padding: 5px 12px;
+  background: var(--color-tint-yellow);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 12px/normal var(--font-sans);
+}
+
+.panel-title { font: 800 28px/1.12 var(--font-display); letter-spacing: -0.28px; }
+
+.panel-meta { font: 400 14px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.panel-rating { font: 400 13px/normal var(--font-sans); color: var(--color-text-muted); }
+
+.panel-prices { display: flex; align-items: center; gap: 10px; }
+.panel-prices .sale-price { font-size: 28px; }
+.panel-prices .old-price { font-size: 15px; }
+
+.panel-discount,
+.panel-tags span {
+  padding: 3px 10px;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+}
+
+.panel-discount { background: var(--color-tint-pink); }
+
+.panel-desc { font: 400 14px/1.55 var(--font-sans); color: var(--color-text-body); }
+
+.panel-tags { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.panel-tags span { padding: 4px 10px; background: var(--color-bg-page); font-weight: 400; }
+
+.panel-actions { display: flex; align-items: center; gap: var(--space-8); }
+
+.panel-btn {
+  padding: 9px 16px;
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 13px/normal var(--font-sans);
+}
+
+.panel-btn:hover { background: var(--color-tint-pink); }
+
+.panel-like { padding: 0; background: none; border: 0; border-radius: var(--radius-full); }
+.panel-like.is-active { background: var(--color-tint-pink-strong); }
+
+.panel-divider { width: 100%; margin: 0; border: 0; border-top: var(--border-default) solid var(--color-border-strong); }
+
+/* ---------- Review ---------- */
+.panel-reviews { display: flex; flex-direction: column; gap: var(--space-16); }
+
+.reviews-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.reviews-head h4 { font: 800 18px/normal var(--font-sans); }
+.reviews-head a { font: 700 13px/normal var(--font-sans); text-decoration: underline; }
+
+.reviews-body { display: flex; gap: var(--space-16); }
+
+.rating-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 156px;
+  padding: var(--space-16);
+  background: var(--color-bg-page);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-16);
+}
+
+.rating-summary strong { font: 800 44px/normal var(--font-display); letter-spacing: -0.88px; }
+.rating-summary small { font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+
+.reviews-empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  margin: 0;
+  padding: 20px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) dashed var(--color-border-strong);
+  border-radius: var(--radius-14);
+  font: 400 13px/1.5 var(--font-sans);
+  color: var(--color-text-serif);
+}
+
+@media (max-width: 640px) {
+  .panel-overview { flex-direction: column; }
+  .panel-cover { width: 150px; height: 218px; }
+  .reviews-body { flex-direction: column; }
+  .rating-summary { width: 100%; }
+}

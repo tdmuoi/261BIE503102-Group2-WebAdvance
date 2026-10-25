@@ -1,0 +1,28 @@
+@let book = deal();
+<article class="deal-card">
+  <a class="deal-visual" [class]="'tint-' + tint()"
+     [routerLink]="['/product-detail', book._id]">
+    <span class="cover deal-cover"><img [appTrimCover]="book.image" [alt]="book.title" loading="lazy" /></span>
+    <span class="deal-sticker">-{{ book.discountPercent }}%</span>
+  </a>
+  <div class="deal-info">
+    <a class="deal-title" [routerLink]="['/product-detail', book._id]" [title]="book.title">{{ book.title }}</a>
+    <span class="deal-author">{{ book.authorName }}</span>
+    <span class="deal-prices">
+      <span class="sale-price">{{ book.price | vnd }}</span>
+      <span class="old-price">{{ book.originalPrice | vnd }}</span>
+    </span>
+    <span class="deal-stock">Còn {{ book.stock }} cuốn</span>
+  </div>
+  <div class="deal-actions">
+    <a class="deal-buy" [routerLink]="['/product-detail', book._id]">
+      <img src="images/icons/cart-small.svg" alt="" width="19" height="22" />
+      Mua ngay
+    </a>
+    <button class="deal-like" type="button" [class.is-active]="liked()"
+            [attr.aria-pressed]="liked()" [attr.aria-label]="'Yêu thích ' + book.title"
+            (click)="liked.set(!liked())">
+      <img src="images/icons/heart-small.svg" alt="" width="15" height="13" />
+    </button>
+  </div>
+</article>

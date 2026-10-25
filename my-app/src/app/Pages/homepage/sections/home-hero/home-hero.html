@@ -1,0 +1,26 @@
+<section class="hero">
+  <div class="hero-head">
+    <h1 class="hero-title">
+      <span class="hero-line">
+        <!-- Dải hồng chỉ ôm cụm "discover a story" -->
+        <span class="hero-mark"><img class="hero-highlight" src="images/hero/headline-highlight.png" alt="" width="514" height="80" /><span class="hero-sans">discover</span>&ngsp;<span class="hero-serif">a story</span></span>&ngsp;<span class="hero-sans">that</span>
+      </span>
+      &ngsp;<span class="hero-line">
+        <span class="hero-serif hero-wavy">might change</span>&ngsp;<span class="hero-sans">your day.</span>
+      </span>
+    </h1>
+
+    <span class="hero-sticker hero-sticker-trending"><span aria-hidden="true">🍒</span> trending</span>
+    <span class="hero-sticker hero-sticker-community"><span aria-hidden="true">💬</span> Lightbook Community</span>
+  </div>
+
+  <div class="hero-books">
+    @for (book of books; track book.src) {
+      <img class="hero-book" [src]="book.src" [alt]="book.alt"
+           [style.left.%]="book.x" [style.top.%]="book.y" [style.width.%]="book.width" [style.z-index]="book.layer" />
+    }
+  </div>
+</section>
+
+<app-marquee class="hero-strip" [items]="stripItems" separator="✦"
+             [height]="42" [letterSpacing]="1.4" [speed]="50"></app-marquee>

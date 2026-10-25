@@ -1,0 +1,89 @@
+/* Bán chạy tuần này — Figma 778:1781 */
+
+.bestsellers { padding: 96px 0 40px; }
+
+.tag-mint { background: var(--color-tint-mint); }
+
+.best-body {
+  display: grid;
+  grid-template-columns: 480px minmax(0, 1fr);
+  gap: 64px;
+  align-items: start;
+  margin-top: 40px;
+}
+
+/* ---------- Danh sách top 5 ---------- */
+.best-list { display: flex; flex-direction: column; gap: var(--space-12); }
+
+.best-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-divider);
+  border-radius: var(--radius-16);
+  text-align: left;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.best-row:hover { border-color: var(--color-border-strong); }
+
+.best-row.is-selected {
+  background: var(--color-tint-yellow);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.best-rank {
+  flex-shrink: 0;
+  width: 46px;
+  font: 800 34px/normal var(--font-display);
+  letter-spacing: -0.68px;
+  color: var(--color-text-muted);
+}
+
+.is-selected .best-rank { color: var(--color-text-primary); }
+
+.best-cover { flex-shrink: 0; width: 54px; height: 78px; border-radius: 4px; box-shadow: none; }
+
+.best-info { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+
+.best-title {
+  overflow: hidden;
+  font: 800 15px/normal var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.best-author { font: 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+.best-meta { font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+
+.best-trailing { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-8); }
+
+.best-price { font: 700 14px/normal var(--font-sans); color: var(--color-text-price); white-space: nowrap; }
+
+.best-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-bg-inverse);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 15px/1 var(--font-sans);
+  color: var(--color-text-inverse);
+}
+
+.best-hint { margin: 0; font: italic 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+
+@media (max-width: 1100px) {
+  .best-body { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+}
+
+@media (max-width: 640px) {
+  .bestsellers { padding: 64px 0 24px; }
+  .best-rank { width: 32px; font-size: 26px; }
+}

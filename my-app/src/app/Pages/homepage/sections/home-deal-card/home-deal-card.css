@@ -1,0 +1,118 @@
+/* Thẻ Flash deal — Figma "Flash deal card" 807:2855 */
+
+:host { display: block; height: 100%; }
+
+/* Bìa và giá (chép từ section-shared.css để file nhẹ hơn) */
+.cover {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+  border: var(--border-default) solid var(--color-border-strong);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.sale-price { font-weight: 800; color: var(--color-text-price); white-space: nowrap; }
+
+.old-price { font-style: italic; color: var(--color-text-muted); text-decoration: line-through; white-space: nowrap; }
+
+.deal-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: 10px 10px 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.deal-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 270px;
+  border-radius: var(--radius-16);
+}
+
+.tint-mint { background: var(--color-tint-mint); }
+.tint-yellow { background: var(--color-tint-yellow); }
+.tint-pink { background: var(--color-tint-pink); }
+
+.deal-cover { width: 156px; height: 222px; margin-top: 4px; border-radius: var(--radius-6); }
+
+.deal-sticker {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  padding: 5px 10px;
+  background: var(--color-tint-pink-strong);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  transform: rotate(-8deg);
+  font: 800 15px/normal var(--font-display);
+}
+
+.deal-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: 0 4px;
+  text-align: center;
+}
+
+.deal-title {
+  max-width: 100%;
+  overflow: hidden;
+  font: 800 16px/1.1 var(--font-display);
+  letter-spacing: -0.16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deal-author { font: 400 11px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.deal-prices { display: flex; align-items: baseline; gap: 6px; padding-top: 2px; }
+.deal-prices .sale-price { font-size: 17px; }
+.deal-prices .old-price { font-size: 11px; }
+
+.deal-stock { font: 700 10px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.deal-actions { display: flex; align-items: center; gap: 6px; }
+
+.deal-buy {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+}
+
+.deal-buy img { position: absolute; left: 9px; }
+.deal-buy:hover { background: var(--color-tint-pink); }
+
+.deal-like {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+.deal-like.is-active { background: var(--color-tint-pink-strong); }
+

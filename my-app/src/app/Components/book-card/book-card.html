@@ -1,1 +1,20 @@
-<p>book-card works!</p>
+@let item = book();
+<article class="book-card">
+  <div class="book-cover-wrap">
+    <a class="book-cover" [routerLink]="['/product-detail', item._id]">
+      <img [appTrimCover]="item.image" [alt]="item.title" loading="lazy" />
+    </a>
+    <button class="book-like" type="button" [class.is-active]="liked()" [attr.aria-pressed]="liked()"
+            [attr.aria-label]="'Yêu thích ' + item.title" (click)="liked.set(!liked())">
+      <img src="images/icons/heart-medium.svg" alt="" width="20" height="18" />
+    </button>
+  </div>
+  <a class="book-title" [routerLink]="['/product-detail', item._id]" [title]="item.title">{{ item.title }}</a>
+  <span class="book-author">{{ item.authorName }}</span>
+  <span class="book-prices">
+    <span class="book-price">{{ item.price | vnd }}</span>
+    @if (item.discountPercent > 0) {
+      <span class="book-old">{{ item.originalPrice | vnd }}</span>
+    }
+  </span>
+</article>

@@ -1,0 +1,172 @@
+/* Combo ưu đãi — Figma 778:1780 */
+
+.combos {
+  padding: 80px 0 88px;
+  background: var(--color-bg-highlight);
+  border-top: var(--border-default) solid var(--color-border-strong);
+}
+
+.combo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-24);
+  margin: 40px 0;
+}
+
+.combo-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: 18px 18px 20px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+}
+
+/* ---------- Ô ảnh: bìa xếp chồng, nghiêng ---------- */
+.combo-visual {
+  position: relative;
+  height: 224px;
+  overflow: hidden;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.tint-pink { background: var(--color-tint-pink); }
+.tint-mint { background: var(--color-tint-mint); }
+.tint-yellow { background: var(--color-tint-yellow); }
+
+.combo-cover {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 112px;
+  height: 162px;
+  border-radius: 4px;
+  transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(var(--r));
+}
+
+/* Bộ 3 cuốn: cuốn giữa nằm trên cùng */
+[data-size='3'] .combo-cover:nth-of-type(1) { --dx: -65px; --dy: 11px; --r: -8deg; }
+[data-size='3'] .combo-cover:nth-of-type(2) { --dx: 0px; --dy: 2px; --r: 0deg; z-index: 2; }
+[data-size='3'] .combo-cover:nth-of-type(3) { --dx: 64px; --dy: 15px; --r: 8deg; }
+
+/* Bộ 2 cuốn */
+[data-size='2'] .combo-cover:nth-of-type(1) { --dx: -33px; --dy: 5px; --r: -7deg; }
+[data-size='2'] .combo-cover:nth-of-type(2) { --dx: 38px; --dy: 7px; --r: 6deg; }
+
+[data-size='1'] .combo-cover { --dx: 0px; --dy: 0px; --r: 0deg; }
+
+.combo-count {
+  position: absolute;
+  left: 11px;
+  top: 11px;
+  z-index: 3;
+  padding: 4px 10px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 800 11px/normal var(--font-sans);
+}
+
+.combo-discount {
+  position: absolute;
+  right: 22px;
+  top: 24px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: var(--color-bg-sale);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  transform: rotate(12deg);
+  font: 800 20px/normal var(--font-display);
+  color: var(--color-text-inverse);
+}
+
+/* ---------- Nội dung ---------- */
+.combo-name { margin: 0; font: 800 24px/normal var(--font-display); letter-spacing: -0.24px; }
+
+.combo-books {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 18px;
+  font: 400 13px/1.4 var(--font-sans);
+  color: var(--color-text-body);
+}
+
+.combo-gift { list-style: '+  '; font-weight: 700; color: var(--color-text-accent); }
+
+.combo-prices {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin-top: auto;
+}
+
+.combo-prices p { display: flex; align-items: baseline; gap: 10px; margin: 0; }
+.combo-prices .sale-price { font-size: 26px; }
+.combo-prices .old-price { font-size: 15px; color: var(--color-text-body); }
+
+.combo-saving {
+  padding: 4px 10px;
+  background: var(--color-tint-mint);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+}
+
+.combo-cta { padding: 12px 22px; background: var(--color-bg-subtle); }
+.combo-card .combo-cta { width: 100%; }
+
+/* ---------- Banner tự chọn combo ---------- */
+.custom-combo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-20);
+  padding: 24px 32px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.custom-copy h3 { font: 800 26px/normal var(--font-display); letter-spacing: -0.26px; }
+.custom-copy p { margin: 6px 0 0; font: 400 14px/normal var(--font-sans); }
+
+.custom-slots { display: flex; gap: var(--space-12); }
+
+.custom-slots span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 80px;
+  border: var(--border-strong) dashed var(--color-tint-pink-strong);
+  border-radius: var(--radius-8);
+  font: 700 22px/1 var(--font-sans);
+  color: var(--color-tint-pink-strong);
+}
+
+@media (max-width: 1100px) {
+  .combo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .combos { padding: 56px 0 64px; }
+  .combo-grid { grid-template-columns: minmax(0, 1fr); }
+  .custom-combo { padding: 20px; }
+  .custom-slots { display: none; }
+}

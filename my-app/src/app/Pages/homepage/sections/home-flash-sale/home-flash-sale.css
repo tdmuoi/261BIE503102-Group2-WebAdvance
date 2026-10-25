@@ -1,0 +1,135 @@
+/* Flash Sale — Figma 799:4078 */
+
+.flash { padding: 104px 0; }
+
+.flash-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 44px;
+}
+
+/* ---------- Trang trí ---------- */
+.flash-decor { position: absolute; inset: 0; pointer-events: none; }
+
+.decor-tag {
+  position: absolute;
+  left: 162px;
+  top: 30px;
+  padding: 6px 12px;
+  background: var(--color-tint-mint);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  transform: rotate(-19.79deg);
+  font: 800 11px/normal var(--font-sans);
+}
+
+.decor-sparkle { position: absolute; }
+.decor-sparkle-left { left: 284px; top: 136px; transform: rotate(180deg); }
+.decor-sparkle-right { left: 928px; top: 54px; }
+
+.decor-badge {
+  position: absolute;
+  right: 76px;
+  top: -22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  height: 112px;
+  background: var(--color-tint-pink);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-4);
+  transform: rotate(-12deg);
+}
+
+.decor-badge small { font: 700 12px/normal var(--font-sans); }
+.decor-badge strong { font: 800 36px/1 var(--font-display); letter-spacing: -0.72px; }
+
+/* ---------- Tiêu đề & đồng hồ ---------- */
+.flash-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.flash-kicker {
+  padding: 6px 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 13px/normal var(--font-sans);
+}
+
+.flash-title { font: 800 60px/0.98 var(--font-display); letter-spacing: -1.8px; }
+
+.countdown { display: flex; align-items: center; gap: var(--space-8); }
+
+.countdown-label { font: 700 14px/normal var(--font-sans); color: var(--color-text-body); }
+
+.countdown-box {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 6px 10px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-10);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 10px/normal var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.countdown-box b,
+.countdown-sep { font: 800 20px/normal var(--font-display); color: var(--color-text-primary); }
+
+/* ---------- Thẻ deal ---------- */
+.deal-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 0;
+  list-style: none;
+}
+
+/* Mỗi thẻ nghiêng một chút như Figma */
+.deal-item { transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease; }
+
+.deal-item:hover { transform: rotate(0deg) translateY(-4px); }
+
+.flash-empty { margin: 0; color: var(--color-text-secondary); }
+
+.flash-all { margin-top: 24px; background: var(--color-tint-pink); }
+
+/* ---------- Responsive: thẻ vuốt ngang ---------- */
+@media (max-width: 1200px) {
+  .flash-decor { display: none; }
+
+  .deal-list {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 236px;
+    overflow-x: auto;
+    padding: 12px 8px 16px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .deal-item { scroll-snap-align: start; }
+}
+
+@media (max-width: 640px) {
+  .flash { padding: 64px 0; }
+  .flash-title { font-size: 38px; }
+  .countdown { flex-wrap: wrap; justify-content: center; }
+  .countdown-label { flex-basis: 100%; }
+}

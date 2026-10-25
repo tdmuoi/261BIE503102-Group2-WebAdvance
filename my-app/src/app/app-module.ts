@@ -1,5 +1,6 @@
 import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -35,6 +36,19 @@ import { EbookReader } from './Pages/ebook-reader/ebook-reader';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { AuthorWorks } from './Pages/author/author-works/author-works';
 import { AuthorEvents } from './Pages/author/author-events/author-events';
+import { Marquee } from './Components/marquee/marquee';
+import { VndPipe } from './pipes/vnd-pipe';
+import { TrimCover } from './directives/trim-cover';
+import { HomeHero } from './Pages/homepage/sections/home-hero/home-hero';
+import { HomeSearch } from './Pages/homepage/sections/home-search/home-search';
+import { HomeFlashSale } from './Pages/homepage/sections/home-flash-sale/home-flash-sale';
+import { HomeNewReleases } from './Pages/homepage/sections/home-new-releases/home-new-releases';
+import { HomeAuthors } from './Pages/homepage/sections/home-authors/home-authors';
+import { HomeCombos } from './Pages/homepage/sections/home-combos/home-combos';
+import { HomeBestsellers } from './Pages/homepage/sections/home-bestsellers/home-bestsellers';
+import { HomeRecommendations } from './Pages/homepage/sections/home-recommendations/home-recommendations';
+import { HomeBestPanel } from './Pages/homepage/sections/home-best-panel/home-best-panel';
+import { HomeDealCard } from './Pages/homepage/sections/home-deal-card/home-deal-card';
 
 @NgModule({
   declarations: [
@@ -71,9 +85,22 @@ import { AuthorEvents } from './Pages/author/author-events/author-events';
     PageNotFound,
     AuthorWorks,
     AuthorEvents,
+    Marquee,
+    VndPipe,
+    TrimCover,
+    HomeHero,
+    HomeSearch,
+    HomeFlashSale,
+    HomeNewReleases,
+    HomeAuthors,
+    HomeCombos,
+    HomeBestsellers,
+    HomeRecommendations,
+    HomeBestPanel,
+    HomeDealCard,
   ],
   imports: [BrowserModule, AppRoutingModule],
-  providers: [provideBrowserGlobalErrorListeners()],
+  providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],
   bootstrap: [App],
 })
 export class AppModule {}

@@ -1,0 +1,52 @@
+/* Dải chữ chạy — thông số theo Figma (Divider – Marquee 803:2880, Advertising bar 772:1530,
+   Ribbon Góc tác giả → Combo 789:3508). Màu, cỡ chữ, chiều cao truyền qua @Input. */
+
+:host { display: block; }
+
+.marquee { overflow: hidden; }
+
+/* Dải nghiêng: chừa chỗ trên dưới để góc không bị cắt, kéo rộng để không lộ mép */
+.marquee.is-tilted { padding: 28px 0; }
+
+.marquee.is-tilted .marquee-band {
+  width: calc(100% + 80px);
+  margin-left: -40px;
+}
+
+.marquee-band {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: var(--marquee-bg);
+  color: var(--marquee-color);
+  border-block: var(--marquee-border) solid var(--color-border-strong);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  line-height: 20px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll linear infinite;
+}
+
+/* Rê chuột vào thì dừng */
+.marquee-band:hover .marquee-track { animation-play-state: paused; }
+
+.marquee-group {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.marquee-item { padding-right: 1.1em; }
+
+.marquee-sep { margin-right: 0.45em; }
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+

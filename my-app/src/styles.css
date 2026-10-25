@@ -15,6 +15,7 @@
   --neutral-cream:    #fdfcf9;  /* nền trang */
   --neutral-white:    #ffffff;  /* nền thẻ, input */
   --neutral-ink:      #1c1917;  /* chữ chính, viền, shadow */
+  --neutral-black:    #000000;  /* ô vuông logo "lib." */
   --neutral-charcoal: #292524;  /* chữ accent serif */
   --stone-700: #44403c;         /* body text */
   --stone-600: #57534e;         /* chữ phụ */
@@ -54,6 +55,9 @@
   --color-bg-inverse:     var(--green-900);
   --color-bg-highlight:   var(--yellow-100);
   --color-bg-placeholder: var(--stone-300);
+  --color-bg-glass:       rgba(255, 255, 255, 0.95); /* menu header nổi trên lưới */
+  --color-bg-glass-soft:  rgba(255, 255, 255, 0.9);  /* sticker hero */
+  --color-bg-sale:        var(--sale-red);           /* tem giảm giá combo */
   --color-bg-disabled:    var(--stone-100);
 
   --color-tint-pink:          var(--pink-100);
@@ -87,7 +91,9 @@
   --color-feedback-success:    var(--green-700);
   --color-feedback-success-bg: var(--green-100);
 
-  --color-brand-dot: var(--pink-600);
+  --color-brand-dot:  var(--pink-600);
+  --color-brand-mark: var(--neutral-black);
+  --color-accent-wavy: var(--pink-300); /* gạch chân lượn sóng "might change" */
 
   /* ---------- 3. KHOẢNG CÁCH, BO GÓC, VIỀN, BỐ CỤC (Layout) ---------- */
   --space-2: 2px;   --space-4: 4px;   --space-6: 6px;   --space-8: 8px;
@@ -112,6 +118,7 @@
   --shadow-offset-sm: 0 3px 0 0 var(--neutral-ink);
   --shadow-offset-md: 0 5px 0 0 var(--neutral-ink);
   --shadow-offset-lg: 0 6px 0 0 var(--neutral-ink);
+  --shadow-offset-4:  0 4px 0 0 var(--neutral-ink);   /* sticker tròn "Giảm đến" */
   --shadow-soft-xs:   0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
   /* ---------- 5. FONT ---------- */

@@ -1,0 +1,43 @@
+<section class="bestsellers">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-heading">
+        <span class="section-tag tag-mint">★ Top 5 · {{ weekLabel }}</span>
+        <h2 class="section-title">
+          <span class="section-title-main">Bán chạy tuần này</span>
+          <span class="section-title-accent">readers' choice</span>
+        </h2>
+        <p class="section-desc">Cập nhật mỗi thứ Hai từ đơn hàng thực tế tại Lightbook.</p>
+      </div>
+      <a class="pill-btn" routerLink="/browse-book">Xem bảng xếp hạng →</a>
+    </div>
+
+    <div class="best-body">
+      <div class="best-list">
+        @for (book of top(); track book._id; let i = $index) {
+          <button class="best-row" type="button" [class.is-selected]="i === selectedIndex()"
+                  [attr.aria-pressed]="i === selectedIndex()" (click)="select(i)">
+            <span class="best-rank">{{ (i + 1).toString().padStart(2, '0') }}</span>
+            <span class="cover best-cover"><img [appTrimCover]="book.image" [alt]="book.title" loading="lazy" /></span>
+            <span class="best-info">
+              <span class="best-title">{{ book.title }}</span>
+              <span class="best-author">{{ book.authorName }}</span>
+              <span class="best-meta">Còn {{ book.stock }} cuốn{{ book.discountPercent > 0 ? ' · -' + book.discountPercent + '%' : '' }}</span>
+            </span>
+            <span class="best-trailing">
+              <span class="best-price">{{ book.price | vnd }}</span>
+              @if (i === selectedIndex()) {
+                <span class="best-arrow" aria-hidden="true">→</span>
+              }
+            </span>
+          </button>
+        }
+        <p class="best-hint">↳ Bấm vào từng cuốn để xem chi tiết &amp; review bên phải</p>
+      </div>
+
+      @if (selected(); as book) {
+        <app-home-best-panel [book]="book" [rank]="selectedIndex() + 1"></app-home-best-panel>
+      }
+    </div>
+  </div>
+</section>

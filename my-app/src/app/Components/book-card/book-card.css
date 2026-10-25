@@ -1,0 +1,70 @@
+/* Thẻ sách — Figma "Book card" trong section Gợi ý cho bạn */
+
+:host { display: block; min-width: 0; }
+
+.book-card { display: flex; flex-direction: column; gap: 3px; }
+
+.book-cover-wrap { position: relative; margin-bottom: 9px; }
+
+.book-cover {
+  display: block;
+  aspect-ratio: 229 / 316;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+  box-shadow: var(--shadow-offset-md);
+  transition: transform .15s ease;
+}
+
+.book-cover:hover { transform: translateY(-3px); }
+
+.book-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.book-like {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+.book-like img { width: 15px; height: auto; }
+
+.book-like.is-active { background: var(--color-tint-pink-strong); }
+
+.book-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font: 800 14px/1.3 var(--font-sans);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.book-title:hover { text-decoration: underline; }
+
+.book-author { font: 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.book-prices {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding-top: 4px;
+}
+
+.book-price { font: 800 16px/normal var(--font-sans); color: var(--color-text-price); white-space: nowrap; }
+
+.book-old {
+  font: italic 400 12px/normal var(--font-sans);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  white-space: nowrap;
+}

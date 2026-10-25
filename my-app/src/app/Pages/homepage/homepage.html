@@ -1,1 +1,55 @@
-<p>homepage works!</p>
+<!-- 1. Hero + dải chữ nhỏ -->
+<app-home-hero></app-home-hero>
+
+<!-- 2. Thanh lọc & tìm kiếm -->
+<app-home-search [categories]="categories()"></app-home-search>
+
+@switch (state()) {
+  @case ('loading') {
+    <div class="container">
+      <div class="status-card" role="status">
+        <span class="status-spinner" aria-hidden="true"></span>
+        <p>Đang tải sách từ Lightbook…</p>
+      </div>
+    </div>
+  }
+
+  @case ('error') {
+    <div class="container">
+      <div class="status-card status-error" role="alert">
+        <p class="status-title">Không kết nối được máy chủ</p>
+        <p>Hãy kiểm tra my-server đang chạy ở cổng 3002 rồi thử lại.</p>
+        <button class="status-retry" type="button" (click)="load()">Thử lại</button>
+      </div>
+    </div>
+  }
+
+  @case ('ready') {
+    <!-- 3. Flash Sale -->
+    <app-home-flash-sale [books]="books()"></app-home-flash-sale>
+
+    <!-- 4. Dải vàng -->
+    <app-marquee [items]="promoItems"></app-marquee>
+
+    <!-- 5. Sách mới phát hành -->
+    <app-home-new-releases [books]="books()"></app-home-new-releases>
+
+    <!-- 6. Góc tác giả -->
+    <app-home-authors [books]="books()" [authors]="authors()"></app-home-authors>
+
+    <!-- Ribbon nghiêng -->
+    <app-marquee class="ribbon" [items]="ribbonItems" separator="✦"
+                 background="var(--color-bg-inverse)" textColor="var(--color-text-inverse)"
+                 [height]="48" [fontSize]="16" [letterSpacing]="0.96" [borderWidth]="1.5"
+                 [tilt]="1.6" [speed]="70"></app-marquee>
+
+    <!-- 7. Combo ưu đãi -->
+    <app-home-combos [books]="books()"></app-home-combos>
+
+    <!-- 8. Bán chạy tuần này -->
+    <app-home-bestsellers [books]="books()"></app-home-bestsellers>
+
+    <!-- 9. Gợi ý cho bạn -->
+    <app-home-recommendations [books]="books()"></app-home-recommendations>
+  }
+}

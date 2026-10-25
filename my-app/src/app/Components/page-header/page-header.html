@@ -1,1 +1,37 @@
-<p>page-header works!</p>
+<header class="site-header">
+  <!-- Thanh thông báo trên cùng -->
+  <div class="announcement">
+    <span class="announcement-item">Sale off up to 15%</span>
+    <img class="announcement-divider" src="images/icons/announcement-divider.svg" alt="" width="12.062" height="2" />
+    <span class="announcement-item">Happy Vietnamese Women's Day</span>
+    <img class="announcement-divider" src="images/icons/announcement-divider.svg" alt="" width="12.062" height="2" />
+    <a class="announcement-link" routerLink="/browse-book">Freeship up to 1.000.000 VNĐ</a>
+  </div>
+
+  <!-- Hàng chính: logo | menu | nút tiện ích -->
+  <div class="header-main">
+    <a class="brand" routerLink="/" aria-label="Lightbook - Trang chủ">
+      <span class="brand-icon" aria-hidden="true">lib<span class="brand-icon-dot">.</span></span>
+      <span class="brand-wordmark">lightbook<span class="brand-dot">.</span></span>
+    </a>
+
+    <nav class="nav-pill" aria-label="Menu chính">
+      @for (item of navItems; track item.path) {
+        <a class="nav-link" [routerLink]="item.path" routerLinkActive="is-active">{{ item.label }}</a>
+      }
+    </nav>
+
+    <div class="actions">
+      <a class="action-btn" routerLink="/account/wishlist" aria-label="Yêu thích">
+        <img src="images/icons/heart.svg" alt="" width="20" height="20" />
+        <span class="notify-dot" aria-hidden="true"></span>
+      </a>
+      <a class="action-btn" routerLink="/cart" aria-label="Giỏ hàng">
+        <img src="images/icons/cart.svg" alt="" width="20" height="20" />
+      </a>
+      <a class="action-btn action-btn-account" routerLink="/account" aria-label="Tài khoản">
+        <img src="images/icons/user.svg" alt="" width="20" height="20" />
+      </a>
+    </div>
+  </div>
+</header>

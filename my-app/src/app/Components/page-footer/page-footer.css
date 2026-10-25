@@ -1,0 +1,166 @@
+/* Footer dùng chung — thông số lấy từ Figma (SiteFooter 817:6215) */
+
+.site-footer {
+  background: var(--color-bg-subtle);
+  border-top: var(--border-default) solid var(--color-text-serif);
+}
+
+.footer-inner {
+  max-width: calc(var(--layout-container) + 2 * var(--layout-gutter));
+  margin: 0 auto;
+  padding: 62px var(--layout-gutter) 89px;
+}
+
+/* ---------- Hàng trên: 4 cột, cột thương hiệu chiếm 2 ---------- */
+.footer-top {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-32);
+  align-items: start;
+  padding-bottom: 41px;
+  border-bottom: var(--border-default) solid var(--color-border-divider);
+}
+
+.footer-brand {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.footer-logo {
+  font: 400 30px/36px var(--font-serif);
+  letter-spacing: -0.75px;
+  color: var(--color-text-primary);
+}
+
+.footer-logo-dot { color: var(--color-brand-dot); }
+
+.footer-desc {
+  max-width: 384px;
+  margin: 0;
+  font: 400 12px/19.5px var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin: 0;
+  padding-top: var(--space-8);
+  font: 400 12px/19.5px var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.footer-heading {
+  margin: 0;
+  font: 700 12px/16px var(--font-mono);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 12px/16px var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.footer-links a:hover,
+.footer-legal a:hover { color: var(--color-text-primary); text-decoration: underline; }
+
+.footer-newsletter-text {
+  margin: 0;
+  font: 400 12px/16px var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.newsletter-form {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.newsletter-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 13px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-icon-muted);
+  border-radius: var(--radius-8);
+  font: 400 12px/normal var(--font-sans);
+}
+
+.newsletter-input::placeholder { color: var(--color-icon-muted); }
+
+.newsletter-input:focus {
+  outline: none;
+  border-color: var(--color-border-strong);
+}
+
+.newsletter-submit {
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-8);
+}
+
+.newsletter-success {
+  margin: 0;
+  font: 600 12px/16px var(--font-sans);
+  color: var(--color-feedback-success);
+}
+
+/* ---------- Thanh dưới cùng ---------- */
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-12) var(--space-24);
+  padding-top: var(--space-24);
+  font: 400 12px/19.5px var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.footer-copyright { margin: 0; }
+
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- Tablet: thương hiệu 1 hàng, 2 cột bên dưới ---------- */
+@media (max-width: 900px) {
+  .footer-inner { padding: 48px var(--layout-gutter) 56px; }
+
+  .footer-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- Mobile: xếp chồng ---------- */
+@media (max-width: 560px) {
+  .footer-inner { padding: 40px var(--space-16) 40px; }
+
+  .footer-top { grid-template-columns: minmax(0, 1fr); gap: var(--space-24); }
+
+  .footer-brand { grid-column: auto; }
+
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+}

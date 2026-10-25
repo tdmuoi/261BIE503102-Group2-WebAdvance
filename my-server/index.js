@@ -47,12 +47,29 @@ app.get('/api/health', async (req, res) => {
 });
 
 // API lấy danh sách sách từ MongoDB
+// Tham số tuỳ chọn:
+//   ?limit=50          số sách trả về (mặc định 20, tối đa 200)
+//   ?sort=newest       mới tạo trước | sort=updated: mới cập nhật trước
+//   ?discounted=true   chỉ lấy sách đang giảm giá
 app.get('/api/books', async (req, res) => {
   try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 200);
+    const sortOptions = {
+      newest: { createdAt: -1 },
+      updated: { updatedAt: -1 }
+    };
+    const sort = sortOptions[req.query.sort] || {};
+
+    const filter = { status: 'active' };
+    if (req.query.discounted === 'true') {
+      filter.discountPercent = { $gt: 0 };
+    }
+
     const books = await database
       .collection('books')
-      .find({})
-      .limit(20)
+      .find(filter)
+      .sort(sort)
+      .limit(limit)
       .toArray();
 
     res.json(books);
@@ -61,6 +78,45 @@ app.get('/api/books', async (req, res) => {
 
     res.status(500).json({
       message: 'Cannot retrieve books'
+    });
+  }
+});
+
+// API lấy danh sách tác giả
+app.get('/api/authors', async (req, res) => {
+  try {
+    const authors = await database
+      .collection('authors')
+      .find({ status: 'active' })
+      .project({ name: 1, desc: 1, img: 1 })
+      .toArray();
+
+    res.json(authors);
+  } catch (error) {
+    console.error('GET /api/authors failed:', error.message);
+
+    res.status(500).json({
+      message: 'Cannot retrieve authors'
+    });
+  }
+});
+
+// API lấy danh sách thể loại
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = await database
+      .collection('categories')
+      .find({ status: 'active' })
+      .project({ name: 1, slug: 1 })
+      .sort({ name: 1 })
+      .toArray();
+
+    res.json(categories);
+  } catch (error) {
+    console.error('GET /api/categories failed:', error.message);
+
+    res.status(500).json({
+      message: 'Cannot retrieve categories'
     });
   }
 });

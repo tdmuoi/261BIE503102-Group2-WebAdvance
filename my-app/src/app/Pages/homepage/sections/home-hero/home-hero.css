@@ -1,0 +1,133 @@
+/* Hero — Figma 772:1454. Khung gốc 1440px, các số % quy đổi từ toạ độ Figma. */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  /* Lưới hồng của Figma bắt đầu từ mép trên trang; header cao khoảng 117px */
+  background: url('/images/decor/grid-pattern.png') center -117px / 1440px auto no-repeat;
+}
+
+.hero-head {
+  position: relative;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 40px var(--layout-gutter) 0;
+  text-align: center;
+}
+
+.hero-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  font-size: 72px;
+  line-height: 96px;
+  letter-spacing: normal;
+}
+
+/* inline-block để dải hồng bám theo mép chữ; khoảng trắng thật giữa các từ */
+.hero-line {
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+}
+
+/* Dải hồng phía sau "discover a story": giãn theo đúng bề rộng cụm chữ */
+.hero-mark { position: relative; display: inline-block; }
+
+.hero-highlight {
+  position: absolute;
+  left: -0.08em;
+  top: 0.18em;
+  width: calc(100% + 0.18em);
+  height: 1.11em;
+  max-width: none;
+  z-index: -1;
+}
+
+.hero-sans {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: -1.8px;
+  color: var(--color-text-primary);
+}
+
+.hero-serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--color-text-serif);
+}
+
+.hero-wavy {
+  color: var(--color-text-primary);
+  letter-spacing: -1.8px;
+  text-decoration: underline wavy var(--color-accent-wavy) 2px;
+  text-underline-offset: 10px;
+}
+
+.hero-sticker {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  background: var(--color-bg-glass-soft);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-soft-xs);
+  font: 700 10px/15px var(--font-sans);
+  white-space: nowrap;
+}
+
+.hero-sticker-trending {
+  left: 16.7%;
+  top: 62px;
+  transform: rotate(-6deg);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.hero-sticker-community {
+  right: 12.5%;
+  top: 142px;
+  gap: 6px;
+  padding: 5px 13px;
+  transform: rotate(6deg);
+  letter-spacing: 0.25px;
+  color: var(--color-text-body);
+}
+
+/* Hàng 4 bìa sách: khung 1440 × 342, đáy lấn xuống dưới dải chữ */
+.hero-books {
+  position: relative;
+  max-width: 1440px;
+  margin: 35px auto -24px;
+  aspect-ratio: 1440 / 342;
+}
+
+.hero-book {
+  position: absolute;
+  max-width: none;
+  height: auto;
+  transform: translate(-50%, -50%);
+}
+
+.hero-strip { position: relative; z-index: 5; }
+
+@media (max-width: 1100px) {
+  .hero-title { font-size: 56px; line-height: 76px; }
+  .hero-sticker-trending { left: 4%; top: 20px; }
+  .hero-sticker-community { right: 4%; top: 150px; }
+}
+
+@media (max-width: 640px) {
+  .hero-head { padding-top: 48px; }
+  .hero-title { font-size: 38px; line-height: 52px; }
+  .hero-sticker-trending { left: 16px; top: 12px; }
+  .hero-sticker-community { right: 16px; top: auto; bottom: -28px; }
+  .hero-books { margin-top: 44px; margin-bottom: -10px; }
+}

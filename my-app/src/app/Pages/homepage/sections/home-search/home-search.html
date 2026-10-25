@@ -1,0 +1,47 @@
+<section class="search-section">
+  <form class="container" role="search" (submit)="onSearch($event)">
+    <div class="filter-bar">
+      @for (field of [typeField, ageField]; track field.name) {
+        <label class="dropdown">
+          <img [src]="field.icon" alt="" width="20" height="20" />
+          <select [name]="field.name" [attr.aria-label]="field.label">
+            <option value="">{{ field.label }}</option>
+            @for (option of field.options; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+          <img src="images/icons/chevron-down.svg" alt="" width="20" height="20" />
+        </label>
+      }
+
+      <label class="dropdown">
+        <img src="images/icons/building.svg" alt="" width="20" height="20" />
+        <select name="category" aria-label="Thể loại">
+          <option value="">Thể loại</option>
+          @for (category of categories(); track category._id) {
+            <option [value]="category.slug">{{ category.name }}</option>
+          }
+        </select>
+        <img src="images/icons/chevron-down.svg" alt="" width="20" height="20" />
+      </label>
+
+      <label class="dropdown">
+        <img [src]="priceField.icon" alt="" width="20" height="20" />
+        <select [name]="priceField.name" [attr.aria-label]="priceField.label">
+          <option value="">{{ priceField.label }}</option>
+          @for (option of priceField.options; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <img src="images/icons/chevron-down.svg" alt="" width="20" height="20" />
+      </label>
+
+      <div class="search-box">
+        <img class="search-icon" src="images/icons/search.svg" alt="" width="20" height="20" />
+        <input class="search-input" type="search" name="q" placeholder="Tên sách, tác giả, ISBN…"
+               aria-label="Tìm theo tên sách, tác giả hoặc ISBN" />
+        <button class="search-button" type="submit">Tìm sách</button>
+      </div>
+    </div>
+  </form>
+</section>

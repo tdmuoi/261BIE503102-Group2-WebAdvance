@@ -1,0 +1,56 @@
+@let current = book();
+<article class="best-panel" aria-live="polite">
+  <div class="panel-overview">
+    <a class="cover panel-cover" [routerLink]="['/product-detail', current._id]">
+      <img [appTrimCover]="current.image" [alt]="current.title" />
+    </a>
+    <div class="panel-info">
+      <span class="panel-badge">★ #{{ rank() }} Bán chạy tuần này</span>
+      <h3 class="panel-title">{{ current.title }}</h3>
+      <p class="panel-meta">{{ current.authorName }} · {{ current.categoryName }}</p>
+      <p class="panel-rating"><span aria-hidden="true">☆☆☆☆☆</span> Chưa có đánh giá</p>
+      <p class="panel-prices">
+        <span class="sale-price">{{ current.price | vnd }}</span>
+        @if (current.discountPercent > 0) {
+          <span class="old-price">{{ current.originalPrice | vnd }}</span>
+          <span class="panel-discount">-{{ current.discountPercent }}%</span>
+        }
+      </p>
+      <p class="panel-desc">
+        {{ current.stock > 0 ? 'Còn ' + current.stock + ' cuốn trong kho, giao ngay trong ngày.' : 'Tạm hết hàng.' }}
+      </p>
+      <div class="panel-tags">
+        <span>{{ current.categoryName }}</span>
+        @if (current.isbn) {
+          <span>ISBN {{ current.isbn }}</span>
+        }
+        <span>{{ current.stock > 0 ? 'Còn hàng' : 'Hết hàng' }}</span>
+      </div>
+      <div class="panel-actions">
+        <a class="panel-btn" routerLink="/cart">Thêm vào giỏ</a>
+        <a class="panel-btn" [routerLink]="['/product-detail', current._id]">Mua ngay</a>
+        <button class="panel-like" type="button" [class.is-active]="liked()" [attr.aria-pressed]="liked()"
+                aria-label="Yêu thích" (click)="liked.set(!liked())">
+          <img src="images/icons/wishlist-button.svg" alt="" width="36" height="36" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <hr class="panel-divider" />
+
+  <div class="panel-reviews">
+    <div class="reviews-head">
+      <h4>Review từ độc giả</h4>
+      <a [routerLink]="['/product-detail', current._id]">Viết review đầu tiên →</a>
+    </div>
+    <div class="reviews-body">
+      <div class="rating-summary">
+        <strong>0.0</strong>
+        <span aria-hidden="true">☆☆☆☆☆</span>
+        <small>0 đánh giá</small>
+      </div>
+      <p class="reviews-empty">Chưa có review nào cho cuốn này. Đọc xong, bạn hãy là người đầu tiên chia sẻ cảm nhận nhé!</p>
+    </div>
+  </div>
+</article>

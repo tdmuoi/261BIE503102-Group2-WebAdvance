@@ -1,0 +1,42 @@
+<section class="flash">
+  <div class="container flash-inner">
+    <!-- Trang trí -->
+    <div class="flash-decor" aria-hidden="true">
+      <span class="decor-tag">MỖI NGÀY<br />3 KHUNG GIỜ!</span>
+      <img class="decor-sparkle decor-sparkle-left" src="images/decor/sparkle.svg" alt="" width="32" height="36" />
+      <img class="decor-sparkle decor-sparkle-right" src="images/decor/sparkle.svg" alt="" width="32" height="36" />
+      @if (maxDiscount() > 0) {
+        <span class="decor-badge"><small>Giảm đến</small><strong>{{ maxDiscount() }}%</strong></span>
+      }
+    </div>
+
+    <header class="flash-head">
+      <span class="flash-kicker">
+        ⚡ Flash sale hôm nay · khung {{ countdown().slotLabel }}
+      </span>
+      <h2 class="flash-title">Deal xịn mỗi ngày,<br />sách hay giá mềm</h2>
+      <div class="countdown" role="timer" aria-live="off">
+        <span class="countdown-label">{{ countdown().mode === 'running' ? 'Kết thúc sau' : 'Bắt đầu sau' }}</span>
+        <span class="countdown-box"><b>{{ countdown().hours }}</b> giờ</span>
+        <span class="countdown-sep">:</span>
+        <span class="countdown-box"><b>{{ countdown().minutes }}</b> phút</span>
+        <span class="countdown-sep">:</span>
+        <span class="countdown-box"><b>{{ countdown().seconds }}</b> giây</span>
+      </div>
+    </header>
+
+    @if (deals().length) {
+      <ul class="deal-list">
+        @for (book of deals(); track book._id; let i = $index) {
+          <li class="deal-item" [style.--tilt]="tilts[i % tilts.length] + 'deg'">
+            <app-home-deal-card [deal]="book" [tint]="tints[i % tints.length]"></app-home-deal-card>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="flash-empty">Hôm nay chưa có sách nào đang giảm giá. Quay lại sau nhé!</p>
+    }
+
+    <a class="pill-btn flash-all" routerLink="/browse-book" [queryParams]="{ sale: 'true' }">Xem tất cả deal hôm nay →</a>
+  </div>
+</section>

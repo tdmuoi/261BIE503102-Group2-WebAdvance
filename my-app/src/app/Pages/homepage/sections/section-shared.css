@@ -1,0 +1,97 @@
+/* Kiểu dùng chung cho tiêu đề các section trang chủ (Figma: Section header).
+   Mỗi section nạp file này cùng file CSS riêng của nó. */
+
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-20);
+}
+
+.section-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-14);
+}
+
+.section-tag {
+  display: inline-flex;
+  padding: 6px 14px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 13px/normal var(--font-sans);
+}
+
+.section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-14);
+  margin: 0;
+}
+
+.section-title-main {
+  font: 800 44px/1.15 var(--font-display);
+  letter-spacing: -0.88px;
+}
+
+/* Instrument Serif: chỉ dùng cho chữ tiếng Anh */
+.section-title-accent {
+  font: italic 400 50px/1.15 var(--font-serif);
+  color: var(--color-text-serif);
+}
+
+.section-desc {
+  margin: 0;
+  font: 400 15px/normal var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+/* Nút viên thuốc có bóng cứng */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: 10px 20px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 14px/normal var(--font-sans);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.pill-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-offset-md); }
+.pill-btn:active { transform: translateY(2px); box-shadow: none; }
+
+/* Bìa sách: luôn lấy ảnh từ chính object book */
+.cover {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+  border: var(--border-default) solid var(--color-border-strong);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.sale-price { font-weight: 800; color: var(--color-text-price); white-space: nowrap; }
+
+.old-price {
+  font-style: italic;
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .section-title-main { font-size: 32px; }
+  .section-title-accent { font-size: 36px; }
+}

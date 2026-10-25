@@ -1,0 +1,29 @@
+<div class="marquee" [class.is-tilted]="tilt !== 0">
+  <div #band class="marquee-band"
+       [style.--marquee-bg]="background"
+       [style.--marquee-color]="textColor"
+       [style.--marquee-border]="borderWidth + 'px'"
+       [style.height.px]="height"
+       [style.font-size.px]="fontSize"
+       [style.letter-spacing.px]="letterSpacing"
+       [style.transform]="tilt ? 'rotate(' + tilt + 'deg)' : null">
+    <div class="marquee-track" [style.animation-duration.s]="duration()">
+      <!-- Nửa thứ nhất: được đo để tính số lần lặp -->
+      <div #group class="marquee-group">
+        @for (r of repeats(); track r) {
+          @for (item of items; track $index) {
+            <span class="marquee-item"><span class="marquee-sep" aria-hidden="true">{{ separator }}</span>{{ item }}</span>
+          }
+        }
+      </div>
+      <!-- Nửa thứ hai: bản sao để nối vòng, trình đọc màn hình bỏ qua -->
+      <div class="marquee-group" aria-hidden="true">
+        @for (r of repeats(); track r) {
+          @for (item of items; track $index) {
+            <span class="marquee-item"><span class="marquee-sep">{{ separator }}</span>{{ item }}</span>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>

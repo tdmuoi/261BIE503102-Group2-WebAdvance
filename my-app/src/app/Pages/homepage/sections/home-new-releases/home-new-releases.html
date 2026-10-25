@@ -1,0 +1,61 @@
+<section class="releases">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-heading">
+        <span class="section-tag">✦ Mới về tuần này</span>
+        <h2 class="section-title">
+          <span class="section-title-main">Sách mới phát hành</span>
+          <span class="section-title-accent">fresh off the press</span>
+        </h2>
+        <p class="section-desc">Những đầu sách vừa cập bến Lightbook – còn thơm mùi giấy mới.</p>
+      </div>
+
+      <div class="carousel-nav">
+        <button class="nav-btn" type="button" aria-label="Sách mới trước" [disabled]="page() === 0" (click)="prev()">←</button>
+        <button class="nav-btn nav-btn-next" type="button" aria-label="Sách mới tiếp theo"
+                [disabled]="page() >= pageCount() - 1" (click)="next()">→</button>
+      </div>
+    </div>
+
+    @if (featured(); as book) {
+      <div class="releases-body">
+        <!-- Sách nổi bật: ảnh và tên cùng lấy từ một object -->
+        <article class="featured">
+          <a class="cover featured-cover" [routerLink]="['/product-detail', book._id]">
+            <img [appTrimCover]="book.image" [alt]="book.title" />
+          </a>
+          <div class="featured-info">
+            <span class="featured-badge">★ MỚI NHẤT · {{ book.createdAt | date: 'dd/MM' }}</span>
+            <a class="featured-title" [routerLink]="['/product-detail', book._id]">{{ book.title }}</a>
+            <p class="featured-meta">{{ book.authorName }}</p>
+            <p class="featured-desc">
+              Thể loại: {{ book.categoryName }}<br />
+              Còn {{ book.stock }} cuốn trong kho
+            </p>
+            <p class="featured-prices">
+              <span class="sale-price">{{ book.price | vnd }}</span>
+              @if (book.discountPercent > 0) {
+                <span class="old-price">{{ book.originalPrice | vnd }}</span>
+              }
+            </p>
+          </div>
+        </article>
+
+        @for (item of others(); track item._id) {
+          <article class="release-card">
+            <a class="cover release-cover" [routerLink]="['/product-detail', item._id]">
+              <img [appTrimCover]="item.image" [alt]="item.title" loading="lazy" />
+              <span class="new-badge">NEW</span>
+            </a>
+            <span class="release-date">Phát hành {{ item.createdAt | date: 'dd/MM' }}</span>
+            <a class="release-title" [routerLink]="['/product-detail', item._id]">{{ item.title }}</a>
+            <span class="release-author">{{ item.authorName }}</span>
+            <span class="sale-price release-price">{{ item.price | vnd }}</span>
+          </article>
+        }
+      </div>
+    } @else {
+      <p class="section-desc">Chưa có sách mới.</p>
+    }
+  </div>
+</section>

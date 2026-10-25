@@ -1,0 +1,35 @@
+@if (cards().length) {
+  <section class="authors">
+    <div class="container authors-inner">
+      <header class="authors-head">
+        <h2 class="title-pill">
+          <span class="title-pill-main">Góc tác giả</span>
+          <span class="title-pill-accent">of the month</span>
+        </h2>
+        <p class="section-desc">Bốn cây bút có nhiều đầu sách nhất tại Lightbook</p>
+      </header>
+
+      <div class="author-grid">
+        @for (author of cards(); track author.id) {
+          <article class="author-card">
+            <span class="author-avatar" [class]="'tint-' + author.tint">
+              @if (author.photo) {
+                <img [src]="author.photo" [alt]="author.name" />
+              } @else {
+                <span aria-hidden="true">{{ author.initials }}</span>
+              }
+            </span>
+            <h3 class="author-name">{{ author.name }}</h3>
+            <p class="author-role">{{ author.bookCount }} đầu sách tại Lightbook</p>
+            @if (author.desc) {
+              <p class="author-blurb">“{{ author.desc }}”</p>
+            }
+            <a class="author-link" [routerLink]="['/author-works', author.id]">Xem {{ author.bookCount }} đầu sách →</a>
+          </article>
+        }
+      </div>
+
+      <a class="pill-btn" routerLink="/author-list">Xem tất cả tác giả →</a>
+    </div>
+  </section>
+}
