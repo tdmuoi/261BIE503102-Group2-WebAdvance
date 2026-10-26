@@ -19,6 +19,15 @@ import { Vouchers } from './Pages/vouchers/vouchers';
 import { Refunds } from './Pages/refunds/refunds';
 import { Settings } from './Pages/settings/settings';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
+import { PageHeading } from './Components/page-heading/page-heading';
+import { StatCard } from './Components/stat-card/stat-card';
+import { StatusBadge } from './Components/status-badge/status-badge';
+import { ConfirmDialog } from './Components/confirm-dialog/confirm-dialog';
+import { Pagination } from './Components/pagination/pagination';
+import { Inventory } from './Pages/books/inventory/inventory';
+import { OrderDetail } from './Pages/orders/order-detail/order-detail';
+import { BuybackDetail } from './Pages/buyback-requests/buyback-detail/buyback-detail';
+import { UsersRoles } from './Pages/settings/users-roles/users-roles';
 
 @NgModule({
   declarations: [
@@ -39,6 +48,15 @@ import { PageNotFound } from './Pages/page-not-found/page-not-found';
     Refunds,
     Settings,
     PageNotFound,
+    PageHeading,
+    StatCard,
+    StatusBadge,
+    ConfirmDialog,
+    Pagination,
+    Inventory,
+    OrderDetail,
+    BuybackDetail,
+    UsersRoles,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [provideBrowserGlobalErrorListeners()],

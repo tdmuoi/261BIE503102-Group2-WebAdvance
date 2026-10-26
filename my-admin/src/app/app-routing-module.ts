@@ -16,6 +16,10 @@ import { BuybackRequests } from './Pages/buyback-requests/buyback-requests';
 import { Vouchers } from './Pages/vouchers/vouchers';
 import { Refunds } from './Pages/refunds/refunds';
 import { Settings } from './Pages/settings/settings';
+import { Inventory } from './Pages/books/inventory/inventory';
+import { OrderDetail } from './Pages/orders/order-detail/order-detail';
+import { BuybackDetail } from './Pages/buyback-requests/buyback-detail/buyback-detail';
+import { UsersRoles } from './Pages/settings/users-roles/users-roles';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
 
 const routes: Routes = [
@@ -38,6 +42,10 @@ const routes: Routes = [
       { path: 'vouchers', component: Vouchers },
       { path: 'refunds', component: Refunds },
       { path: 'settings', component: Settings },
+      { path: 'inventory', component: Inventory },
+      { path: 'order-detail/:id', component: OrderDetail },
+      { path: 'buyback-detail/:id', component: BuybackDetail },
+      { path: 'users-roles', component: UsersRoles },
     ]
   },
   { path: '**', component: PageNotFound },          // luôn để cuối cùng
