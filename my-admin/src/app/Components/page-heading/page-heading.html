@@ -1,1 +1,29 @@
-<p>page-heading works!</p>
+<header class="page-heading">
+  <div class="heading-text">
+    @if (breadcrumbs.length || !hideRoot) {
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        @if (!hideRoot) {
+          <a routerLink="/dashboard">Admin</a>
+        }
+        @for (item of breadcrumbs; track $index; let last = $last) {
+          @if (!hideRoot || $index > 0) {
+            <span class="sep" aria-hidden="true">›</span>
+          }
+          @if (item.link && !last) {
+            <a [routerLink]="item.link">{{ item.label }}</a>
+          } @else {
+            <span [class.current]="last">{{ item.label }}</span>
+          }
+        }
+      </nav>
+    }
+    <h1 class="page-title">{{ title }}</h1>
+    @if (subtitle) {
+      <p class="subtitle">{{ subtitle }}</p>
+    }
+  </div>
+
+  <div class="heading-actions">
+    <ng-content></ng-content>
+  </div>
+</header>

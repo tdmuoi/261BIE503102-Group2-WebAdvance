@@ -1,1 +1,18 @@
-<p>stat-card works!</p>
+<ng-template #body>
+  <p class="stat-label">{{ label }}</p>
+  <p class="stat-value">{{ displayValue }}@if (unit) {<span class="stat-unit">{{ unit }}</span>}</p>
+  @if (note) {
+    <p class="stat-note">{{ note }}</p>
+  }
+  <ng-content></ng-content>
+</ng-template>
+
+@if (link) {
+  <a class="stat-card is-link tone-{{ tone }}" [routerLink]="link">
+    <ng-container [ngTemplateOutlet]="body"></ng-container>
+  </a>
+} @else {
+  <div class="stat-card tone-{{ tone }}">
+    <ng-container [ngTemplateOutlet]="body"></ng-container>
+  </div>
+}

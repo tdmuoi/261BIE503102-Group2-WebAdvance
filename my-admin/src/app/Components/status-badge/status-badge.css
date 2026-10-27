@@ -1,0 +1,3 @@
+/* Màu pill lấy từ class .status / .status-* trong src/styles.css */
+:host { display: inline-flex; }
+.status { white-space: nowrap; }

@@ -1,19 +1,70 @@
-<div class="admin">
+<div class="admin" [class.sidebar-open]="sidebarOpen">
+  <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar">
-    <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-    <a routerLink="/book-list" routerLinkActive="active">Sách</a>
-    <a routerLink="/orders" routerLinkActive="active">Đơn hàng</a>
-    <a routerLink="/buyback-requests" routerLinkActive="active">Yêu cầu thanh lý</a>
-    <a routerLink="/refunds" routerLinkActive="active">Đổi trả & hoàn tiền</a>
-    <a routerLink="/banners" routerLinkActive="active">Banner</a>
-    <a routerLink="/vouchers" routerLinkActive="active">Mã giảm giá</a>
-    <a routerLink="/news-list" routerLinkActive="active">Lightbook News</a>
-    <a routerLink="/accounts" routerLinkActive="active">Tài khoản</a>
-    <a routerLink="/settings" routerLinkActive="active">Cài đặt</a>
+    <a class="brand" routerLink="/dashboard">
+      <span class="brand-logo">L</span>
+      <span class="brand-text">
+        <strong>Lightbook</strong>
+        <small>ADMIN</small>
+      </span>
+    </a>
+
+    <nav class="nav">
+      @for (group of navGroups; track group.title) {
+        <p class="nav-group">{{ group.title }}</p>
+        @for (item of group.items; track item.link) {
+          <a class="nav-item" [routerLink]="item.link" [class.active]="isActive(item)"
+             [attr.aria-current]="isActive(item) ? 'page' : null">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      }
+    </nav>
+
+    <a class="btn btn-primary btn-add" routerLink="/book-form">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
+      Thêm sách mới
+    </a>
   </aside>
 
+  <!-- Nền mờ khi mở sidebar trên mobile -->
+  <div class="overlay" (click)="sidebarOpen = false"></div>
+
+  <!-- ================= MAIN ================= -->
   <div class="main">
-    <header class="topbar">Lightbook Admin</header>
+    <header class="topbar">
+      <button type="button" class="icon-btn menu-btn" (click)="toggleSidebar()" aria-label="Mở menu">
+        <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.menu" /></svg>
+      </button>
+
+      <form class="search" role="search" (submit)="$event.preventDefault(); search(keyword.value)">
+        <input #keyword class="search-input" type="search" placeholder="Tìm sách, SKU..." aria-label="Tìm kiếm" />
+        <button type="submit" class="search-btn" aria-label="Tìm">
+          <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.search" /></svg>
+        </button>
+      </form>
+
+      <div class="topbar-right">
+        <button type="button" class="icon-btn bell" aria-label="Thông báo">
+          <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.bell" /></svg>
+          <span class="dot"></span>
+        </button>
+
+        <div class="profile">
+          <div class="profile-text">
+            <strong>{{ admin.name }}</strong>
+            <small>{{ admin.role }}</small>
+          </div>
+          <span class="avatar">{{ initials }}</span>
+        </div>
+
+        <button type="button" class="icon-btn" (click)="logout()" aria-label="Đăng xuất" title="Đăng xuất">
+          <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.logout" /></svg>
+        </button>
+      </div>
+    </header>
+
     <main class="content">
       <router-outlet></router-outlet>
     </main>

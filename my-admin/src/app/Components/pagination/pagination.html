@@ -1,1 +1,28 @@
-<p>pagination works!</p>
+<div class="pagination">
+  <p class="info">
+    @if (total > 0) {
+      Hiển thị {{ formatNumber(from) }}–{{ formatNumber(to) }} trong {{ formatNumber(total) }} {{ itemLabel }}
+    } @else {
+      Không có {{ itemLabel }} nào
+    }
+  </p>
+
+  @if (totalPages > 1) {
+    <nav class="pages" aria-label="Phân trang">
+      <button type="button" class="page-btn" (click)="goTo(current - 1)" [disabled]="current === 1"
+              aria-label="Trang trước">‹</button>
+
+      @for (p of pages; track $index) {
+        @if (p === '...') {
+          <span class="page-btn ellipsis">…</span>
+        } @else {
+          <button type="button" class="page-btn" [class.is-active]="p === current"
+                  [attr.aria-current]="p === current ? 'page' : null" (click)="goTo(p)">{{ p }}</button>
+        }
+      }
+
+      <button type="button" class="page-btn" (click)="goTo(current + 1)" [disabled]="current === totalPages"
+              aria-label="Trang sau">›</button>
+    </nav>
+  }
+</div>

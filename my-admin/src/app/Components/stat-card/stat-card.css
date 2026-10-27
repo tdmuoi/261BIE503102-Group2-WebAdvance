@@ -1,0 +1,27 @@
+:host { display: block; }
+
+.stat-card {
+  display: flex; flex-direction: column; gap: 6px;
+  height: 100%;
+  padding: 18px 20px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-lg);
+}
+.stat-card.is-link { transition: border-color .15s; }
+.stat-card.is-link:hover { border-color: var(--admin-ink); }
+
+.stat-label {
+  margin: 0;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase;
+  color: var(--admin-muted);
+}
+.stat-value { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
+.stat-unit { margin-left: 2px; font-size: 15px; font-weight: 700; }
+.stat-note { margin: 0; font-size: 12px; color: var(--admin-muted); }
+
+/* Màu theo tone — dùng biến trạng thái trong styles.css */
+.tone-ok .stat-note { color: var(--status-ok-fg); }
+.tone-info .stat-value, .tone-info .stat-note { color: var(--status-info-fg); }
+.tone-warn .stat-value, .tone-warn .stat-note { color: var(--status-warn-fg); }
+.tone-bad .stat-value, .tone-bad .stat-note { color: var(--admin-red); }
