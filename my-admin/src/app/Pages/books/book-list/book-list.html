@@ -1,1 +1,162 @@
-<p>book-list works!</p>
+<app-page-heading
+  title="Quản lý sách"
+  subtitle="Danh sách sách đang kinh doanh: thêm, sửa, ẩn khỏi website hoặc xoá."
+  [breadcrumbs]="[{ label: 'Kho sách', link: '/book-list' }, { label: 'Sách' }]">
+  <a class="btn btn-primary" routerLink="/book-form">+ Thêm sách</a>
+</app-page-heading>
+
+@if (flash()) {
+  <div class="flash" role="status">{{ flash() }}</div>
+}
+@if (error()) {
+  <div class="flash flash-error" role="alert">
+    {{ error() }}
+    <button type="button" class="btn btn-sm" (click)="load()">Thử lại</button>
+  </div>
+}
+
+<!-- ===== Thẻ số liệu ===== -->
+@if (data(); as d) {
+  <section class="stats">
+    <app-stat-card label="Tổng đầu sách" [value]="d.counts.all" note="Không tính sách đã xoá"></app-stat-card>
+    <app-stat-card label="Đang bán" [value]="d.counts.active" tone="ok"
+      [note]="percentOf(d.counts.active, d.counts.all) + ' tổng đầu sách'"></app-stat-card>
+    <app-stat-card label="Sắp hết hàng" [value]="d.counts.low" tone="warn"
+      [note]="'Còn ≤ ' + d.lowStockThreshold + ' cuốn'"></app-stat-card>
+    <app-stat-card label="Hết hàng" [value]="d.counts.out" tone="bad" note="Cần nhập thêm"></app-stat-card>
+  </section>
+}
+
+<div class="card card-flush">
+  <!-- ===== Thanh lọc ===== -->
+  <div class="toolbar">
+    <div class="tabs" role="tablist">
+      @for (tab of tabs; track tab.value) {
+        <button type="button" class="chip" role="tab" [class.is-active]="status() === tab.value"
+                [attr.aria-selected]="status() === tab.value" (click)="setStatus(tab.value)">
+          {{ tab.label }}
+          @if (data(); as d) { <span class="count">{{ d.counts[tab.countKey] }}</span> }
+        </button>
+      }
+    </div>
+
+    <div class="filters">
+      <input class="input search" type="search" placeholder="Tìm tên sách, ISBN, tác giả..."
+             [value]="q()" (input)="onSearch($any($event.target).value)" aria-label="Tìm sách" />
+      <select class="select" [value]="categoryId()" (change)="setCategory($any($event.target).value)" aria-label="Thể loại">
+        <option value="">Tất cả thể loại</option>
+        @for (c of categories(); track c._id) {
+          <option [value]="c._id">{{ c.name }}</option>
+        }
+      </select>
+      <select class="select" [value]="sort()" (change)="setSort($any($event.target).value)" aria-label="Sắp xếp">
+        @for (s of sortOptions; track s.value) {
+          <option [value]="s.value">{{ s.label }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- ===== Thanh thao tác khi chọn nhiều ===== -->
+  @if (selected().size) {
+    <div class="bulk-bar">
+      <strong>Đã chọn {{ selected().size }} sách</strong>
+      <button type="button" class="btn btn-sm" [disabled]="working()" (click)="setVisibility(selectedIds(), false)">Ẩn khỏi web</button>
+      <button type="button" class="btn btn-sm" [disabled]="working()" (click)="setVisibility(selectedIds(), true)">Hiện lại</button>
+      <button type="button" class="btn btn-sm btn-danger" [disabled]="working()" (click)="askDeleteSelected()">Xoá đã chọn</button>
+      <button type="button" class="link" (click)="clearSelection()">Bỏ chọn</button>
+    </div>
+  }
+
+  <!-- ===== Bảng ===== -->
+  <div class="table-wrap" [class.is-loading]="loading()">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="col-check">
+            <input type="checkbox" [checked]="allChecked()" [indeterminate]="someChecked()" (change)="toggleAll()" aria-label="Chọn tất cả" />
+          </th>
+          <th>Sách</th>
+          <th>ISBN</th>
+          <th>Thể loại</th>
+          <th class="num">Giá bán</th>
+          <th class="num">Tồn</th>
+          <th>Trạng thái</th>
+          <th class="col-actions">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (book of books(); track book._id) {
+          <tr [class.is-selected]="selected().has(book._id)" [class.is-hidden]="book.status === 'hidden'">
+            <td class="col-check">
+              <input type="checkbox" [checked]="selected().has(book._id)" (change)="toggle(book._id)" [attr.aria-label]="'Chọn ' + book.title" />
+            </td>
+            <td>
+              <a class="book" [routerLink]="['/book-form', book._id]">
+                <span class="cover">
+                  @if (book.image) { <img [src]="book.image" [alt]="book.title" loading="lazy" (error)="hideCover($event)" /> }
+                </span>
+                <span class="book-text">
+                  <strong>{{ book.title }}</strong>
+                  <small>{{ book.authorName || 'Chưa có tác giả' }}</small>
+                </span>
+              </a>
+            </td>
+            <td class="text-muted mono">{{ book.isbn || '—' }}</td>
+            <td class="nowrap">{{ book.categoryName || '—' }}</td>
+            <td class="num">
+              <strong>{{ money(book.price) }}</strong>
+              @if (book.discountPercent > 0) {
+                <small class="old-price">{{ money(book.originalPrice) }} <span>-{{ book.discountPercent }}%</span></small>
+              }
+            </td>
+            <td class="num"><strong [class]="stockClass(book)">{{ book.stock.toLocaleString('vi-VN') }}</strong></td>
+            <td>
+              <app-status-badge [status]="badge(book).status" [label]="badge(book).label"></app-status-badge>
+            </td>
+            <td class="col-actions">
+              <a class="icon-btn" [routerLink]="['/book-form', book._id]" title="Sửa" aria-label="Sửa">
+                <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+              </a>
+              <button type="button" class="icon-btn" [disabled]="working()"
+                      (click)="setVisibility([book._id], book.status === 'hidden')"
+                      [title]="book.status === 'hidden' ? 'Hiện trên website' : 'Ẩn khỏi website'"
+                      [attr.aria-label]="book.status === 'hidden' ? 'Hiện trên website' : 'Ẩn khỏi website'">
+                @if (book.status === 'hidden') {
+                  <svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" /></svg>
+                } @else {
+                  <svg viewBox="0 0 24 24"><path d="M9.9 4.2A9.6 9.6 0 0 1 12 4c6.5 0 10 8 10 8a17.6 17.6 0 0 1-2.2 3.2M6.6 6.6A17.4 17.4 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6M14.1 14.1a3 3 0 1 1-4.2-4.2M2 2l20 20" /></svg>
+                }
+              </button>
+              <button type="button" class="icon-btn danger" [disabled]="working()" (click)="askDelete(book)" title="Xoá" aria-label="Xoá">
+                <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="8" class="empty">
+              @if (loading()) { Đang tải danh sách sách... }
+              @else if (q() || status() || categoryId()) { Không có sách nào khớp bộ lọc. }
+              @else { Chưa có sách nào. <a routerLink="/book-form">Thêm sách đầu tiên</a> }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="data()?.total ?? 0" itemLabel="sách"
+                  (pageChange)="goToPage($event)"></app-pagination>
+</div>
+
+<app-confirm-dialog
+  [open]="!!pending()"
+  [title]="pending()?.title ?? ''"
+  [message]="pending()?.message ?? ''"
+  [note]="pending()?.note ?? ''"
+  [confirmText]="pending()?.confirmText ?? 'Xác nhận'"
+  [loading]="working()"
+  (confirmed)="confirmPending()"
+  (cancelled)="pending.set(null)">
+</app-confirm-dialog>

@@ -1,1 +1,165 @@
-<p>book-form works!</p>
+<app-page-heading
+  [title]="isEdit ? 'Sửa sách' : 'Thêm sách mới'"
+  [subtitle]="isEdit ? 'Cập nhật thông tin, giá bán và tồn kho của sách.' : 'Điền thông tin sách. Các mục có dấu * là bắt buộc.'"
+  [breadcrumbs]="[{ label: 'Kho sách', link: '/book-list' }, { label: 'Sách', link: '/book-list' }, { label: isEdit ? 'Sửa sách' : 'Thêm sách' }]">
+  <a class="btn" routerLink="/book-list">Huỷ</a>
+  <button type="submit" form="book-form" class="btn btn-primary" [disabled]="saving() || loading() || notFound()">
+    {{ saving() ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Thêm sách' }}
+  </button>
+</app-page-heading>
+
+@if (serverError()) {
+  <div class="alert" role="alert">{{ serverError() }}</div>
+}
+
+@if (notFound()) {
+  <div class="card empty">
+    <p>Không tìm thấy sách này (có thể đã bị xoá).</p>
+    <a class="btn" routerLink="/book-list">Về danh sách sách</a>
+  </div>
+} @else if (loading()) {
+  <div class="card empty">Đang tải thông tin sách...</div>
+} @else {
+  <form id="book-form" class="layout" (ngSubmit)="save()" (input)="clearError($any($event.target).name)" novalidate>
+    <!-- ================= CỘT TRÁI ================= -->
+    <div class="col">
+      <section class="card">
+        <h2 class="card-title">Thông tin cơ bản</h2>
+
+        <div class="field" [class.has-error]="errors().title">
+          <label class="label" for="title">Tên sách *</label>
+          <input id="title" name="title" class="input" [(ngModel)]="form.title" maxlength="300" placeholder="VD: Mắt biếc" />
+          @if (errors().title) { <small class="error">{{ errors().title }}</small> }
+        </div>
+
+        <div class="row">
+          <div class="field" [class.has-error]="errors().authorId">
+            <label class="label" for="author">Tác giả</label>
+            <input id="author" name="authorName" class="input" list="author-list" autocomplete="off"
+                   [(ngModel)]="form.authorName" placeholder="Gõ để tìm tác giả" />
+            <datalist id="author-list">
+              @for (a of authors(); track a._id) { <option [value]="a.name"></option> }
+            </datalist>
+            @if (errors().authorId) { <small class="error">{{ errors().authorId }}</small> }
+            @else if (isNewAuthor) { <small class="hint">Tác giả mới — sẽ được thêm vào danh sách tác giả khi lưu</small> }
+          </div>
+          <div class="field">
+            <label class="label" for="publisher">Nhà xuất bản</label>
+            <input id="publisher" name="publisher" class="input" [(ngModel)]="form.publisher" placeholder="VD: NXB Trẻ" />
+          </div>
+        </div>
+
+        <div class="row row-3">
+          <div class="field" [class.has-error]="errors().publishYear">
+            <label class="label" for="year">Năm xuất bản</label>
+            <input id="year" name="publishYear" class="input" type="number" min="1000" max="2100" [(ngModel)]="form.publishYear" />
+            @if (errors().publishYear) { <small class="error">{{ errors().publishYear }}</small> }
+          </div>
+          <div class="field">
+            <label class="label" for="isbn">ISBN</label>
+            <input id="isbn" name="isbn" class="input" [(ngModel)]="form.isbn" placeholder="978-604-..." />
+          </div>
+          <div class="field" [class.has-error]="errors().pages">
+            <label class="label" for="pages">Số trang</label>
+            <input id="pages" name="pages" class="input" type="number" min="1" [(ngModel)]="form.pages" />
+            @if (errors().pages) { <small class="error">{{ errors().pages }}</small> }
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="description">Mô tả sách</label>
+          <textarea id="description" name="description" class="textarea" rows="5" [(ngModel)]="form.description"
+                    placeholder="Giới thiệu ngắn về nội dung sách"></textarea>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Giá & tồn kho</h2>
+        <div class="row">
+          <div class="field" [class.has-error]="errors().originalPrice">
+            <label class="label" for="originalPrice">Giá gốc (VNĐ)</label>
+            <input id="originalPrice" name="originalPrice" class="input" type="number" min="0" step="1000"
+                   [(ngModel)]="form.originalPrice" placeholder="Bỏ trống = bằng giá bán" />
+            @if (errors().originalPrice) { <small class="error">{{ errors().originalPrice }}</small> }
+          </div>
+          <div class="field" [class.has-error]="errors().price">
+            <label class="label" for="price">Giá bán (VNĐ) *</label>
+            <input id="price" name="price" class="input" type="number" min="0" step="1000" [(ngModel)]="form.price" />
+            @if (errors().price) { <small class="error">{{ errors().price }}</small> }
+            @else if (discountPercent > 0) { <small class="hint ok">Giảm {{ discountPercent }}% so với giá gốc</small> }
+          </div>
+        </div>
+        <div class="row">
+          <div class="field" [class.has-error]="errors().stock">
+            <label class="label" for="stock">Số lượng tồn kho</label>
+            <input id="stock" name="stock" class="input" type="number" min="0" step="1" [(ngModel)]="form.stock" />
+            @if (errors().stock) { <small class="error">{{ errors().stock }}</small> }
+            @else { <small class="hint">Còn ≤ 5 cuốn sẽ báo "Sắp hết"</small> }
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= CỘT PHẢI ================= -->
+    <div class="col">
+      <section class="card">
+        <h2 class="card-title">Ảnh bìa</h2>
+        <div class="cover-preview">
+          @if (form.image && !imageBroken()) {
+            <img [src]="form.image" alt="Ảnh bìa" (error)="imageBroken.set(true)" />
+          } @else {
+            <span>{{ form.image ? 'Không tải được ảnh' : 'Chưa có ảnh' }}</span>
+          }
+        </div>
+        <div class="field">
+          <label class="label" for="image">Link ảnh (URL)</label>
+          <input id="image" name="image" class="input" [(ngModel)]="form.image" (ngModelChange)="onImageChange()"
+                 placeholder="https://..." />
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Phân loại</h2>
+        <div class="field" [class.has-error]="errors().categoryId">
+          <label class="label" for="category">Thể loại *</label>
+          <select id="category" name="categoryId" class="select" [(ngModel)]="form.categoryId">
+            <option value="">— Chọn thể loại —</option>
+            @for (c of categoryOptions(); track c.id) { <option [value]="c.id">{{ c.label }}</option> }
+          </select>
+          @if (errors().categoryId) { <small class="error">{{ errors().categoryId }}</small> }
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Hiển thị</h2>
+        <label class="switch-row">
+          <span>
+            <strong>Hiện trên website</strong>
+            <small>Tắt để ẩn tạm thời, khách không thấy sách</small>
+          </span>
+          <input type="checkbox" class="switch" name="visible"
+                 [ngModel]="form.status === 'active'" (ngModelChange)="form.status = $event ? 'active' : 'hidden'" />
+        </label>
+      </section>
+
+      @if (isEdit && book(); as b) {
+        <section class="card meta">
+          <p><span class="text-muted">Ngày thêm</span> {{ b.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+          <p><span class="text-muted">Cập nhật</span> {{ b.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete.set(true)">Xoá sách này</button>
+        </section>
+      }
+    </div>
+  </form>
+}
+
+<app-confirm-dialog
+  [open]="confirmDelete()"
+  [title]="'Xoá sách &quot;' + form.title + '&quot;?'"
+  message="Sách sẽ bị gỡ khỏi website và danh sách quản lý. Các đơn hàng cũ vẫn giữ thông tin sách."
+  [note]="(book()?.stock ?? 0) > 0 ? 'Còn ' + book()?.stock + ' cuốn tồn kho' : ''"
+  confirmText="Xoá sách"
+  [loading]="deleting()"
+  (confirmed)="deleteBook()"
+  (cancelled)="confirmDelete.set(false)">
+</app-confirm-dialog>
