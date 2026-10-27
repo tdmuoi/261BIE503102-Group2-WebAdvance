@@ -121,6 +121,10 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+// API cho trang Dashboard admin: GET /api/admin/dashboard?days=7
+const adminDashboardRoutes = require('./routes/admin-dashboard');
+app.use('/api/admin', adminDashboardRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {

@@ -1,1 +1,153 @@
-<p>dashboard works!</p>
+<app-page-heading
+  title="Tổng quan"
+  [subtitle]="updatedAt() ? 'Cập nhật lúc ' + updatedAt()!.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' hôm nay' : 'Tình hình kinh doanh của Lightbook'"
+  [breadcrumbs]="[{ label: 'Dashboard' }]">
+  <select class="select period" [value]="days()" (change)="changeDays($any($event.target).value)" aria-label="Khoảng thời gian">
+    @for (opt of periodOptions; track opt.days) {
+      <option [value]="opt.days">{{ opt.label }}</option>
+    }
+  </select>
+  <button type="button" class="btn" (click)="load()" [disabled]="loading()">
+    {{ loading() ? 'Đang tải...' : 'Làm mới' }}
+  </button>
+</app-page-heading>
+
+@if (error()) {
+  <div class="card alert" role="alert">
+    <strong>Chưa lấy được số liệu.</strong>
+    <p>{{ error() }}</p>
+    <button type="button" class="btn btn-sm" (click)="load()">Thử lại</button>
+  </div>
+}
+
+@if (data(); as d) {
+  <!-- ===== 1. Thẻ số liệu ===== -->
+  <section class="stats" [class.is-loading]="loading()">
+    <app-stat-card label="Tổng doanh thu" [value]="d.stats.revenue.value" unit="đ"
+      [note]="changeNote(d.stats.revenue)" [tone]="changeTone(d.stats.revenue)"></app-stat-card>
+    <app-stat-card label="Đơn hàng mới" [value]="d.stats.orders.value" link="/orders"
+      [note]="changeNote(d.stats.orders)" [tone]="changeTone(d.stats.orders)"></app-stat-card>
+    <app-stat-card label="Khách hàng" [value]="d.stats.customers.value" link="/accounts"
+      [note]="'+' + d.stats.customers.new + ' khách mới trong ' + days() + ' ngày'"
+      [tone]="d.stats.customers.new > 0 ? 'ok' : 'default'"></app-stat-card>
+    <app-stat-card label="Đang chờ trả" [value]="d.stats.pendingReturns.value" link="/refunds"
+      [note]="d.stats.pendingReturns.value ? 'Yêu cầu trả hàng cần xử lý' : 'Không có yêu cầu nào'"
+      [tone]="d.stats.pendingReturns.value ? 'bad' : 'default'"></app-stat-card>
+  </section>
+
+  <!-- ===== 2. Biểu đồ + danh mục hot ===== -->
+  <section class="grid" [class.is-loading]="loading()">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Hiệu suất bán hàng</h2>
+          <p class="text-muted">Doanh thu theo ngày · tổng {{ money(chartTotal()) }}</p>
+        </div>
+      </div>
+
+      @if (!d.sources.orders) {
+        <p class="empty">MongoDB chưa có collection <code>orders</code> — biểu đồ sẽ hiện khi có đơn hàng.</p>
+      } @else {
+        <div class="chart" [class.is-dense]="chartBars().length > 10">
+          <span class="chart-max">{{ shortMoney(chartMax()) }}</span>
+          @for (bar of chartBars(); track $index) {
+            <div class="bar-col" [attr.title]="bar.tooltip">
+              <div class="bar-track">
+                <div class="bar" [class.is-today]="bar.isToday" [style.height.%]="bar.height"></div>
+              </div>
+              <span class="bar-label" [class.is-today]="bar.isToday">{{ bar.showLabel ? bar.label : '' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Danh mục hot</h2>
+          <p class="text-muted">
+            {{ d.categoryBasis === 'sold' ? 'Tỷ lệ sách bán ra theo thể loại' : 'Tỷ lệ đầu sách theo thể loại (chưa có đơn)' }}
+          </p>
+        </div>
+      </div>
+      @for (cat of d.hotCategories; track cat.name; let i = $index) {
+        <div class="progress-row">
+          <div class="progress-text"><span>{{ cat.name }}</span><strong>{{ cat.percent }}%</strong></div>
+          <div class="progress"><div class="progress-fill" [style.width.%]="cat.percent" [style.opacity]="1 - i * 0.18"></div></div>
+        </div>
+      } @empty {
+        <p class="empty">Chưa có dữ liệu thể loại.</p>
+      }
+    </div>
+  </section>
+
+  <!-- ===== 3. Đơn gần đây + sách sắp hết ===== -->
+  <section class="grid" [class.is-loading]="loading()">
+    <div class="card card-flush">
+      <div class="card-head padded">
+        <div>
+          <h2 class="card-title">Đơn hàng gần đây</h2>
+          <p class="text-muted">5 đơn mới nhất</p>
+        </div>
+        <a class="btn btn-sm" routerLink="/orders">Xem tất cả</a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th class="num">Tổng tiền</th><th>Trạng thái</th></tr>
+          </thead>
+          <tbody>
+            @for (o of d.recentOrders; track o._id) {
+              <tr class="clickable" [routerLink]="['/order-detail', o._id]">
+                <td><strong>{{ o.code }}</strong></td>
+                <td>
+                  <span class="customer"><span class="mini-avatar">{{ initials(o.customerName) }}</span>{{ o.customerName }}</span>
+                </td>
+                <td class="text-muted">{{ orderTime(o.createdAt) }}</td>
+                <td class="num"><strong>{{ money(o.total) }}</strong></td>
+                <td><app-status-badge [status]="o.status"></app-status-badge></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="empty">Chưa có đơn hàng nào.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Sắp hết hàng</h2>
+          <p class="text-muted">
+            {{ d.inventory.lowStockCount }} sắp hết · {{ d.inventory.outOfStockCount }} hết hàng
+            / {{ d.inventory.totalBooks.toLocaleString('vi-VN') }} đầu sách
+          </p>
+        </div>
+        <a class="btn btn-sm" routerLink="/inventory">Tồn kho</a>
+      </div>
+      @for (b of d.inventory.lowStock; track b._id) {
+        <a class="stock-row" [routerLink]="['/book-form', b._id]">
+          @if (b.image) {
+            <img [src]="b.image" [alt]="b.title" loading="lazy" />
+          } @else {
+            <span class="cover-placeholder"></span>
+          }
+          <span class="stock-title">{{ b.title }}</span>
+          <app-status-badge [status]="b.stock > 0 ? 'low_stock' : 'out_of_stock'"
+            [label]="b.stock > 0 ? 'Còn ' + b.stock : 'Hết hàng'"></app-status-badge>
+        </a>
+      } @empty {
+        <p class="empty">Không có sách nào dưới {{ d.inventory.threshold }} cuốn.</p>
+      }
+    </div>
+  </section>
+} @else if (loading()) {
+  <section class="stats">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div class="skeleton"></div>
+    }
+  </section>
+  <div class="skeleton skeleton-lg"></div>
+}
