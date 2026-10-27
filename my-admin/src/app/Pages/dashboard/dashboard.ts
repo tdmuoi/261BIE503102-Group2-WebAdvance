@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 
 import { DashboardData, DashboardStat } from '../../models/dashboard';
@@ -66,7 +67,7 @@ export class Dashboard {
         this.updatedAt.set(new Date());
         this.loading.set(false);
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse) => {
         this.error.set(
           err?.status === 0
             ? 'Không kết nối được my-server (http://localhost:3002). Hãy mở terminal, vào thư mục my-server và chạy "npm run dev".'
