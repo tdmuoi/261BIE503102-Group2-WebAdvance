@@ -13,7 +13,6 @@
   background: var(--color-bg-placeholder);
   border: var(--border-default) solid var(--color-border-strong);
   border-radius: var(--radius-12);
-  box-shadow: var(--shadow-offset-md);
   transition: transform .15s ease;
 }
 
