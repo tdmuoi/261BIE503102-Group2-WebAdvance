@@ -1,0 +1,6 @@
+<div class="buy-bar">
+  <button class="buy-btn buy-add" type="button" [disabled]="disabled()" (click)="add.emit()">
+    <img src="images/icons/shopping-bag.svg" alt="" width="20" height="20" />Thêm vào giỏ
+  </button>
+  <button class="buy-btn buy-now" type="button" (click)="buy.emit()">Mua ngay</button>
+</div>

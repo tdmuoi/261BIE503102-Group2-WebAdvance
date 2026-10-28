@@ -1,0 +1,97 @@
+@let item = book();
+@if (category() || inCart() > 0) {
+  <div class="info-badges">
+    @if (category(); as cat) {
+      <a class="badge" routerLink="/books" [queryParams]="{ category: cat.slug }">{{ cat.name }}</a>
+    }
+    @if (inCart() > 0) {
+      <span class="badge badge-in-cart">
+        <img src="images/icons/check-success.svg" alt="" width="14" height="14" />Đã có trong giỏ
+      </span>
+    }
+  </div>
+}
+
+<h1 class="info-title">{{ item.title }}</h1>
+
+<div class="info-byline">
+  @if (item.authorId) {
+    <a class="info-author" routerLink="/books" [queryParams]="{ author: item.authorId }">
+      <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+      <span class="byline-label">Tác giả:</span>
+      <span class="author-name">{{ item.authorName }}</span>
+    </a>
+  } @else {
+    <span class="byline-label">Tác giả: đang cập nhật</span>
+  }
+  @if (item.translator) {
+    <span class="byline-label">· Dịch giả: {{ item.translator }}</span>
+  }
+</div>
+
+@if (item.rating || item.soldCount) {
+  <div class="info-rating">
+    @if (item.rating; as rating) {
+      <span class="stars" [attr.aria-label]="'Đánh giá ' + rating.toFixed(1) + ' trên 5'">
+        @for (star of stars; track star) {
+          <img [src]="star <= rating + 0.5 ? 'images/icons/star.svg' : 'images/icons/star-empty.svg'" alt="" width="18" height="18" />
+        }
+      </span>
+      <strong>{{ rating.toFixed(1) }}</strong>
+      <span>({{ item.reviewCount ?? 0 }} đánh giá)</span>
+    }
+    @if (item.soldCount) {
+      <span>· Đã bán {{ soldText() }}</span>
+    }
+  </div>
+}
+
+<div class="info-price">
+  <span class="price-lg">{{ item.price | vnd }}</span>
+  @if (item.originalPrice > item.price) {
+    <span class="price-old-lg">{{ item.originalPrice | vnd }}</span>
+    <span class="badge badge-save">Tiết kiệm {{ item.originalPrice - item.price | vnd }}</span>
+  }
+</div>
+
+@if (item.description) {
+  <p class="body-lg info-desc">{{ item.description }}</p>
+}
+
+@if (inCart() > 0) {
+  <div class="in-cart" role="status">
+    <img src="images/icons/check-circle.svg" alt="" width="22" height="22" />
+    <div class="in-cart-text">
+      <strong>Đã có {{ inCart() }} cuốn trong giỏ hàng</strong>
+      <span>Thêm nữa sẽ cộng dồn số lượng. Tạm tính hiện tại: {{ inCart() * item.price | vnd }}.</span>
+    </div>
+    <a class="in-cart-link" routerLink="/cart">
+      Xem giỏ hàng <img src="images/icons/arrow-right-sm.svg" alt="" width="14" height="14" />
+    </a>
+  </div>
+}
+
+<div class="info-qty">
+  <span class="qty-label" id="qty-label">Số lượng</span>
+  <app-quantity-stepper role="group" aria-labelledby="qty-label" [(value)]="quantity" [max]="maxQuantity()"></app-quantity-stepper>
+  <span class="qty-stock" [class.is-out]="maxQuantity() <= 0">{{ stockText() }}</span>
+</div>
+
+<div class="info-actions">
+  <button class="cta cta-add" type="button" [disabled]="maxQuantity() <= 0" (click)="add.emit()">
+    <img src="images/icons/shopping-bag.svg" alt="" width="20" height="20" />
+    Thêm {{ quantity() }} cuốn vào giỏ
+  </button>
+  <button class="cta cta-buy" type="button" [disabled]="item.stock <= 0" (click)="buy.emit()">
+    Mua ngay <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+  </button>
+  <button class="share" type="button" aria-label="Chia sẻ sách" (click)="share.emit()">
+    <img src="images/icons/share.svg" alt="" width="20" height="20" />
+  </button>
+</div>
+
+<ul class="info-perks">
+  <li><img src="images/icons/truck.svg" alt="" width="18.1667" height="18" />Freeship đơn từ 500.000đ</li>
+  <li><img src="images/icons/gift.svg" alt="" width="18" height="18" />Tặng bookmark Lightbook</li>
+  <li><img src="images/icons/check.svg" alt="" width="18" height="18" />Đổi trả trong 7 ngày</li>
+</ul>

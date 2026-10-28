@@ -1,0 +1,82 @@
+/* Figma "Section – Mô tả & thông tin" 873:5591 */
+
+.about {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-24);
+  padding-top: 60px;
+  padding-bottom: var(--space-80);
+}
+
+.about-desc { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: var(--space-16); min-width: 0; }
+
+.about-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-12); font: inherit; letter-spacing: normal; }
+
+.about-title-main { font: 800 34px/1.2 var(--font-display); letter-spacing: -2px; }
+
+.about-title-accent { font: italic 400 40px/1.2 var(--font-serif); letter-spacing: -0.9px; color: var(--color-text-serif); }
+
+.about-text { display: flex; flex-direction: column; gap: var(--space-16); color: var(--color-text-body); }
+
+.about-text p { margin: 0; }
+
+/* Thu gọn còn khoảng 3 đoạn như Figma */
+.about-text.is-collapsed {
+  max-height: 15em;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, var(--color-text-primary) 70%, transparent);
+}
+
+.about-more {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0;
+  background: none;
+  border: 0;
+  font: 700 14px/1.3 var(--font-sans);
+  text-decoration: underline;
+}
+
+.about-more img.is-up { transform: rotate(180deg); }
+
+.specs {
+  width: 392px;
+  flex-shrink: 0;
+  padding: 28px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.specs-title { font: 800 20px/1.3 var(--font-display); letter-spacing: normal; }
+
+.specs dl { margin: 0; }
+
+.spec {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-16);
+  padding: var(--space-12) 0;
+  border-bottom: var(--border-default) solid var(--color-border-subtle);
+  font-size: 14px;
+}
+
+.spec dt { line-height: 1.55; color: var(--color-text-secondary); }
+
+.spec dd { margin: 0; font-weight: 700; line-height: 1.3; text-align: right; }
+
+@media (max-width: 960px) {
+  .about { flex-direction: column; padding-top: 0; padding-bottom: var(--space-56); }
+
+  .specs { width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .about-title-main { font-size: 28px; }
+
+  .about-title-accent { font-size: 32px; }
+
+  .specs { padding: var(--space-20); }
+}

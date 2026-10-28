@@ -1,0 +1,27 @@
+@let item = book();
+<div class="gallery-main">
+  <div class="gallery-cover">
+    <img [appTrimCover]="images()[selected()].url" [alt]="item.title + ' – ' + images()[selected()].label" />
+  </div>
+
+  @if (item.discountPercent > 0) {
+    <span class="gallery-discount">-{{ item.discountPercent }}%</span>
+  }
+
+  <button class="gallery-like" type="button" [class.is-active]="liked()" [attr.aria-pressed]="liked()"
+          [attr.aria-label]="'Yêu thích ' + item.title" (click)="liked.set(!liked())">
+    <img src="images/icons/heart-outline.svg" alt="" width="20" height="20" />
+  </button>
+</div>
+
+@if (images().length > 1) {
+  <div class="gallery-thumbs" role="group" aria-label="Ảnh sách">
+    @for (image of images(); track image.url; let i = $index) {
+      <button class="thumb" type="button" [class.is-active]="i === selected()" [attr.aria-pressed]="i === selected()"
+              (click)="selected.set(i)">
+        <img class="thumb-img" [src]="image.url" [alt]="image.label" loading="lazy" />
+        <span class="thumb-label">{{ image.label }}</span>
+      </button>
+    }
+  </div>
+}

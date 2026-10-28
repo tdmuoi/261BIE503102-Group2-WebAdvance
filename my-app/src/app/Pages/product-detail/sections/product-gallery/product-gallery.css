@@ -1,0 +1,100 @@
+/* Figma "Gallery" 873:5445 */
+
+:host { display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
+
+.gallery-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 600px;
+  padding: var(--space-40);
+  background: var(--color-tint-mint);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.gallery-cover {
+  width: 316px;
+  max-width: 100%;
+  aspect-ratio: 316 / 460;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+  box-shadow: var(--shadow-offset-lg);
+}
+
+.gallery-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.gallery-discount {
+  position: absolute;
+  top: 28px;
+  left: 30px;
+  padding: var(--space-4) var(--space-10);
+  background: var(--color-tint-pink-strong);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  font: 700 12px/1.3 var(--font-sans);
+  transform: rotate(-8deg);
+}
+
+.gallery-like {
+  position: absolute;
+  right: 23px;
+  bottom: 23px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: var(--color-bg-surface);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+}
+
+.gallery-like.is-active { background: var(--color-tint-pink-strong); }
+
+/* ---------- Ảnh nhỏ có nhãn ---------- */
+.gallery-thumbs { display: flex; flex-wrap: wrap; gap: var(--space-16); }
+
+.thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  width: 96px;
+  height: 120px;
+  padding: var(--space-10);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-14);
+}
+
+.thumb.is-active {
+  background: var(--color-tint-mint);
+  border: var(--border-strong) solid var(--color-border-strong);
+  box-shadow: var(--shadow-offset-sm);
+}
+
+.thumb-img {
+  width: 56px;
+  height: 80px;
+  object-fit: cover;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: 4px;
+}
+
+.thumb-label { font: 400 11px/1.3 var(--font-sans); color: var(--color-text-secondary); white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .gallery-main { height: auto; padding: var(--space-32) var(--space-24); }
+
+  .gallery-cover { width: 220px; }
+
+  .thumb { width: 80px; height: 104px; }
+}

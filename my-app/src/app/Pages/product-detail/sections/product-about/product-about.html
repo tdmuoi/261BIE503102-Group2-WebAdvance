@@ -1,0 +1,37 @@
+@if (paragraphs().length || specs().length) {
+  <section class="container about">
+    @if (paragraphs().length) {
+      <div class="about-desc">
+        <h2 class="about-title">
+          <span class="about-title-main">Giới thiệu sách</span>
+          <span class="about-title-accent">about the book</span>
+        </h2>
+        <div class="about-text" [class.is-collapsed]="collapsible() && !expanded()">
+          @for (paragraph of paragraphs(); track $index) {
+            <p class="body-lg">{{ paragraph }}</p>
+          }
+        </div>
+        @if (collapsible()) {
+          <button class="about-more" type="button" [attr.aria-expanded]="expanded()" (click)="expanded.set(!expanded())">
+            {{ expanded() ? 'Thu gọn' : 'Xem thêm' }}
+            <img src="images/icons/chevron-down-sm.svg" alt="" width="16" height="16" [class.is-up]="expanded()" />
+          </button>
+        }
+      </div>
+    }
+
+    @if (specs().length) {
+      <div class="specs">
+        <h3 class="specs-title">Thông tin chi tiết</h3>
+        <dl>
+          @for (spec of specs(); track spec.label) {
+            <div class="spec">
+              <dt>{{ spec.label }}</dt>
+              <dd>{{ spec.value }}</dd>
+            </div>
+          }
+        </dl>
+      </div>
+    }
+  </section>
+}

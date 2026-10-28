@@ -3,14 +3,13 @@ import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 
 import { AppRoutingModule } from './app-routing-module';
+import { SharedModule } from './shared/shared-module';
 import { App } from './app';
 import { PageHeader } from './Components/page-header/page-header';
 import { PageFooter } from './Components/page-footer/page-footer';
 import { Homepage } from './Pages/homepage/homepage';
 import { AboutUs } from './Pages/about-us/about-us';
-import { BookCard } from './Components/book-card/book-card';
 import { BrowseBook } from './Pages/browse-book/browse-book';
-import { ProductDetail } from './Pages/product-detail/product-detail';
 import { Cart } from './Pages/cart/cart';
 import { Checkout } from './Pages/checkout/checkout';
 import { AuthorList } from './Pages/author/author-list/author-list';
@@ -37,8 +36,6 @@ import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { AuthorWorks } from './Pages/author/author-works/author-works';
 import { AuthorEvents } from './Pages/author/author-events/author-events';
 import { Marquee } from './Components/marquee/marquee';
-import { VndPipe } from './pipes/vnd-pipe';
-import { TrimCover } from './directives/trim-cover';
 import { HomeHero } from './Pages/homepage/sections/home-hero/home-hero';
 import { HomeSearch } from './Pages/homepage/sections/home-search/home-search';
 import { HomeFlashSale } from './Pages/homepage/sections/home-flash-sale/home-flash-sale';
@@ -51,7 +48,6 @@ import { HomeBestPanel } from './Pages/homepage/sections/home-best-panel/home-be
 import { HomeDealCard } from './Pages/homepage/sections/home-deal-card/home-deal-card';
 import { ToastHost } from './Components/toast/toast';
 import { Pagination } from './Components/pagination/pagination';
-import { StatusCard } from './Components/status-card/status-card';
 import { BrowseBanner } from './Pages/browse-book/sections/browse-banner/browse-banner';
 import { BrowseFilters } from './Pages/browse-book/sections/browse-filters/browse-filters';
 import { BrowseEmpty } from './Pages/browse-book/sections/browse-empty/browse-empty';
@@ -65,9 +61,7 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     PageFooter,
     Homepage,
     AboutUs,
-    BookCard,
     BrowseBook,
-    ProductDetail,
     Cart,
     Checkout,
     AuthorList,
@@ -94,8 +88,6 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     AuthorWorks,
     AuthorEvents,
     Marquee,
-    VndPipe,
-    TrimCover,
     HomeHero,
     HomeSearch,
     HomeFlashSale,
@@ -108,14 +100,13 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     HomeDealCard,
     ToastHost,
     Pagination,
-    StatusCard,
     BrowseBanner,
     BrowseFilters,
     BrowseEmpty,
     BrowsePrice,
     BrowseMenu,
   ],
-  imports: [BrowserModule, AppRoutingModule],
+  imports: [BrowserModule, AppRoutingModule, SharedModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],
   bootstrap: [App],
 })

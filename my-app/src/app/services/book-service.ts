@@ -67,13 +67,6 @@ export class BookService {
     return this.catalog$;
   }
 
-  /** Tìm sách theo slug, hoặc theo _id như các link hiện có trên trang chủ */
-  getBook(idOrSlug: string): Observable<CatalogBook | null> {
-    return this.getCatalog().pipe(
-      map(({ books }) => books.find((book) => book.slug === idOrSlug || book._id === idOrSlug) ?? null),
-    );
-  }
-
   /** Chưa có API đánh giá trong my-server nên luôn trả về danh sách rỗng */
   getReviews(_bookId: string): Observable<Review[]> {
     return of([]);

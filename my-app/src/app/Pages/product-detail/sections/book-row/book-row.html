@@ -1,0 +1,24 @@
+<section class="container book-row">
+  <div class="section-head">
+    <div class="section-heading">
+      <span class="section-tag">{{ tag() }}</span>
+      <h2 class="section-title">
+        <span class="section-title-main">{{ title() }}</span>
+        @if (accent()) {
+          <span class="section-title-accent">{{ accent() }}</span>
+        }
+      </h2>
+    </div>
+    @if (linkLabel()) {
+      <a class="row-link" routerLink="/books" [queryParams]="linkQuery()">
+        {{ linkLabel() }} <img src="images/icons/arrow-right.svg" alt="" width="16" height="16" />
+      </a>
+    }
+  </div>
+
+  <div class="row-grid">
+    @for (book of books(); track book._id) {
+      <app-book-card [book]="book"></app-book-card>
+    }
+  </div>
+</section>

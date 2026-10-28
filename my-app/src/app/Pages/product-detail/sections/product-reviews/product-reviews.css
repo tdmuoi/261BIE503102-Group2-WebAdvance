@@ -1,0 +1,121 @@
+/* Figma "Section – Đánh giá" 873:5627. Tiêu đề section dùng section-shared.css của trang chủ */
+
+.reviews {
+  background: var(--color-tint-yellow);
+  border-top: var(--border-default) solid var(--color-border-strong);
+  border-bottom: var(--border-default) solid var(--color-border-strong);
+}
+
+.reviews-inner { display: flex; flex-direction: column; gap: var(--space-32); padding-top: var(--space-80); padding-bottom: var(--space-80); }
+
+.reviews-write { display: flex; align-items: center; gap: var(--space-6); font: 700 14px/1.3 var(--font-sans); }
+
+.reviews-write:hover { text-decoration: underline; }
+
+.reviews-content { display: flex; align-items: flex-start; gap: var(--space-24); }
+
+/* Thẻ điểm trung bình + trạng thái chưa có đánh giá */
+.summary,
+.reviews-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-14);
+  padding: 28px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.summary { width: 392px; flex-shrink: 0; }
+
+.summary-score { margin: 0; font: 400 16px/1.6 var(--font-sans); color: var(--color-text-secondary); }
+
+.summary-score strong { font: 800 44px/1.2 var(--font-display); letter-spacing: -2px; color: var(--color-text-primary); }
+
+.summary-stars { display: flex; align-items: center; gap: var(--space-2); font: 400 12px/20px var(--font-sans); color: var(--color-text-secondary); }
+
+.summary-stars span { margin-left: var(--space-4); }
+
+.bar { display: flex; align-items: center; gap: var(--space-10); }
+
+.bar-star { width: 22px; font: 700 12px/1.3 var(--font-sans); }
+
+.bar-track {
+  flex: 1;
+  height: 10px;
+  overflow: hidden;
+  background: var(--color-bg-disabled);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+.bar-fill { display: block; height: 100%; background: var(--color-tint-yellow-strong); }
+
+.bar-pct { width: 28px; font: 400 11px/1.3 var(--font-sans); color: var(--color-text-secondary); text-align: right; }
+
+/* Danh sách đánh giá */
+.review-list { display: flex; flex: 1; flex-direction: column; gap: var(--space-16); min-width: 0; }
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+  padding: var(--space-20) var(--space-24);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-18);
+}
+
+.review-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-10); font: 700 14px/1.3 var(--font-sans); }
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+}
+
+.avatar[data-tone='mint'] { background: var(--color-tint-mint); }
+.avatar[data-tone='yellow'] { background: var(--color-tint-yellow); }
+
+.review-meta { font: 400 12px/20px var(--font-sans); color: var(--color-text-secondary); }
+
+.verified {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-10);
+  background: var(--color-feedback-success-bg);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  color: var(--color-feedback-success);
+}
+
+.review-body { margin: 0; font: italic 400 13px/1.6 var(--font-sans); color: var(--color-text-body); }
+
+.review-helpful { font: 700 12px/1.3 var(--font-sans); color: var(--color-text-secondary); }
+
+.reviews-all { align-self: center; box-shadow: none; }
+
+.reviews-empty { align-items: center; padding: 48px var(--space-24); text-align: center; }
+
+.reviews-empty p { margin: 0; color: var(--color-text-secondary); }
+
+.reviews-empty .reviews-empty-title { font: 800 20px/normal var(--font-display); color: var(--color-text-primary); }
+
+@media (max-width: 960px) {
+  .reviews-content { flex-direction: column; align-items: stretch; }
+
+  .summary { width: auto; }
+}
+
+@media (max-width: 600px) {
+  .reviews-inner { padding-top: var(--space-56); padding-bottom: var(--space-56); }
+}

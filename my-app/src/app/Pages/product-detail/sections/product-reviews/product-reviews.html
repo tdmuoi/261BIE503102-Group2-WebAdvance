@@ -1,0 +1,77 @@
+@let list = reviews();
+<section class="reviews" id="danh-gia">
+  <div class="container reviews-inner">
+    <div class="section-head">
+      <div class="section-heading">
+        <span class="section-tag">✦ Độc giả nói gì</span>
+        <h2 class="section-title">
+          <span class="section-title-main">Đánh giá</span>
+          <span class="section-title-accent">readers' notes</span>
+        </h2>
+        <p class="section-desc">
+          {{ list.length ? list.length + ' đánh giá từ độc giả đã mua tại Lightbook.' : 'Chưa có đánh giá nào cho cuốn sách này.' }}
+        </p>
+      </div>
+      <!-- Đánh giá được viết sau khi mua, từ trang Đơn hàng -->
+      <a class="reviews-write" routerLink="/account/orders">
+        Viết đánh giá <img src="images/icons/arrow-right.svg" alt="" width="16" height="16" />
+      </a>
+    </div>
+
+    @if (list.length) {
+      <div class="reviews-content">
+        <div class="summary">
+          <p class="summary-score"><strong>{{ average().toFixed(1) }}</strong> / 5</p>
+          <div class="summary-stars">
+            @for (star of stars; track star) {
+              <img [src]="star <= average() + 0.5 ? 'images/icons/star.svg' : 'images/icons/star-empty.svg'" alt="" width="18" height="18" />
+            }
+            <span>{{ list.length }} đánh giá</span>
+          </div>
+          @for (row of distribution(); track row.star) {
+            <div class="bar">
+              <span class="bar-star">{{ row.star }} ★</span>
+              <span class="bar-track"><span class="bar-fill" [style.width.%]="row.percent"></span></span>
+              <span class="bar-pct">{{ row.percent }}%</span>
+            </div>
+          }
+        </div>
+
+        <div class="review-list">
+          @for (review of visible(); track review._id; let i = $index) {
+            <article class="review">
+              <div class="review-head">
+                <span class="avatar" [attr.data-tone]="tones[i % tones.length]" aria-hidden="true">{{ initials(review.userName) }}</span>
+                <strong>{{ review.userName }}</strong>
+                <span class="review-meta">{{ review.rating }} ★ · {{ formatDate(review.createdAt) }}</span>
+                @if (review.verifiedPurchase) {
+                  <span class="verified">
+                    <img src="images/icons/check-success.svg" alt="" width="14" height="14" />Đã mua tại Lightbook
+                  </span>
+                }
+              </div>
+              <p class="review-body">“{{ review.content }}”</p>
+              <span class="review-helpful">Hữu ích ({{ review.helpfulCount }})</span>
+            </article>
+          }
+          @if (!showAll() && list.length > visible().length) {
+            <button class="pill-btn reviews-all" type="button" (click)="showAll.set(true)">
+              Xem tất cả {{ list.length }} đánh giá
+              <img src="images/icons/arrow-right-lg.svg" alt="" width="20" height="20" />
+            </button>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="reviews-empty">
+        <div class="summary-stars" aria-hidden="true">
+          @for (star of stars; track star) {
+            <img src="images/icons/star-empty.svg" alt="" width="18" height="18" />
+          }
+        </div>
+        <p class="reviews-empty-title">Chưa có đánh giá</p>
+        <p>Hãy là người đầu tiên chia sẻ cảm nhận sau khi đọc cuốn sách này.</p>
+      </div>
+    }
+  </div>
+</section>

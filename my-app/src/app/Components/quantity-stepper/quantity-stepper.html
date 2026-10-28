@@ -1,0 +1,7 @@
+<button class="stepper-btn" type="button" aria-label="Giảm số lượng" [disabled]="value() <= 1" (click)="change(-1)">
+  <img src="images/icons/minus.svg" alt="" width="16" height="16" />
+</button>
+<span class="stepper-value" aria-live="polite">{{ value() }}</span>
+<button class="stepper-btn stepper-plus" type="button" aria-label="Tăng số lượng" [disabled]="value() >= max()" (click)="change(1)">
+  <img src="images/icons/plus.svg" alt="" width="16" height="16" />
+</button>

@@ -1,0 +1,40 @@
+/* Chỉ hiện trên mobile. z-index 90: trên nội dung, dưới header (100) và toast (1100) */
+
+:host { display: none; }
+
+@media (max-width: 768px) {
+  :host {
+    position: sticky;
+    bottom: 0;
+    z-index: 90;
+    display: block;
+  }
+}
+
+.buy-bar {
+  display: flex;
+  gap: var(--space-10);
+  padding: var(--space-12) var(--space-16) calc(var(--space-12) + env(safe-area-inset-bottom));
+  background: var(--color-bg-page);
+  border-top: var(--border-default) solid var(--color-border-strong);
+}
+
+.buy-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-16);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-xs);
+  font: 800 14px/1.3 var(--font-sans);
+  white-space: nowrap;
+}
+
+.buy-add { background: var(--color-tint-pink); }
+
+.buy-now { background: var(--color-bg-inverse); color: var(--color-text-inverse); }
+
+.buy-btn:disabled { background: var(--color-bg-disabled); color: var(--color-text-muted); box-shadow: none; cursor: not-allowed; }

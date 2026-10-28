@@ -1,1 +1,69 @@
-<p>product-detail works!</p>
+<div class="pd">
+  @switch (state()) {
+    @case ('loading') {
+      <div class="container pd-status">
+        <app-status-card tone="loading" message="Đang tải thông tin sách…"></app-status-card>
+      </div>
+    }
+
+    @case ('error') {
+      <div class="container pd-status">
+        <app-status-card tone="error" title="Không kết nối được máy chủ"
+                         message="Hãy kiểm tra my-server đang chạy ở cổng 3002 rồi thử lại.">
+          <button class="pd-status-btn" type="button" (click)="retry()">Thử lại</button>
+        </app-status-card>
+      </div>
+    }
+
+    @case ('not-found') {
+      <div class="container pd-status">
+        <app-status-card title="Không tìm thấy sách"
+                         message="Cuốn sách bạn tìm không tồn tại hoặc đã ngừng bán.">
+          <a class="pd-status-btn" routerLink="/books">← Quay lại danh sách sách</a>
+        </app-status-card>
+      </div>
+    }
+
+    @case ('ready') {
+      @let item = book()!;
+      <section class="container pd-top">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a routerLink="/">Trang chủ</a>
+          @if (category(); as cat) {
+            <img src="images/icons/chevron-right.svg" alt="" width="14" height="14" />
+            <a routerLink="/books" [queryParams]="{ category: cat.slug }">{{ cat.name }}</a>
+          }
+          @if (item.authorId) {
+            <img src="images/icons/chevron-right.svg" alt="" width="14" height="14" />
+            <a routerLink="/books" [queryParams]="{ author: item.authorId }">{{ item.authorName }}</a>
+          }
+          <img src="images/icons/chevron-right.svg" alt="" width="14" height="14" />
+          <span class="breadcrumb-current" aria-current="page">{{ item.title }}</span>
+        </nav>
+
+        <div class="pd-product">
+          <app-product-gallery [book]="item"></app-product-gallery>
+          <app-product-info [book]="item" [category]="category()" [inCart]="inCart()" [maxQuantity]="maxQuantity()"
+                            [(quantity)]="quantity" (add)="addToCart()" (buy)="buyNow()" (share)="share()"></app-product-info>
+        </div>
+      </section>
+
+      <app-product-about [book]="item"></app-product-about>
+
+      <app-product-reviews [reviews]="reviews()"></app-product-reviews>
+
+      @if (sameAuthor().length) {
+        <app-book-row [tag]="'✦ ' + item.authorName" title="Sách cùng tác giả" accent="more from the author"
+                      [books]="sameAuthor()" linkLabel="Xem tất cả tác phẩm" [linkQuery]="{ author: item.authorId }"></app-book-row>
+      }
+
+      @if (related().length) {
+        <app-book-row tag="✦ Có thể bạn thích" title="Sách liên quan" accent="you might also like" [books]="related()"
+                      linkLabel="Khám phá thêm"
+                      [linkQuery]="category() ? { category: category()!.slug } : { type: item.type }"></app-book-row>
+      }
+
+      <app-product-buy-bar [disabled]="maxQuantity() === 0" (add)="addToCart()" (buy)="buyNow()"></app-product-buy-bar>
+    }
+  }
+</div>

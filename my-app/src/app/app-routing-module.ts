@@ -3,7 +3,6 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { Homepage } from './Pages/homepage/homepage';
 import { BrowseBook } from './Pages/browse-book/browse-book';
-import { ProductDetail } from './Pages/product-detail/product-detail';
 import { Cart } from './Pages/cart/cart';
 import { Checkout } from './Pages/checkout/checkout';
 import { AuthorList } from './Pages/author/author-list/author-list';
@@ -32,7 +31,12 @@ const routes: Routes = [
   { path: '', component: Homepage },
   { path: 'books', component: BrowseBook },
   { path: 'browse-book', redirectTo: 'books' },   // link cũ (trang chủ, header) — giữ nguyên query params
-  { path: 'product-detail/:id', component: ProductDetail },
+  // Trang chi tiết sách tải riêng (lazy) để bundle ban đầu không vượt budget 500kB
+  {
+    path: 'books/:slug',
+    loadChildren: () => import('./Pages/product-detail/product-detail-module').then((m) => m.ProductDetailModule),
+  },
+  { path: 'product-detail/:id', redirectTo: 'books/:id' },   // link cũ: book-card, các section trang chủ
   { path: 'cart', component: Cart },
   { path: 'checkout', component: Checkout },
   { path: 'author-list', component: AuthorList },
