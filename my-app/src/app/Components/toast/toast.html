@@ -1,0 +1,12 @@
+<div class="toast-stack" role="status" aria-live="polite">
+  @for (toast of toastService.toasts(); track toast.id) {
+    <div class="toast">
+      <img src="images/icons/check-circle.svg" alt="" width="22" height="22" />
+      <span class="toast-message">{{ toast.message }}</span>
+      @if (toast.link) {
+        <a class="toast-link" [routerLink]="toast.link.path" (click)="toastService.dismiss(toast.id)">{{ toast.link.label }}</a>
+      }
+      <button class="toast-close" type="button" aria-label="Đóng thông báo" (click)="toastService.dismiss(toast.id)">✕</button>
+    </div>
+  }
+</div>

@@ -49,6 +49,7 @@ import { HomeBestsellers } from './Pages/homepage/sections/home-bestsellers/home
 import { HomeRecommendations } from './Pages/homepage/sections/home-recommendations/home-recommendations';
 import { HomeBestPanel } from './Pages/homepage/sections/home-best-panel/home-best-panel';
 import { HomeDealCard } from './Pages/homepage/sections/home-deal-card/home-deal-card';
+import { ToastHost } from './Components/toast/toast';
 
 @NgModule({
   declarations: [
@@ -98,6 +99,7 @@ import { HomeDealCard } from './Pages/homepage/sections/home-deal-card/home-deal
     HomeRecommendations,
     HomeBestPanel,
     HomeDealCard,
+    ToastHost,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],
