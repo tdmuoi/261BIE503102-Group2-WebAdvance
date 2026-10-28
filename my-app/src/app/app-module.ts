@@ -56,6 +56,7 @@ import { BrowseBanner } from './Pages/browse-book/sections/browse-banner/browse-
 import { BrowseFilters } from './Pages/browse-book/sections/browse-filters/browse-filters';
 import { BrowseEmpty } from './Pages/browse-book/sections/browse-empty/browse-empty';
 import { BrowsePrice } from './Pages/browse-book/sections/browse-price/browse-price';
+import { BrowseMenu } from './Components/browse-menu/browse-menu';
 
 @NgModule({
   declarations: [
@@ -112,6 +113,7 @@ import { BrowsePrice } from './Pages/browse-book/sections/browse-price/browse-pr
     BrowseFilters,
     BrowseEmpty,
     BrowsePrice,
+    BrowseMenu,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],

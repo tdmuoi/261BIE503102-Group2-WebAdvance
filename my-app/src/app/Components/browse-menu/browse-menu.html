@@ -1,0 +1,33 @@
+<div class="menu-dim" aria-hidden="true" (click)="navigate.emit()"></div>
+
+<div class="menu-panel" id="browse-menu" role="menu" aria-label="Browse Book">
+  @for (option of options; track option.type) {
+    <a class="menu-option" role="menuitem" routerLink="/books" [queryParams]="{ type: option.type }"
+       (click)="navigate.emit()">
+      <span class="menu-icon" [attr.data-tone]="option.tone">
+        <img [src]="option.icon.src" alt="" [width]="option.icon.width" [height]="option.icon.height" />
+      </span>
+      <span class="menu-text">
+        <span class="menu-title">{{ option.title }}</span>
+        <span class="menu-desc">{{ option.desc }}</span>
+      </span>
+      @if (counts(); as counts) {
+        <span class="menu-count">{{ counts[option.type] }} cuốn</span>
+      }
+      <span class="menu-arrow" aria-hidden="true">→</span>
+    </a>
+  }
+
+  <div class="menu-footer">
+    @if (featured().length) {
+      <div class="menu-featured">
+        <span class="menu-featured-label">Nổi bật:</span>
+        @for (item of featured(); track item.slug) {
+          <a class="menu-genre" role="menuitem" routerLink="/books" [queryParams]="{ category: item.slug }"
+             (click)="navigate.emit()">{{ item.name }}</a>
+        }
+      </div>
+    }
+    <a class="menu-all" role="menuitem" routerLink="/books" (click)="navigate.emit()">Xem tất cả sách →</a>
+  </div>
+</div>

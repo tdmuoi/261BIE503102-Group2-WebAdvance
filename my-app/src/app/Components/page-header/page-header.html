@@ -17,17 +17,33 @@
 
     <nav class="nav-pill" aria-label="Menu chính">
       @for (item of navItems; track item.path) {
-        <a class="nav-link" [routerLink]="item.path" routerLinkActive="is-active">{{ item.label }}</a>
+        @if (item.menu) {
+          <!-- Browse Book: rê chuột / focus mở dropdown, bấm vẫn sang trang /books -->
+          <a class="nav-link nav-link-menu" [routerLink]="item.path" routerLinkActive="is-active"
+             aria-haspopup="menu" aria-controls="browse-menu" [attr.aria-expanded]="menuOpen()"
+             (mouseenter)="openMenu()" (mouseleave)="scheduleClose()" (focus)="openMenu()"
+             (focusout)="onMenuFocusOut($event)" (click)="onMenuTriggerClick($event)">{{ item.label }}</a>
+        } @else {
+          <a class="nav-link" [routerLink]="item.path" routerLinkActive="is-active">{{ item.label }}</a>
+        }
       }
     </nav>
+
+    @if (menuOpen()) {
+      <app-browse-menu (mouseenter)="openMenu()" (mouseleave)="scheduleClose()"
+                       (focusout)="onMenuFocusOut($event)" (navigate)="closeMenu()"></app-browse-menu>
+    }
 
     <div class="actions">
       <a class="action-btn" routerLink="/account/wishlist" aria-label="Yêu thích">
         <img src="images/icons/heart.svg" alt="" width="20" height="20" />
         <span class="notify-dot" aria-hidden="true"></span>
       </a>
-      <a class="action-btn" routerLink="/cart" aria-label="Giỏ hàng">
+      <a class="action-btn" routerLink="/cart" [attr.aria-label]="'Giỏ hàng, ' + cartCount() + ' cuốn'">
         <img src="images/icons/cart.svg" alt="" width="20" height="20" />
+        @if (cartCount() > 0) {
+          <span class="cart-count" aria-hidden="true">{{ cartCount() > 99 ? '99+' : cartCount() }}</span>
+        }
       </a>
       <a class="action-btn action-btn-account" routerLink="/account" aria-label="Tài khoản">
         <img src="images/icons/user.svg" alt="" width="20" height="20" />
