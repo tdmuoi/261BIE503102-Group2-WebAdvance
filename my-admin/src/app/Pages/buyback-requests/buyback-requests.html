@@ -1,1 +1,188 @@
-<p>buyback-requests works!</p>
+<app-page-heading
+  title="Yêu cầu thanh lý"
+  subtitle="Duyệt, thẩm định và thanh toán sách cũ khách gửi bán cho Lightbook."
+  [breadcrumbs]="[{ label: 'Tổng quan', link: '/dashboard' }, { label: 'Yêu cầu thanh lý' }]">
+  <button type="button" class="btn heading-action" (click)="exportRequests()" [disabled]="!requests().length">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" /></svg>
+    Xuất danh sách
+  </button>
+  <button type="button" class="btn btn-primary heading-action" (click)="showRules.set(true)">
+    <span aria-hidden="true">＋</span> Quy định thu mua
+  </button>
+</app-page-heading>
+
+<div class="tabs" role="tablist" aria-label="Lọc trạng thái yêu cầu">
+  @for (tab of tabs; track tab.value) {
+    <button type="button" class="tab" role="tab" [class.active]="status() === tab.value"
+            [attr.aria-selected]="status() === tab.value" (click)="setStatus(tab.value)">
+      {{ tab.label }} <span>{{ count(tab.value) }}</span>
+    </button>
+  }
+</div>
+
+<section class="card card-flush">
+  <div class="filters">
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+      <input type="search" placeholder="Tìm theo mã yêu cầu, tên sách, người gửi..."
+             [value]="query()" (input)="onSearch($any($event.target).value)" aria-label="Tìm yêu cầu" />
+    </label>
+    <select class="select" [value]="condition()" (change)="setCondition($any($event.target).value)" aria-label="Lọc tình trạng">
+      <option value="">Tình trạng</option>
+      @for (option of conditions; track option) { <option [value]="option">{{ option }}</option> }
+    </select>
+    <select class="select" [value]="shipping()" (change)="setShipping($any($event.target).value)" aria-label="Lọc hình thức gửi">
+      <option value="">Hình thức gửi</option>
+      <option value="branch">Chi nhánh</option>
+      <option value="postal">Bưu điện</option>
+    </select>
+    <select class="select" [value]="dateRange()" (change)="setDateRange($any($event.target).value)" aria-label="Lọc ngày gửi">
+      <option value="">Ngày gửi</option>
+      <option value="7">7 ngày gần đây</option>
+      <option value="30">30 ngày gần đây</option>
+    </select>
+    <select class="select sort" [value]="sort()" (change)="setSort($any($event.target).value)" aria-label="Sắp xếp">
+      <option value="newest">Sắp xếp: Mới nhất</option>
+      <option value="oldest">Sắp xếp: Cũ nhất</option>
+    </select>
+  </div>
+
+  @if (selectedIds().length) {
+    <div class="bulk-bar">
+      <label class="select-all">
+        <input type="checkbox" [checked]="allVisibleSelected()" [indeterminate]="someVisibleSelected()"
+               (change)="toggleVisible($any($event.target).checked)" aria-label="Chọn tất cả yêu cầu đang hiển thị" />
+        <strong>Đã chọn {{ selectedIds().length }} yêu cầu</strong>
+      </label>
+      <button type="button" class="text-action" (click)="approveSelected()">Duyệt</button>
+      <button type="button" class="text-action" (click)="askReject(selectedIds())">Từ chối</button>
+      <button type="button" class="text-action danger" (click)="askDelete(selectedIds())">Xoá</button>
+      <button type="button" class="clear-selection" (click)="clearSelection()">Bỏ chọn</button>
+    </div>
+  }
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="check-cell">
+            <input type="checkbox" [checked]="allVisibleSelected()" [indeterminate]="someVisibleSelected()"
+                   (change)="toggleVisible($any($event.target).checked)" aria-label="Chọn tất cả yêu cầu đang hiển thị" />
+          </th>
+          <th>Sách &amp; người gửi</th>
+          <th>Mã yêu cầu</th>
+          <th>Tình trạng</th>
+          <th class="num">Giá đề xuất</th>
+          <th class="num">Số lượng</th>
+          <th>Gửi qua</th>
+          <th>Trạng thái</th>
+          <th class="row-actions" aria-label="Thao tác"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (request of visibleRequests(); track request.id) {
+          <tr [class.selected]="isSelected(request.id)">
+            <td class="check-cell">
+              <input type="checkbox" [checked]="isSelected(request.id)" (change)="toggle(request.id)"
+                     [attr.aria-label]="'Chọn ' + request.title" />
+            </td>
+            <td>
+              <div class="book-cell">
+                <span class="cover" [style.background]="request.cover"><small>{{ request.coverText }}</small></span>
+                <span class="book-info">
+                  <strong>{{ request.title }}</strong>
+                  <small>Người gửi: {{ request.sender }}</small>
+                </span>
+              </div>
+            </td>
+            <td class="request-code">#{{ request.code }}</td>
+            <td><span class="condition">{{ request.condition }}</span></td>
+            <td class="num"><strong>{{ money(request.price) }}</strong></td>
+            <td class="num">{{ request.quantity }}</td>
+            <td>{{ request.shipping === 'branch' ? 'Chi nhánh' : 'Bưu điện' }}</td>
+            <td><app-status-badge [status]="request.status" [label]="statusInfo[request.status].label"
+                                  [tone]="statusInfo[request.status].tone"></app-status-badge></td>
+            <td class="row-actions">
+              <button type="button" class="icon-btn" (click)="openDetails(request)" [attr.aria-label]="'Xem ' + request.code"
+                      title="Xem chi tiết">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" /></svg>
+              </button>
+              <button type="button" class="icon-btn danger" (click)="askDelete([request.id])"
+                      [attr.aria-label]="'Xoá ' + request.code" title="Xoá yêu cầu">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v6m4-6v6" /></svg>
+              </button>
+              <button type="button" class="icon-btn" (click)="openDetails(request)"
+                      [attr.aria-label]="'Thao tác với ' + request.code" title="Thêm thao tác">···</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="empty">
+              @if (query() || condition() || shipping() || dateRange()) {
+                Không có yêu cầu nào khớp bộ lọc.
+              } @else {
+                Chưa có dữ liệu yêu cầu thanh lý.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-pagination [page]="page()" [pageSize]="pageSize" [total]="filteredRequests().length"
+                  itemLabel="yêu cầu" (pageChange)="goToPage($event)"></app-pagination>
+</section>
+
+@if (selectedRequest(); as request) {
+  <div class="modal-backdrop" (click)="closeDetails()">
+    <section class="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="detail-title" (click)="$event.stopPropagation()">
+      <button type="button" class="close-btn" (click)="closeDetails()" aria-label="Đóng">×</button>
+      <p class="eyebrow">YÊU CẦU #{{ request.code }}</p>
+      <h2 id="detail-title">{{ request.title }}</h2>
+      <p class="detail-subtitle">Người gửi: {{ request.sender }} · {{ request.phone }}</p>
+      <div class="detail-grid">
+        <span>Tình trạng sách</span><strong>{{ request.condition }}</strong>
+        <span>Giá đề xuất</span><strong>{{ money(request.price) }}</strong>
+        <span>Số lượng</span><strong>{{ request.quantity }} cuốn</strong>
+        <span>Hình thức gửi</span><strong>{{ request.shipping === 'branch' ? 'Chi nhánh' : 'Bưu điện' }}</strong>
+        <span>Ngày gửi</span><strong>{{ request.date | date: 'dd/MM/yyyy' }}</strong>
+        <span>Trạng thái</span><strong>{{ statusInfo[request.status].label }}</strong>
+      </div>
+      <div class="dialog-actions">
+        @if (request.status === 'pending' || request.status === 'reviewing') {
+          <button type="button" class="btn" (click)="askReject([request.id]); closeDetails()">Từ chối</button>
+          <button type="button" class="btn btn-primary" (click)="approve(request.id); closeDetails()">Duyệt yêu cầu</button>
+        } @else {
+          <button type="button" class="btn btn-primary" (click)="closeDetails()">Đóng</button>
+        }
+      </div>
+    </section>
+  </div>
+}
+
+@if (showRules()) {
+  <div class="modal-backdrop" (click)="showRules.set(false)">
+    <section class="detail-dialog rules-dialog" role="dialog" aria-modal="true" aria-labelledby="rules-title" (click)="$event.stopPropagation()">
+      <button type="button" class="close-btn" (click)="showRules.set(false)" aria-label="Đóng">×</button>
+      <p class="eyebrow">LIGHTBOOK</p>
+      <h2 id="rules-title">Quy định thu mua</h2>
+      <ul>
+        <li>Sách còn đầy đủ trang, không rách hoặc ẩm mốc nghiêm trọng.</li>
+        <li>Giá thu mua được xác nhận sau khi sách được thẩm định.</li>
+        <li>Khách hàng có thể gửi sách tại chi nhánh hoặc qua bưu điện.</li>
+        <li>Lightbook sẽ liên hệ khách hàng khi yêu cầu được duyệt.</li>
+      </ul>
+      <div class="dialog-actions"><button type="button" class="btn btn-primary" (click)="showRules.set(false)">Đã hiểu</button></div>
+    </section>
+  </div>
+}
+
+<app-confirm-dialog
+  [open]="!!pendingAction()"
+  [title]="confirmTitle()"
+  [message]="confirmMessage()"
+  [confirmText]="confirmButton()"
+  (confirmed)="confirmAction()"
+  (cancelled)="pendingAction.set(null)">
+</app-confirm-dialog>

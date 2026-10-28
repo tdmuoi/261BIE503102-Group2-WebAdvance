@@ -1,0 +1,34 @@
+:host { display: block; }
+
+.not-found { display: grid; min-height: calc(100vh - var(--topbar-height) - 64px); place-items: center; }
+.not-found-content { width: min(100%, 560px); text-align: center; }
+.error-mark { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: clamp(76px, 12vw, 116px); font-weight: 800; letter-spacing: -8px; line-height: 1; }
+.book-icon { display: grid; width: 92px; height: 92px; place-items: center; border: 1px solid var(--admin-border); border-radius: 50%; background: var(--admin-subtle); }
+.book-icon svg { width: 38px; height: 38px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.error-label { display: inline-block; margin: 18px 0 12px; padding: 3px 9px; border-radius: var(--radius-full); background: var(--admin-subtle); color: var(--admin-muted); font-size: 11px; font-weight: 700; }
+h1 { margin: 0; font-size: 24px; font-weight: 800; }
+.description { max-width: 420px; margin: 12px auto 16px; color: var(--admin-muted); }
+.requested-path { display: inline-block; max-width: 100%; margin: 0; padding: 5px 12px; overflow: hidden; border: 1px solid var(--admin-border); border-radius: var(--radius-md); background: var(--admin-surface); text-overflow: ellipsis; white-space: nowrap; }
+.actions { display: flex; justify-content: center; gap: 8px; margin: 18px 0 16px; }
+.icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; }
+.search { display: flex; align-items: center; gap: 10px; width: min(100%, 440px); height: 40px; margin: 0 auto; padding: 0 12px; border: 1px solid var(--admin-border); border-radius: var(--radius-md); background: var(--admin-surface); color: var(--admin-muted); }
+.search:focus-within { border-color: var(--admin-ink); }
+.search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; }
+.shortcuts { width: min(100%, 448px); margin: 18px auto 0; text-align: left; }
+.shortcuts-label { margin: 0 0 8px; color: var(--admin-muted); font-size: 10px; font-weight: 700; }
+.shortcut-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.shortcut { display: flex; min-width: 0; flex-direction: column; gap: 5px; padding: 10px; border: 1px solid var(--admin-border); border-radius: var(--radius-md); background: var(--admin-surface); }
+.shortcut-icon { display: grid; width: 26px; height: 26px; place-items: center; border-radius: var(--radius-sm); background: var(--admin-subtle); }
+.shortcut-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.shortcut strong, .shortcut small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shortcut strong { font-size: 11px; }
+.shortcut small { color: var(--admin-muted); font-size: 10px; }
+
+@media (max-width: 640px) {
+  .not-found { min-height: calc(100vh - var(--topbar-height) - 48px); }
+  .error-mark { gap: 8px; letter-spacing: -5px; }
+  .book-icon { width: 72px; height: 72px; }
+  .book-icon svg { width: 32px; height: 32px; }
+  h1 { font-size: 21px; }
+  .shortcut-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

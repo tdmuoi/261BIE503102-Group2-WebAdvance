@@ -1,1 +1,143 @@
-<p>buyback-detail works!</p>
+<app-page-heading
+  title="Chi tiết yêu cầu thanh lý"
+  subtitle="Xem thông tin sách và thẩm định yêu cầu thanh lý."
+  [breadcrumbs]="[{ label: 'Yêu cầu thanh lý', link: '/buyback-requests' }, { label: 'Chi tiết' }]">
+  <button type="button" class="btn detail-action" (click)="print()">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z" /></svg>
+    In phiếu
+  </button>
+  <button type="button" class="btn btn-danger detail-action" disabled>
+    <span aria-hidden="true">×</span> Từ chối
+  </button>
+  <button type="button" class="btn btn-primary detail-action" disabled>
+    <span aria-hidden="true">✓</span> Duyệt yêu cầu
+  </button>
+</app-page-heading>
+
+<div class="notice" role="status">
+  Chưa có dữ liệu yêu cầu thanh lý. Trang sẽ hiển thị thông tin tại đây khi backend được kết nối.
+</div>
+
+<div class="detail-layout">
+  <div class="main-column">
+    <section class="card info-card">
+      <header class="card-head">
+        <div>
+          <h2 class="card-title">Thông tin sách thanh lý</h2>
+          <p class="text-muted">Ảnh và mô tả do khách hàng cung cấp</p>
+        </div>
+        <span class="condition">Tình trạng —</span>
+      </header>
+
+      <div class="photos" aria-label="Ảnh sách">
+        @for (label of photoLabels; track label) {
+          <div class="photo-placeholder">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+            <span>{{ label }}</span>
+          </div>
+        }
+      </div>
+
+      <dl class="book-details">
+        <div><dt>Tên sách</dt><dd>—</dd></div>
+        <div><dt>Tác giả</dt><dd>—</dd></div>
+        <div><dt>Nhà xuất bản</dt><dd>—</dd></div>
+        <div><dt>ISBN</dt><dd>—</dd></div>
+        <div><dt>Tình trạng khách khai</dt><dd>—</dd></div>
+        <div><dt>Số lượng</dt><dd>—</dd></div>
+      </dl>
+
+      <div class="quote">
+        <strong>Mô tả của người gửi</strong>
+        <p>Chưa có mô tả.</p>
+      </div>
+    </section>
+
+    <section class="card valuation-card">
+      <header class="card-head">
+        <div>
+          <h2 class="card-title">Định giá của Lightbook</h2>
+          <p class="text-muted">Giá thu mua sẽ được gửi cho khách hàng qua email sau khi duyệt.</p>
+        </div>
+      </header>
+
+      <div class="price-grid">
+        <label>Giá khách đề xuất
+          <span class="input-wrap"><input class="input" type="number" placeholder="—" disabled /><span>đ</span></span>
+        </label>
+        <label>Giá thu mua *
+          <span class="input-wrap"><input class="input" type="number" min="0" placeholder="Nhập giá" [value]="buybackPrice()" (input)="setBuybackPrice($any($event.target).value)" /><span>đ</span></span>
+        </label>
+        <label>Giá bán lại dự kiến
+          <span class="input-wrap"><input class="input" type="number" min="0" placeholder="Nhập giá" [value]="resalePrice()" (input)="setResalePrice($any($event.target).value)" /><span>đ</span></span>
+        </label>
+      </div>
+
+      <div class="margin" [class.loss]="isLoss()">
+        <span>Biên lợi nhuận dự kiến</span>
+        @if (estimatedMargin() !== null) {
+          <strong>{{ money(estimatedMargin()!) }}</strong>
+        } @else {
+          <strong>—</strong>
+        }
+      </div>
+
+      <label class="field-label" for="condition">Tình trạng sau kiểm định</label>
+      <select id="condition" class="select" disabled>
+        <option>Chưa kiểm định</option>
+        <option>Như mới</option>
+        <option>Tốt</option>
+        <option>Đã qua sử dụng</option>
+      </select>
+
+      <label class="field-label" for="admin-note">Ghi chú gửi khách</label>
+      <textarea id="admin-note" class="textarea" rows="3" placeholder="Ghi chú sẽ gửi kèm kết quả thẩm định..." [value]="note()" (input)="note.set($any($event.target).value)"></textarea>
+      <label class="email-check"><input type="checkbox" checked disabled /> Gửi email thông báo kết quả cho khách</label>
+      <p class="form-hint">Các thay đổi chưa được lưu vì backend thanh lý chưa sẵn sàng.</p>
+    </section>
+  </div>
+
+  <aside class="side-column">
+    <section class="card side-card">
+      <header class="card-head">
+        <h2 class="card-title">Người gửi</h2>
+        <span class="tag">Khách hàng</span>
+      </header>
+      <div class="customer">
+        <span class="avatar" aria-hidden="true">?</span>
+        <span><strong>Chưa có thông tin</strong><small>Mã khách hàng —</small></span>
+      </div>
+      <div class="contact-list">
+        <p><span aria-hidden="true">☎</span> —</p>
+        <p><span aria-hidden="true">✉</span> —</p>
+        <p><span aria-hidden="true">⌖</span> —</p>
+      </div>
+      <button type="button" class="btn btn-block" disabled>Xem hồ sơ khách hàng</button>
+    </section>
+
+    <section class="card side-card">
+      <h2 class="card-title">Vận chuyển</h2>
+      <p class="shipping-title"><span aria-hidden="true">▱</span> Chưa có thông tin gửi sách</p>
+      <p class="text-muted">Thông tin nhận sách sẽ hiển thị khi yêu cầu được kết nối.</p>
+    </section>
+
+    <section class="card side-card">
+      <h2 class="card-title">Tiến trình xử lý</h2>
+      <ol class="timeline">
+        @for (step of steps; track step) {
+          <li><span class="step-dot"></span><span>{{ step }}</span></li>
+        }
+      </ol>
+    </section>
+
+    <section class="card side-card">
+      <h2 class="card-title">Kiểm tra nhanh</h2>
+      <p class="text-muted">0/4 tiêu chí đã đánh dấu</p>
+      @for (check of checks; track check) {
+        <label class="check-item"><input type="checkbox" disabled /> {{ check }}</label>
+      }
+      <p class="warning">Checklist sẽ khả dụng khi có dữ liệu yêu cầu.</p>
+      <button type="button" class="btn btn-block" disabled>Yêu cầu bổ sung ảnh</button>
+    </section>
+  </aside>
+</div>

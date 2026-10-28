@@ -39,16 +39,18 @@ const routes: Routes = [
       { path: 'customer-detail/:id', component: CustomerDetail },
       { path: 'orders', component: Orders },
       { path: 'buyback-requests', component: BuybackRequests },
+      { path: 'Pages/buyback-requests', redirectTo: 'buyback-requests' },
       { path: 'vouchers', component: Vouchers },
       { path: 'refunds', component: Refunds },
       { path: 'settings', component: Settings },
       { path: 'inventory', component: Inventory },
       { path: 'order-detail/:id', component: OrderDetail },
+      { path: 'buyback-detail', component: BuybackDetail },
       { path: 'buyback-detail/:id', component: BuybackDetail },
       { path: 'users-roles', component: UsersRoles },
+      { path: '**', component: PageNotFound },
     ]
   },
-  { path: '**', component: PageNotFound },          // luôn để cuối cùng
 ];
 
 @NgModule({

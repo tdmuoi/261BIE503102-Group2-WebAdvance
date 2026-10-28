@@ -4,7 +4,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 
 /**
- * Khung chung cho mọi trang admin (trừ /login và 404): sidebar + topbar + <router-outlet>.
+ * Khung chung cho mọi trang admin (trừ /login): sidebar + topbar + <router-outlet>.
  * Đã gắn sẵn trong app-routing-module.ts, các trang con KHÔNG cần tự thêm sidebar/topbar.
  *
  * Muốn thêm mục menu: thêm 1 dòng vào navGroups bên dưới.

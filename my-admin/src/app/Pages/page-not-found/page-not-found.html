@@ -1,1 +1,50 @@
-<p>page-not-found works!</p>
+<section class="not-found" aria-labelledby="not-found-title">
+  <div class="not-found-content">
+    <div class="error-mark" aria-hidden="true">
+      <span>4</span>
+      <span class="book-icon">
+        <svg viewBox="0 0 24 24"><path [attr.d]="icons.book" /></svg>
+      </span>
+      <span>4</span>
+    </div>
+
+    <p class="error-label">LỖI 404</p>
+    <h1 id="not-found-title">Không tìm thấy trang</h1>
+    <p class="description">
+      Trang bạn tìm có thể đã bị xoá, đổi đường dẫn hoặc tài khoản của bạn
+      không có quyền truy cập.
+    </p>
+    <p class="requested-path">{{ currentPath }}</p>
+
+    <div class="actions">
+      <button type="button" class="btn" (click)="goBack()">
+        <span aria-hidden="true">←</span>
+        Quay lại
+      </button>
+      <a class="btn btn-primary" routerLink="/dashboard">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.dashboard" /></svg>
+        Về Tổng quan
+      </a>
+    </div>
+
+    <form class="search" role="search" (submit)="$event.preventDefault(); search(keyword.value)">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.search" /></svg>
+      <input #keyword type="search" placeholder="Tìm sách theo tên hoặc SKU..." aria-label="Tìm sách theo tên hoặc SKU" />
+    </form>
+
+    <div class="shortcuts">
+      <p class="shortcuts-label">HOẶC ĐI TỚI</p>
+      <nav class="shortcut-list" aria-label="Đi tới trang">
+        @for (shortcut of shortcuts; track shortcut.link) {
+          <a class="shortcut" [routerLink]="shortcut.link">
+            <span class="shortcut-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="shortcut.icon" /></svg>
+            </span>
+            <strong>{{ shortcut.title }}</strong>
+            <small>{{ shortcut.description }}</small>
+          </a>
+        }
+      </nav>
+    </div>
+  </div>
+</section>
