@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, DestroyRef, ElementRef, afterNextRender, inject } from '@angular/core';
 
 interface NavItem {
   label: string;
@@ -20,4 +20,31 @@ export class PageHeader {
     { label: 'Authors', path: '/author-list' },
     { label: 'Lightbook news', path: '/news-list' },
   ];
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    afterNextRender(() => this.trackHeight());
+  }
+
+  /**
+   * Header dính đầu trang và cao khác nhau theo màn hình (menu xuống hàng ở tablet/mobile).
+   * Báo chiều cao thật cho cả trang:
+   *   - scroll-padding-top: link #anchor / scrollIntoView dừng ngay dưới header, không bị che
+   *   - --header-height: cho các phần tử sticky khác (sidebar lọc...) đặt top bên dưới header
+   */
+  private trackHeight(): void {
+    if (typeof ResizeObserver === 'undefined') return;
+
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => {
+      const height = `${this.host.offsetHeight}px`;
+      root.style.setProperty('--header-height', height);
+      root.style.scrollPaddingTop = height;
+    });
+    observer.observe(this.host);
+
+    this.destroyRef.onDestroy(() => observer.disconnect());
+  }
 }

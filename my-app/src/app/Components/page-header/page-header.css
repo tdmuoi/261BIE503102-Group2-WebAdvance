@@ -1,5 +1,15 @@
 /* Header dùng chung — thông số lấy từ Figma (Hero header section 772:1454) */
 
+/* Luôn dính đầu màn hình khi cuộn. Nền đặc cùng màu trang để không lộ nội dung phía sau.
+   z-index: trên nội dung trang (≤ 5), dưới drawer/modal (1000) và toast (1100). */
+:host {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: block;
+  background: var(--color-bg-page);
+}
+
 /* ---------- Thanh thông báo (cao 29px) ---------- */
 .announcement {
   display: flex;
