@@ -1,1 +1,108 @@
-<p>banners works!</p>
+<app-page-heading
+  title="Banner & quảng cáo"
+  subtitle="Quản lý banner hiển thị trên web khách: trang chủ, Flash Sale và dải quảng cáo."
+  [breadcrumbs]="[{ label: 'Marketing & nội dung' }, { label: 'Banner & quảng cáo' }]">
+  <button type="button" class="btn btn-primary" (click)="openCreate()">+ Thêm banner</button>
+</app-page-heading>
+
+@if (flash()) { <div class="flash" role="status">{{ flash() }}</div> }
+@if (error()) {
+  <div class="flash flash-error" role="alert">
+    {{ error() }}
+    <button type="button" class="btn btn-sm" (click)="error.set(''); load()">Thử lại</button>
+  </div>
+}
+
+@if (data(); as d) {
+  <section class="stats">
+    <app-stat-card label="Đang hiển thị" [value]="d.counts.live" tone="ok" [note]="'trên tổng ' + d.counts.all + ' banner'"></app-stat-card>
+    <app-stat-card label="Lên lịch" [value]="d.counts.scheduled" tone="info" note="Chưa tới ngày bắt đầu"></app-stat-card>
+    <app-stat-card label="Hết hạn" [value]="d.counts.expired" [tone]="d.counts.expired ? 'bad' : 'default'" note="Đã qua ngày kết thúc"></app-stat-card>
+    <app-stat-card label="Đã tắt" [value]="d.counts.off" note="Admin tắt thủ công"></app-stat-card>
+  </section>
+
+  <div class="toolbar">
+    <div class="tabs">
+      <button type="button" class="chip" [class.is-active]="!positionFilter()" (click)="positionFilter.set('')">Tất cả vị trí</button>
+      @for (p of positions; track p) {
+        <button type="button" class="chip" [class.is-active]="positionFilter() === p" (click)="positionFilter.set(p)">{{ positionLabels[p] }}</button>
+      }
+    </div>
+    <select class="select state-select" [value]="stateFilter()" (change)="stateFilter.set($any($event.target).value)" aria-label="Lọc trạng thái">
+      @for (s of stateFilters; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+    </select>
+  </div>
+
+  @for (g of groups(); track g.position) {
+    <section class="card group" [class.is-loading]="loading()">
+      <div class="group-head">
+        <h2 class="card-title">{{ g.label }} <span class="text-muted">· {{ g.all.length }} banner</span></h2>
+        <small class="text-muted">Thứ tự trên web khách: từ trái sang phải</small>
+      </div>
+
+      <div class="grid">
+        @for (b of g.items; track b._id; let first = $first; let last = $last) {
+          <article class="banner-card" [class.is-dim]="b.state !== 'live'">
+            <button type="button" class="preview" [style.background]="b.bgColor" [style.color]="b.textColor"
+                    (click)="openEdit(b)" [attr.aria-label]="'Sửa banner ' + b.name">
+              @if (b.image) { <img [src]="b.image" alt="" loading="lazy" /> }
+              @if (b.title) { <strong>{{ b.title }}</strong> }
+              @if (b.subtitle) { <small>{{ b.subtitle }}</small> }
+            </button>
+            <div class="info">
+              <div class="info-top">
+                <strong class="name">{{ b.name }}</strong>
+                <app-status-badge [status]="badge(b).status" [label]="badge(b).label"></app-status-badge>
+              </div>
+              <small class="text-muted">{{ schedule(b) }}</small>
+              @if (b.link) { <small class="link-text" [title]="b.link">→ {{ b.link }}</small> }
+              <div class="actions">
+                <input type="checkbox" class="switch" [checked]="b.active" [disabled]="busyId() === b._id"
+                       (change)="toggle(b)" [attr.aria-label]="(b.active ? 'Tắt ' : 'Bật ') + b.name" />
+                <span class="spacer"></span>
+                @if (!stateFilter()) {
+                  <button type="button" class="icon-btn" [disabled]="first || !!busyId()" (click)="move(b, -1)" title="Đưa lên trước" aria-label="Đưa lên trước">‹</button>
+                  <button type="button" class="icon-btn" [disabled]="last || !!busyId()" (click)="move(b, 1)" title="Đưa ra sau" aria-label="Đưa ra sau">›</button>
+                }
+                <button type="button" class="icon-btn" (click)="openEdit(b)" title="Sửa" aria-label="Sửa">
+                  <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+                </button>
+                <button type="button" class="icon-btn danger" (click)="deleting.set(b)" title="Xoá" aria-label="Xoá">
+                  <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+        @if (!stateFilter()) {
+          <button type="button" class="add-tile" (click)="openCreate(g.position)">
+            <span>+</span> Thêm banner
+            <small>1440×480 · JPG/PNG</small>
+          </button>
+        } @else if (!g.items.length) {
+          <p class="text-muted empty">Không có banner nào ở trạng thái này.</p>
+        }
+      </div>
+    </section>
+  }
+} @else if (loading()) {
+  <div class="card empty">Đang tải banner...</div>
+}
+
+<!-- Hộp thoại thêm / sửa: Pages/banners/banner-form -->
+@if (formOpen()) {
+  <app-banner-form [banner]="editing()" [position]="createPosition()" [paused]="!!deleting()"
+                   (saved)="onSaved($event)" (closed)="formOpen.set(false)" (deleteRequested)="deleting.set($event)">
+  </app-banner-form>
+}
+
+<app-confirm-dialog
+  [open]="!!deleting()"
+  [title]="'Xoá banner &quot;' + (deleting()?.name ?? '') + '&quot;?'"
+  message="Banner sẽ bị xoá hẳn và biến mất khỏi web khách. Nếu chỉ muốn ẩn tạm, hãy tắt banner."
+  [note]="deleting()?.state === 'live' ? 'Banner này đang hiển thị trên website' : ''"
+  confirmText="Xoá banner"
+  [loading]="busyId() === deleting()?._id"
+  (confirmed)="confirmDelete()"
+  (cancelled)="deleting.set(null)">
+</app-confirm-dialog>

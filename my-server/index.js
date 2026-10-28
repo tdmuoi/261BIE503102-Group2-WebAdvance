@@ -129,6 +129,10 @@ app.use('/api/admin', adminDashboardRoutes(() => database));
 const adminBooksRoutes = require('./routes/admin-books');
 app.use('/api/admin', adminBooksRoutes(() => database));
 
+// API Banner & quảng cáo: /api/banners (web khách) và /api/admin/banners (xem routes/admin-banners.js)
+const bannersRoutes = require('./routes/admin-banners');
+app.use('/api', bannersRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {

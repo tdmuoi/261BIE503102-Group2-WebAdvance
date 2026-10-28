@@ -1,0 +1,99 @@
+<div class="backdrop" (click)="onBackdrop($event)">
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="banner-form-title"
+        (ngSubmit)="save()" (input)="clearError($any($event.target).name)" novalidate>
+    <div class="modal-head">
+      <h2 id="banner-form-title">{{ banner ? 'Sửa banner' : 'Thêm banner' }}</h2>
+      <button type="button" class="icon-btn" (click)="close()" aria-label="Đóng">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Xem trước -->
+      <div class="preview" [style.background]="form.bgColor" [style.color]="form.textColor">
+        @if (form.image && !imageBroken()) { <img [src]="form.image" alt="" (error)="imageBroken.set(true)" /> }
+        @if (form.title) { <strong>{{ form.title }}</strong> }
+        @if (form.subtitle) { <small>{{ form.subtitle }}</small> }
+        @if (!form.title && (!form.image || imageBroken())) { <small>Xem trước banner</small> }
+      </div>
+      @if (imageBroken()) { <small class="error">Không tải được ảnh từ link này</small> }
+
+      <div class="fields">
+        <div class="field" [class.has-error]="errors().name">
+          <label class="label" for="b-name">Tên banner (nội bộ) *</label>
+          <input id="b-name" name="name" class="input" [(ngModel)]="form.name" placeholder="VD: Flash Sale tháng 11" />
+          @if (errors().name) { <small class="error">{{ errors().name }}</small> }
+        </div>
+        <div class="field">
+          <label class="label" for="b-position">Vị trí</label>
+          <select id="b-position" name="position" class="select" [(ngModel)]="form.position">
+            @for (p of positions; track p) { <option [value]="p">{{ positionLabels[p] }}</option> }
+          </select>
+        </div>
+        <div class="field wide" [class.has-error]="errors().title">
+          <label class="label" for="b-title">Tiêu đề trên banner</label>
+          <input id="b-title" name="title" class="input" [(ngModel)]="form.title" placeholder="VD: FLASH SALE 11.11 – Giảm đến 50%" />
+          @if (errors().title) { <small class="error">{{ errors().title }}</small> }
+        </div>
+        <div class="field wide">
+          <label class="label" for="b-subtitle">Dòng phụ</label>
+          <input id="b-subtitle" name="subtitle" class="input" [(ngModel)]="form.subtitle" />
+        </div>
+        <div class="field wide" [class.has-error]="errors().image">
+          <label class="label" for="b-image">Link ảnh (URL, nên 1440×480)</label>
+          <input id="b-image" name="image" class="input" [(ngModel)]="form.image" (ngModelChange)="imageBroken.set(false)" placeholder="https://..." />
+          @if (errors().image) { <small class="error">{{ errors().image }}</small> }
+          @else { <small class="hint">Bỏ trống thì banner dùng màu nền + tiêu đề</small> }
+        </div>
+        <div class="field wide" [class.has-error]="errors().link">
+          <label class="label" for="b-link">Khi bấm vào banner, mở trang</label>
+          <input id="b-link" name="link" class="input" [(ngModel)]="form.link" placeholder="/books?type=ebook hoặc https://..." />
+          @if (errors().link) { <small class="error">{{ errors().link }}</small> }
+        </div>
+        <div class="field">
+          <span class="label">Màu nền</span>
+          <div class="colors">
+            @for (c of colorPresets; track c) {
+              <button type="button" class="swatch" [style.background]="c" [class.is-active]="form.bgColor === c"
+                      (click)="form.bgColor = c" [attr.aria-label]="'Màu ' + c"></button>
+            }
+            <input type="color" name="bgColor" [(ngModel)]="form.bgColor" aria-label="Chọn màu nền khác" />
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">Màu chữ</span>
+          <div class="colors">
+            <button type="button" class="swatch" style="background:#fff" [class.is-active]="form.textColor === '#ffffff'"
+                    (click)="form.textColor = '#ffffff'" aria-label="Chữ trắng"></button>
+            <button type="button" class="swatch" style="background:#1c1917" [class.is-active]="form.textColor === '#1c1917'"
+                    (click)="form.textColor = '#1c1917'" aria-label="Chữ đen"></button>
+            <input type="color" name="textColor" [(ngModel)]="form.textColor" aria-label="Chọn màu chữ khác" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" for="b-start">Ngày bắt đầu</label>
+          <input id="b-start" name="startDate" type="date" class="input" [(ngModel)]="form.startDate" />
+        </div>
+        <div class="field" [class.has-error]="errors().endDate">
+          <label class="label" for="b-end">Ngày kết thúc</label>
+          <input id="b-end" name="endDate" type="date" class="input" [(ngModel)]="form.endDate" />
+          @if (errors().endDate) { <small class="error">{{ errors().endDate }}</small> }
+          @else { <small class="hint">Bỏ trống 2 ngày = luôn hiển thị</small> }
+        </div>
+        <label class="field wide switch-row">
+          <span><strong>Bật banner</strong> <small class="text-muted">— tắt để ẩn ngay, không cần xoá</small></span>
+          <input type="checkbox" class="switch" name="active" [(ngModel)]="form.active" />
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      @if (banner) {
+        <button type="button" class="btn btn-danger" (click)="deleteRequested.emit(banner)">Xoá</button>
+      }
+      <span class="spacer"></span>
+      <button type="button" class="btn" (click)="close()" [disabled]="saving()">Huỷ</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Đang lưu...' : banner ? 'Lưu thay đổi' : 'Thêm banner' }}
+      </button>
+    </div>
+  </form>
+</div>
