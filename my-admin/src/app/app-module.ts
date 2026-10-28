@@ -31,6 +31,7 @@ import { OrderDetail } from './Pages/orders/order-detail/order-detail';
 import { BuybackDetail } from './Pages/buyback-requests/buyback-detail/buyback-detail';
 import { UsersRoles } from './Pages/settings/users-roles/users-roles';
 import { BannerForm } from './Pages/banners/banner-form/banner-form';
+import { RefundDetail } from './Pages/refunds/refund-detail/refund-detail';
 
 @NgModule({
   declarations: [
@@ -61,6 +62,7 @@ import { BannerForm } from './Pages/banners/banner-form/banner-form';
     BuybackDetail,
     UsersRoles,
     BannerForm,
+    RefundDetail,
   ],
   imports: [BrowserModule, AppRoutingModule, FormsModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],

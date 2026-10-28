@@ -1,0 +1,128 @@
+<aside class="panel" aria-label="Chi tiết yêu cầu đổi trả">
+  <header class="panel-head">
+    <div>
+      <h2>{{ request()?.requestCode ?? 'Yêu cầu đổi trả' }}</h2>
+      @if (request(); as r) { <small class="text-muted">Gửi lúc {{ r.createdAt | date: 'HH:mm dd/MM/yyyy' }}</small> }
+    </div>
+    <button type="button" class="icon-btn" (click)="closed.emit()" aria-label="Đóng chi tiết">✕</button>
+  </header>
+
+  @if (error()) { <p class="msg msg-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="msg" role="status">{{ message() }}</p> }
+
+  @if (loading() && !request()) {
+    <p class="empty">Đang tải yêu cầu...</p>
+  } @else if (request(); as r) {
+    <div class="panel-body" [class.is-busy]="saving() || loading()">
+      <section class="block">
+        <div class="row-between">
+          <app-status-badge [status]="r.status" [label]="statusInfo[r.status].label" [tone]="statusInfo[r.status].tone"></app-status-badge>
+          <span class="type">{{ r.type === 'exchange' ? 'Đổi sách' : 'Hoàn tiền' }}</span>
+        </div>
+        @if (r.nextStatuses.length) {
+          <div class="actions">
+            @for (next of r.nextStatuses; track next) {
+              <button type="button" class="btn" [class.btn-primary]="actions[next].style === 'primary'"
+                      [class.btn-danger]="actions[next].style === 'danger'" [disabled]="saving()" (click)="act(next)">
+                {{ actions[next].label }}
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="text-muted small">Yêu cầu đã xử lý xong.</p>
+        }
+        @if (r.status === 'refunded') { <p class="refund-done">Đã hoàn {{ money(r.refundAmount) }}</p> }
+      </section>
+
+      <section class="block">
+        <h3>Lý do</h3>
+        <p><strong>{{ reasons[r.reason] }}</strong></p>
+        @if (r.description) { <p class="quote">“{{ r.description }}”</p> }
+        @if (r.images?.length) {
+          <div class="photos">
+            @for (img of r.images; track img) { <a [href]="img" target="_blank" rel="noopener"><img [src]="img" alt="Ảnh khách gửi" /></a> }
+          </div>
+        }
+      </section>
+
+      <section class="block">
+        <h3>Sách trả ({{ r.items.length }})</h3>
+        @for (it of r.items; track $index) {
+          <div class="item">
+            <span class="cover">@if (it.image) { <img [src]="it.image" alt="" /> }</span>
+            <span class="item-text"><strong>{{ it.title }}</strong><small class="text-muted">{{ money(it.price) }} × {{ it.quantity }}</small></span>
+            <strong>{{ money(it.price * it.quantity) }}</strong>
+          </div>
+        }
+        <p class="row-between total"><span>Giá trị sách trả</span><strong>{{ money(r.itemsValue) }}</strong></p>
+        @if (r.restocked) { <small class="text-muted">Đã cộng lại sách vào tồn kho</small> }
+      </section>
+
+      <section class="block">
+        <h3>Khách hàng</h3>
+        <p><strong>{{ r.customer.name }}</strong></p>
+        @if (r.customer.phone) { <p><a [href]="'tel:' + r.customer.phone">{{ r.customer.phone }}</a></p> }
+        @if (r.customer.email) { <p class="text-muted">{{ r.customer.email }}</p> }
+        <h3>Đơn gốc</h3>
+        @if (r.order; as o) {
+          <p><a class="link" routerLink="/orders" [queryParams]="{ id: o._id }">{{ o.orderCode }}</a> · {{ money(o.total) }}</p>
+          <small class="text-muted">Đặt lúc {{ o.createdAt | date: 'dd/MM/yyyy' }}</small>
+        } @else {
+          <p>{{ r.orderCode || '—' }}</p>
+        }
+        @if (r.type === 'refund') {
+          <h3>Hoàn tiền về</h3>
+          <p>{{ refundMethods[r.refundMethod] ?? r.refundMethod }}</p>
+          @if (r.bankInfo; as b) { <p class="text-muted">{{ b.bankName }} · {{ b.accountNumber }} · {{ b.accountName }}</p> }
+        }
+      </section>
+
+      <section class="block">
+        <h3>Ghi chú nội bộ</h3>
+        <textarea class="textarea" rows="3" [(ngModel)]="adminNote" placeholder="Chỉ admin thấy"></textarea>
+        <button type="button" class="btn btn-sm" [disabled]="saving()" (click)="saveNote()">Lưu ghi chú</button>
+      </section>
+
+      @if (r.statusHistory?.length) {
+        <section class="block">
+          <h3>Lịch sử xử lý</h3>
+          <ul class="history">
+            @for (h of r.statusHistory; track $index) {
+              <li>
+                <strong>{{ statusLabel(h.status) }}</strong>
+                <small class="text-muted">{{ h.at | date: 'HH:mm dd/MM/yyyy' }}</small>
+                @if (h.note) { <span>{{ h.note }}</span> }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  }
+</aside>
+
+<app-confirm-dialog
+  [open]="!!asking()"
+  [title]="askTitle()"
+  [message]="askMessage()"
+  [variant]="asking() === 'rejected' ? 'danger' : 'default'"
+  [confirmText]="asking() === 'rejected' ? 'Từ chối' : asking() === 'refunded' ? 'Xác nhận đã hoàn tiền' : 'Đã nhận sách'"
+  cancelText="Quay lại"
+  [loading]="saving()"
+  (confirmed)="confirmAsk()"
+  (cancelled)="asking.set(null)">
+  <div class="ask">
+    @if (asking() === 'refunded') {
+      <label class="label" for="refund-amount">Số tiền hoàn (đ) *</label>
+      <input id="refund-amount" class="input" type="number" min="0" step="1000" [(ngModel)]="refundAmount" (ngModelChange)="askError.set('')" />
+      <small class="text-muted">Tối đa {{ money(request()?.itemsValue ?? 0) }} (giá trị sách trả)</small>
+    }
+    @if (asking() === 'received') {
+      <label class="check"><input type="checkbox" [(ngModel)]="restock" /> Sách còn bán được — cộng lại vào tồn kho</label>
+    }
+    <label class="label" for="ask-note">{{ asking() === 'rejected' ? 'Lý do từ chối *' : 'Ghi chú (không bắt buộc)' }}</label>
+    <textarea id="ask-note" class="textarea" rows="2" [(ngModel)]="note" (ngModelChange)="askError.set('')"
+              [placeholder]="asking() === 'refunded' ? 'VD: Mã giao dịch chuyển khoản' : asking() === 'rejected' ? 'VD: Quá 7 ngày kể từ khi nhận hàng' : ''"></textarea>
+    @if (askError()) { <small class="error">{{ askError() }}</small> }
+  </div>
+</app-confirm-dialog>

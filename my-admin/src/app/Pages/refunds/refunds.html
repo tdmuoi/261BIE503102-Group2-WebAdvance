@@ -1,1 +1,98 @@
-<p>refunds works!</p>
+<app-page-heading
+  title="Đổi trả & hoàn tiền"
+  subtitle="Duyệt yêu cầu trả sách của khách, xác nhận nhận sách và hoàn tiền hoặc đổi sách."
+  [breadcrumbs]="[{ label: 'Bán hàng' }, { label: 'Đổi trả & hoàn tiền' }]">
+</app-page-heading>
+
+@if (error()) {
+  <div class="alert" role="alert">
+    {{ error() }}
+    <button type="button" class="btn btn-sm" (click)="load()">Thử lại</button>
+  </div>
+}
+
+<section class="top">
+  <div class="stats">
+    <app-stat-card label="Chờ duyệt" [value]="count('pending')" tone="warn" note="Yêu cầu mới của khách"></app-stat-card>
+    <app-stat-card label="Đang xử lý" [value]="count('approved') + count('received')" tone="info" note="Chờ nhận / đã nhận sách"></app-stat-card>
+    <app-stat-card label="Đã hoàn tiền" [value]="count('refunded')" tone="ok" [note]="count('exchanged') + ' yêu cầu đổi sách'"></app-stat-card>
+    <app-stat-card label="Tổng tiền đã hoàn" [value]="data()?.refundedTotal ?? 0" unit="đ" [note]="'Từ chối ' + count('rejected') + ' yêu cầu'"></app-stat-card>
+  </div>
+
+  <div class="card insights">
+    <h2 class="card-title">Lý do trả hàng</h2>
+    @for (r of reasonStats(); track r.label) {
+      <div class="reason">
+        <div class="reason-text"><span>{{ r.label }}</span><strong>{{ r.percent }}%</strong></div>
+        <div class="bar"><div class="fill" [style.width.%]="r.percent"></div></div>
+      </div>
+    } @empty {
+      <p class="text-muted">Chưa có yêu cầu nào.</p>
+    }
+  </div>
+</section>
+
+<div class="layout" [class.has-panel]="!!selectedId()">
+  <div class="card card-flush">
+    <div class="tabs" role="tablist">
+      @for (tab of tabs; track tab.value) {
+        <button type="button" class="chip" role="tab" [class.is-active]="status() === tab.value"
+                [attr.aria-selected]="status() === tab.value" (click)="setStatus(tab.value)">
+          {{ tab.label }} <span class="count">{{ count(tab.value) }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="filters">
+      <input class="input search" type="search" placeholder="Mã yêu cầu, mã đơn, tên / SĐT khách..."
+             [value]="q()" (input)="onSearch($any($event.target).value)" aria-label="Tìm yêu cầu" />
+      <select class="select" [value]="type()" (change)="setType($any($event.target).value)" aria-label="Loại yêu cầu">
+        <option value="">Hoàn tiền & đổi sách</option>
+        <option value="refund">Hoàn tiền</option>
+        <option value="exchange">Đổi sách</option>
+      </select>
+      <label class="date"><span>Từ</span><input class="input" type="date" [value]="from()" (change)="setDate('from', $any($event.target).value)" /></label>
+      <label class="date"><span>Đến</span><input class="input" type="date" [value]="to()" (change)="setDate('to', $any($event.target).value)" /></label>
+      @if (hasFilter()) { <button type="button" class="btn btn-sm" (click)="clearFilters()">Xoá lọc</button> }
+    </div>
+
+    <div class="table-wrap" [class.is-loading]="loading()">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Mã YC</th><th>Khách hàng</th><th class="opt">Sách trả</th><th class="opt">Lý do</th>
+            <th class="num">Giá trị</th><th class="opt">Loại</th><th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of requests(); track r._id) {
+            <tr class="row" [class.is-active]="selectedId() === r._id" (click)="open(r)" tabindex="0" (keydown.enter)="open(r)">
+              <td><strong>{{ r.requestCode }}</strong><small class="text-muted">{{ r.orderCode }}</small></td>
+              <td><span class="strong">{{ r.customer.name }}</span><small class="text-muted">{{ r.createdAt | date: 'dd/MM/yyyy' }}</small></td>
+              <td class="opt title-cell">{{ r.items[0]?.title }}@if (r.items.length > 1) { <span class="text-muted"> +{{ r.items.length - 1 }}</span> }</td>
+              <td class="opt">{{ reasonLabels[r.reason] }}</td>
+              <td class="num"><strong>{{ money(r.itemsValue) }}</strong></td>
+              <td class="opt">{{ r.type === 'exchange' ? 'Đổi sách' : 'Hoàn tiền' }}</td>
+              <td><app-status-badge [status]="r.status" [label]="statusInfo[r.status].label" [tone]="statusInfo[r.status].tone"></app-status-badge></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="empty">
+              @if (loading()) { Đang tải... }
+              @else if (hasFilter() || status()) { Không có yêu cầu nào khớp bộ lọc. }
+              @else { Chưa có yêu cầu đổi trả nào. }
+            </td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="data()?.total ?? 0" itemLabel="yêu cầu"
+                    (pageChange)="goToPage($event)"></app-pagination>
+  </div>
+
+  @if (selectedId()) {
+    <div class="panel-wrap">
+      <app-refund-detail class="card card-flush" [requestId]="selectedId()" (closed)="close()" (changed)="load()"></app-refund-detail>
+    </div>
+  }
+</div>

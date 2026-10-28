@@ -137,6 +137,10 @@ app.use('/api', bannersRoutes(() => database));
 const adminOrdersRoutes = require('./routes/admin-orders');
 app.use('/api/admin', adminOrdersRoutes(() => database));
 
+// API Đổi trả & hoàn tiền cho admin: /api/admin/returns (xem routes/admin-returns.js)
+const adminReturnsRoutes = require('./routes/admin-returns');
+app.use('/api/admin', adminReturnsRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {
