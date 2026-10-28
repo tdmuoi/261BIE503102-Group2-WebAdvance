@@ -1,0 +1,144 @@
+/* Figma "Filter sidebar" 893:9983. Desktop: dính bên phải khi cuộn. Tablet/mobile: drawer. */
+
+:host {
+  position: sticky;
+  top: calc(var(--header-height, 0px) + var(--space-16));
+  display: block;
+  align-self: start;
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: calc(100vh - var(--header-height, 0px) - var(--space-32));
+  padding: 22px;
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.filters-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding-bottom: 18px;
+  border-bottom: var(--border-default) solid var(--color-border-divider);
+}
+
+.filters-title { font: 800 22px/normal var(--font-display); letter-spacing: -0.22px; }
+
+.filters-clear {
+  margin-left: auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: 700 12px/normal var(--font-sans);
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+}
+
+.filters-close { display: none; }
+
+.filters-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+  padding-bottom: 18px;
+  border-bottom: var(--border-default) solid var(--color-border-divider);
+}
+
+.group-title { font: 800 14px/normal var(--font-sans); letter-spacing: normal; }
+
+.group-hint { font: 400 11px/normal var(--font-sans); color: var(--color-text-muted); }
+
+.author-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  height: 40px;
+  padding: 0 var(--space-12);
+  background: var(--color-bg-page);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+}
+
+.author-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  font: 400 13px/normal var(--font-sans);
+}
+
+/* Ô chọn tác giả */
+.check { display: flex; align-items: center; gap: var(--space-10); cursor: pointer; }
+
+.check input { position: absolute; opacity: 0; pointer-events: none; }
+
+.check-box {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: 5px;
+  font: 700 11px/1 var(--font-sans);
+}
+
+.check input:checked + .check-box { background: var(--color-tint-pink-strong); }
+.check input:checked + .check-box::after { content: '✓'; }
+.check input:focus-visible + .check-box { outline: 2px solid var(--color-border-strong); outline-offset: 2px; }
+.check input:checked ~ .check-label { font-weight: 700; }
+
+.check-label { flex: 1; min-width: 0; font: 400 13px/normal var(--font-sans); }
+
+.check-count { font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+
+.filters-apply {
+  padding: 11px var(--space-16);
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 14px/normal var(--font-sans);
+}
+
+.filters-apply:active { transform: translateY(2px); box-shadow: none; }
+
+/* ---------- Tablet / mobile: drawer từ phải, z-index 1000 (trên header 100, dưới toast 1100) ---------- */
+@media (max-width: 1100px) {
+  :host {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 1000;
+    display: flex;
+    align-self: stretch; /* align-self: start ở trên làm drawer co theo nội dung */
+    width: min(360px, 90vw);
+    visibility: hidden;
+    transform: translateX(100%);
+    transition: transform .2s ease, visibility .2s;
+  }
+
+  :host(.is-open) { visibility: visible; transform: none; }
+
+  .filters { flex: 1; max-height: none; border-radius: var(--radius-20) 0 0 var(--radius-20); box-shadow: none; }
+
+  .filters-close {
+    display: block;
+    padding: var(--space-4) var(--space-8);
+    background: none;
+    border: 0;
+    font-size: 16px;
+  }
+}

@@ -1,1 +1,119 @@
-<p>browse-book works!</p>
+@let current = query();
+<div class="container browse">
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/">Trang chủ</a>
+    <span class="breadcrumb-sep" aria-hidden="true">/</span>
+    @if (current.type; as type) {
+      <a routerLink="/books">Browse Book</a>
+      <span class="breadcrumb-sep" aria-hidden="true">/</span>
+      <span class="breadcrumb-current" aria-current="page">{{ typeLabels[type] }}</span>
+    } @else {
+      <span class="breadcrumb-current" aria-current="page">Browse Book</span>
+    }
+  </nav>
+
+  <!-- Banner theo loại sách -->
+  @if (current.type; as type) {
+    <app-browse-banner [type]="type" [books]="scope()"></app-browse-banner>
+  }
+
+  <div class="browse-body">
+    <section class="results" #resultsTop aria-label="Kết quả">
+      <!-- Chip thể loại -->
+      <div class="chips" role="group" aria-label="Lọc theo thể loại">
+        @for (chip of chips(); track chip.slug) {
+          <button class="chip" type="button" [class.is-active]="chip.slug === current.category"
+                  [attr.aria-pressed]="chip.slug === current.category" (click)="selectCategory(chip.slug)">
+            @if (chip.slug === current.category) { ✓ }{{ chip.label }}
+          </button>
+        }
+      </div>
+
+      <!-- Số kết quả + sắp xếp -->
+      <div class="results-bar">
+        <p class="results-count">
+          @if (state() === 'ready') {
+            <strong>{{ results().length }}</strong> {{ summary() }}
+          } @else {
+            Đang tải sách…
+          }
+        </p>
+        <div class="results-tools">
+          <button class="filter-toggle" type="button" aria-controls="browse-filters" [attr.aria-expanded]="filtersOpen()"
+                  (click)="filtersOpen.set(true)">
+            Bộ lọc
+            @if (activeFilters().length) {
+              <span class="filter-toggle-count">{{ activeFilters().length }}</span>
+            }
+          </button>
+          <label class="sort">
+            <span>Sắp xếp:</span>
+            <select [value]="current.sort" aria-label="Sắp xếp sách" (change)="onSort($event)">
+              @for (option of sortOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            <span aria-hidden="true">⌄</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Bộ lọc đang áp dụng -->
+      @if (activeFilters().length) {
+        <div class="active-filters">
+          <span class="active-label">Đang lọc:</span>
+          @for (filter of activeFilters(); track filter.id) {
+            <button class="active-chip" type="button" [attr.aria-label]="'Bỏ lọc ' + filter.label" (click)="removeFilter(filter.id)">
+              {{ filter.label }} <span aria-hidden="true">✕</span>
+            </button>
+          }
+          <button class="active-clear" type="button" (click)="clearFilters()">Xoá tất cả</button>
+        </div>
+      }
+
+      @switch (state()) {
+        @case ('loading') {
+          <div class="book-grid" aria-hidden="true">
+            @for (item of skeletons; track item) {
+              <div class="skeleton">
+                <span class="skeleton-cover"></span>
+                <span class="skeleton-line"></span>
+                <span class="skeleton-line is-short"></span>
+              </div>
+            }
+          </div>
+        }
+
+        @case ('error') {
+          <app-status-card tone="error" title="Không kết nối được máy chủ"
+                           message="Hãy kiểm tra my-server đang chạy ở cổng 3002 rồi thử lại.">
+            <button class="retry" type="button" (click)="load()">Thử lại</button>
+          </app-status-card>
+        }
+
+        @case ('ready') {
+          @if (pageBooks().length) {
+            <div class="book-grid">
+              @for (book of pageBooks(); track book._id) {
+                <app-book-card [book]="book"></app-book-card>
+              }
+            </div>
+            <app-pagination [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)"></app-pagination>
+          } @else {
+            <app-browse-empty [tips]="emptyTips()" [suggestions]="suggestions()"
+                              (tip)="removeFilter($event)" (clearAll)="clearFilters()"></app-browse-empty>
+          }
+        }
+      }
+    </section>
+
+    <app-browse-filters id="browse-filters" [query]="current" [authors]="authorFacets()" [open]="filtersOpen()"
+                        (apply)="applyFilters($event)" (clearAll)="clearFilters()" (close)="filtersOpen.set(false)">
+    </app-browse-filters>
+  </div>
+</div>
+
+@if (filtersOpen()) {
+  <div class="drawer-backdrop" aria-hidden="true" (click)="filtersOpen.set(false)"></div>
+}

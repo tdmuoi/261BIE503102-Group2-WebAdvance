@@ -1,0 +1,14 @@
+<div class="status-card" [class.status-error]="tone() === 'error'" [attr.role]="tone() === 'error' ? 'alert' : 'status'">
+  @if (tone() === 'loading') {
+    <span class="status-spinner" aria-hidden="true"></span>
+  }
+  @if (title()) {
+    <p class="status-title">{{ title() }}</p>
+  }
+  @if (message()) {
+    <p>{{ message() }}</p>
+  }
+  <div class="status-actions">
+    <ng-content></ng-content>
+  </div>
+</div>

@@ -1,0 +1,161 @@
+/* Figma "Hero banner" 893:9696 (mới) / 893:10118 (cũ) / 893:10610 (điện tử) */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-24);
+  padding: var(--space-32) 44px;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: 28px;
+  box-shadow: var(--shadow-offset-md);
+}
+
+.banner[data-tone='pink'] { background: var(--color-tint-pink); }
+.banner[data-tone='mint'] { background: var(--color-tint-mint); }
+.banner[data-tone='yellow'] { background: var(--color-tint-yellow); }
+
+.banner-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-14);
+  max-width: 520px;
+}
+
+.banner-tag {
+  padding: 5px var(--space-12);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+}
+
+.banner-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-14);
+  font: inherit;
+  letter-spacing: normal;
+}
+
+.banner-title-main { font: 800 46px/1.15 var(--font-display); letter-spacing: -0.92px; }
+
+.banner-title-accent { font: italic 400 52px/1.15 var(--font-serif); color: var(--color-text-serif); }
+
+.banner-desc { max-width: 470px; margin: 0; font: 400 15px/1.5 var(--font-sans); color: var(--color-text-body); }
+
+.banner-cta {
+  padding: 10px 18px;
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 14px/normal var(--font-sans);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.banner-cta:hover { transform: translateY(-1px); box-shadow: var(--shadow-offset-md); }
+
+/* ---------- Cụm bìa sách ---------- */
+.banner-visual { position: relative; flex-shrink: 0; width: 440px; height: 240px; }
+
+.banner-cover {
+  position: absolute;
+  top: 48px;
+  left: 27px;
+  width: 128px;
+  height: 184px;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-6);
+  box-shadow: var(--shadow-offset-md);
+  transform: rotate(8deg);
+}
+
+.banner-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.banner-cover[data-slot='1'] { top: 14px; left: 148px; z-index: 1; width: 144px; height: 206px; transform: none; }
+
+.banner-cover[data-slot='2'] { top: 24px; left: 274px; transform: rotate(-8deg); }
+
+/* Ebook: bìa giữa đặt trong khung máy đọc sách */
+[data-type='ebook'] .banner-cover { top: 65px; left: 23px; width: 118px; height: 170px; }
+
+[data-type='ebook'] .banner-cover[data-slot='1'] {
+  top: 10px;
+  left: 142px;
+  width: 156px;
+  height: 222px;
+  padding: var(--space-8);
+  background: var(--color-text-primary);
+  border: 0;
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-lg);
+}
+
+[data-type='ebook'] .banner-cover[data-slot='1'] img { border-radius: 13px; }
+
+[data-type='ebook'] .banner-cover[data-slot='2'] { top: 31px; left: 301px; }
+
+.banner-sticker {
+  position: absolute;
+  top: -20px;
+  left: 340px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 108px;
+  height: 108px;
+  background: var(--color-tint-yellow);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-4);
+  transform: rotate(-12deg);
+}
+
+[data-type='used'] .banner-sticker { background: var(--color-tint-pink); }
+
+.banner-sticker-small { font: 700 11px/normal var(--font-sans); }
+
+.banner-sticker-big { font: 800 30px/1.1 var(--font-display); letter-spacing: -0.6px; }
+
+.banner-sample {
+  position: absolute;
+  top: 12px;
+  left: 6px;
+  z-index: 2;
+  padding: 5px var(--space-10);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 11px/normal var(--font-sans);
+  transform: rotate(6deg);
+}
+
+@media (max-width: 1100px) {
+  .banner { padding: var(--space-24); }
+
+  .banner-visual { margin: 0 -40px 0 -60px; transform: scale(.8); }
+}
+
+@media (max-width: 860px) {
+  .banner-visual { display: none; }
+
+  .banner-title-main { font-size: 34px; }
+
+  .banner-title-accent { font-size: 38px; }
+}
+
+@media (max-width: 600px) {
+  .banner { padding: var(--space-20); border-radius: var(--radius-22); }
+
+  .banner-title-main { font-size: 30px; }
+
+  .banner-title-accent { font-size: 32px; }
+}

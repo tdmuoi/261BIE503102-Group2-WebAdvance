@@ -1,0 +1,30 @@
+@let banner = content();
+@let list = covers();
+<section class="banner" [attr.data-tone]="banner.tone">
+  <div class="banner-copy">
+    <span class="banner-tag">{{ banner.tag }}</span>
+    <h1 class="banner-title">
+      <span class="banner-title-main">{{ banner.title }}</span>
+      <span class="banner-title-accent">{{ banner.accent }}</span>
+    </h1>
+    <p class="banner-desc">{{ banner.desc }}</p>
+    <a class="banner-cta" [routerLink]="banner.cta.path" [queryParams]="banner.cta.queryParams">{{ banner.cta.label }} →</a>
+  </div>
+
+  <div class="banner-visual" [attr.data-type]="type()" aria-hidden="true">
+    @for (book of list; track book._id; let i = $index) {
+      <span class="banner-cover" [attr.data-slot]="i">
+        <img [appTrimCover]="book.image" alt="" />
+      </span>
+    }
+    @if (type() === 'ebook') {
+      <span class="banner-sample">▶ Đọc thử 20 trang</span>
+    } @else {
+      <span class="banner-sticker">
+        <span class="banner-sticker-small">{{ banner.sticker[0] }}</span>
+        <span class="banner-sticker-big">{{ banner.sticker[1] }}</span>
+        <span class="banner-sticker-small">{{ banner.sticker[2] }}</span>
+      </span>
+    }
+  </div>
+</section>

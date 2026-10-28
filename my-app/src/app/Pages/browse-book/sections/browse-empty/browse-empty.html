@@ -1,0 +1,34 @@
+<div class="empty">
+  <div class="empty-art" aria-hidden="true">
+    <img class="empty-blob" src="images/decor/empty-blob.svg" alt="" width="120" height="120" />
+    <img class="empty-book" src="images/decor/empty-book.svg" alt="" width="59.4" height="45.3692" />
+    <span class="empty-magnifier">
+      <img src="images/icons/empty-magnifier.svg" alt="" width="18.7917" height="18.7917" />
+    </span>
+  </div>
+
+  <h2 class="empty-title">Chưa có cuốn nào khớp bộ lọc</h2>
+
+  @if (tips().length) {
+    <div class="empty-tips">
+      <span class="empty-tips-label">Gợi ý:</span>
+      @for (item of tips(); track item.id) {
+        <button class="empty-tip" type="button" (click)="tip.emit(item.id)">{{ item.label }}</button>
+      }
+    </div>
+  }
+
+  <div class="empty-actions">
+    <button class="empty-btn empty-btn-clear" type="button" (click)="clearAll.emit()">Xoá tất cả bộ lọc</button>
+    <a class="empty-btn" routerLink="/books">Xem sách mới nhất →</a>
+  </div>
+</div>
+
+@if (suggestions().length) {
+  <h3 class="suggest-title">Có thể bạn sẽ thích</h3>
+  <div class="suggest-grid">
+    @for (book of suggestions(); track book._id) {
+      <app-book-card [book]="book"></app-book-card>
+    }
+  </div>
+}

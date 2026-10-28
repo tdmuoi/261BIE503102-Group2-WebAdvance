@@ -1,0 +1,189 @@
+/* Trang Browse Books — Figma 892:8448 (Top + Body). Banner, sidebar, empty state nằm trong sections/ */
+
+.browse {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: var(--space-24);
+  padding-bottom: 96px;
+}
+
+/* ---------- Breadcrumb ---------- */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  font: 400 12px/normal var(--font-sans);
+  color: var(--color-text-muted);
+}
+
+.breadcrumb a:hover { color: var(--color-text-primary); text-decoration: underline; }
+
+.breadcrumb-sep { color: var(--color-border-divider); }
+
+.breadcrumb-current { font-weight: 700; color: var(--color-text-primary); }
+
+/* ---------- Bố cục: kết quả trái, bộ lọc phải ---------- */
+.browse-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-40);
+  padding-top: 14px;
+}
+
+.results {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-20);
+  min-width: 0;
+}
+
+/* ---------- Chip thể loại ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+
+.chip,
+.active-chip {
+  padding: var(--space-8) var(--space-14);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 13px/normal var(--font-sans);
+  white-space: nowrap;
+}
+
+.chip:hover { background: var(--color-bg-subtle); }
+
+.chip.is-active { background: var(--color-tint-pink); box-shadow: var(--shadow-offset-xs); }
+
+/* ---------- Số kết quả + sắp xếp ---------- */
+.results-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+
+.results-count { margin: 0; font: 400 13px/normal var(--font-sans); color: var(--color-text-muted); }
+
+.results-count strong {
+  font: 800 20px/normal var(--font-display);
+  letter-spacing: -0.2px;
+  color: var(--color-text-primary);
+}
+
+.results-tools { display: flex; gap: var(--space-8); }
+
+.sort,
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-14);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 13px/normal var(--font-sans);
+}
+
+.sort select {
+  padding: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  font: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+
+.filter-toggle { display: none; }
+
+.filter-toggle-count {
+  min-width: 18px;
+  padding: 0 var(--space-4);
+  background: var(--color-text-primary);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--color-text-inverse);
+}
+
+/* ---------- Đang lọc ---------- */
+.active-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+
+.active-label { font: 700 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.active-chip { padding: 5px var(--space-12); background: var(--color-bg-subtle); font-size: 12px; }
+
+.active-clear {
+  padding: 0;
+  background: none;
+  border: 0;
+  font: 700 12px/normal var(--font-sans);
+  text-decoration: underline;
+}
+
+/* ---------- Lưới sách + skeleton ---------- */
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px var(--space-24);
+}
+
+.skeleton { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.skeleton-cover,
+.skeleton-line {
+  display: block;
+  background: linear-gradient(90deg, var(--color-bg-disabled) 25%, var(--color-bg-placeholder) 50%, var(--color-bg-disabled) 75%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-6);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-cover { aspect-ratio: 229 / 316; margin-bottom: var(--space-4); border-radius: var(--radius-12); }
+
+.skeleton-line { height: 12px; }
+
+.skeleton-line.is-short { width: 60%; }
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+.retry {
+  padding: 10px 22px;
+  background: var(--color-bg-inverse);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 14px/normal var(--font-sans);
+  color: var(--color-text-inverse);
+}
+
+/* Nền mờ sau drawer bộ lọc (z-index ngay dưới drawer 1000) */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+/* ---------- Tablet: sidebar thành drawer ---------- */
+@media (max-width: 1100px) {
+  .browse-body { display: block; }
+
+  .filter-toggle { display: inline-flex; }
+
+  .book-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 600px) {
+  .browse { padding-top: var(--space-16); padding-bottom: 64px; }
+
+  .chips { flex-wrap: nowrap; margin: 0 calc(-1 * var(--layout-gutter)); padding: 0 var(--layout-gutter) 4px; overflow-x: auto; scrollbar-width: none; }
+
+  .book-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-24) var(--space-16); }
+}

@@ -30,7 +30,8 @@ import { PageNotFound } from './Pages/page-not-found/page-not-found';
 
 const routes: Routes = [
   { path: '', component: Homepage },
-  { path: 'browse-book', component: BrowseBook },
+  { path: 'books', component: BrowseBook },
+  { path: 'browse-book', redirectTo: 'books' },   // link cũ (trang chủ, header) — giữ nguyên query params
   { path: 'product-detail/:id', component: ProductDetail },
   { path: 'cart', component: Cart },
   { path: 'checkout', component: Checkout },

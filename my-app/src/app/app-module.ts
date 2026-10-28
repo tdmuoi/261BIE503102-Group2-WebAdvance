@@ -50,6 +50,12 @@ import { HomeRecommendations } from './Pages/homepage/sections/home-recommendati
 import { HomeBestPanel } from './Pages/homepage/sections/home-best-panel/home-best-panel';
 import { HomeDealCard } from './Pages/homepage/sections/home-deal-card/home-deal-card';
 import { ToastHost } from './Components/toast/toast';
+import { Pagination } from './Components/pagination/pagination';
+import { StatusCard } from './Components/status-card/status-card';
+import { BrowseBanner } from './Pages/browse-book/sections/browse-banner/browse-banner';
+import { BrowseFilters } from './Pages/browse-book/sections/browse-filters/browse-filters';
+import { BrowseEmpty } from './Pages/browse-book/sections/browse-empty/browse-empty';
+import { BrowsePrice } from './Pages/browse-book/sections/browse-price/browse-price';
 
 @NgModule({
   declarations: [
@@ -100,6 +106,12 @@ import { ToastHost } from './Components/toast/toast';
     HomeBestPanel,
     HomeDealCard,
     ToastHost,
+    Pagination,
+    StatusCard,
+    BrowseBanner,
+    BrowseFilters,
+    BrowseEmpty,
+    BrowsePrice,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],

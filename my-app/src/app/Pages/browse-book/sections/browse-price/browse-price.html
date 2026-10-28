@@ -1,0 +1,28 @@
+<div class="price-head">
+  <h3 class="price-title" id="filter-price">Khoảng giá</h3>
+  <span class="price-value">{{ format(min()) }} – {{ format(max(), true) }}</span>
+</div>
+
+<div class="range">
+  <span class="range-fill" [style.left.%]="fill().left" [style.right.%]="fill().right"></span>
+  <input type="range" min="0" [max]="priceMax" [step]="priceStep" [value]="min()"
+         aria-label="Giá thấp nhất" (input)="onSlide('min', $event)" />
+  <input type="range" min="0" [max]="priceMax" [step]="priceStep" [value]="max()"
+         aria-label="Giá cao nhất" (input)="onSlide('max', $event)" />
+</div>
+
+<div class="range-scale">
+  <span>{{ format(0) }}</span>
+  <span>{{ format(priceMax, true) }}</span>
+</div>
+
+<div class="price-inputs">
+  <label class="price-input">
+    <span>Từ</span>
+    <input type="text" inputmode="numeric" [value]="format(min())" (change)="onInput('min', $event)" />
+  </label>
+  <label class="price-input">
+    <span>Đến</span>
+    <input type="text" inputmode="numeric" [value]="format(max(), true)" (change)="onInput('max', $event)" />
+  </label>
+</div>

@@ -1,0 +1,100 @@
+/* Figma "Empty state" 893:11101 */
+
+:host { display: block; }
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-16);
+  padding: 48px var(--space-24);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+  text-align: center;
+}
+
+.empty-art { position: relative; width: 150px; height: 120px; }
+
+.empty-blob { position: absolute; top: 0; left: 15px; }
+
+.empty-book { position: absolute; top: 34px; left: 45px; }
+
+.empty-magnifier {
+  position: absolute;
+  top: 72px;
+  left: 102px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--color-bg-surface);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+}
+
+.empty-title { font: 800 28px/1.2 var(--font-display); letter-spacing: -0.28px; }
+
+.empty-tips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+}
+
+.empty-tips-label { font: 700 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.empty-tip {
+  padding: 5px var(--space-12);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+}
+
+.empty-tip:hover { background: var(--color-bg-subtle); }
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-10);
+  padding-top: var(--space-8);
+}
+
+.empty-btn {
+  padding: 10px 20px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-xs);
+  font: 700 14px/normal var(--font-sans);
+}
+
+.empty-btn-clear { background: var(--color-bg-subtle); box-shadow: var(--shadow-offset-sm); }
+
+.suggest-title {
+  margin: 48px 0 var(--space-32);
+  font: 800 20px/normal var(--font-display);
+  letter-spacing: -0.2px;
+}
+
+.suggest-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px var(--space-24);
+}
+
+@media (max-width: 860px) {
+  .suggest-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .empty-title { font-size: 22px; }
+
+  .suggest-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-24) var(--space-16); }
+}

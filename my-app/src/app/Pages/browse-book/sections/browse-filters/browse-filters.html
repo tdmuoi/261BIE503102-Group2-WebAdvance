@@ -1,0 +1,36 @@
+<aside class="filters" aria-labelledby="filters-title">
+  <div class="filters-head">
+    <h2 class="filters-title" id="filters-title">Bộ lọc</h2>
+    <button class="filters-clear" type="button" (click)="clearAll.emit()">Xoá tất cả</button>
+    <button class="filters-close" type="button" aria-label="Đóng bộ lọc" (click)="close.emit()">✕</button>
+  </div>
+
+  <!-- Tác giả -->
+  <div class="filters-group" role="group" aria-labelledby="filter-author">
+    <h3 class="group-title" id="filter-author">Tác giả</h3>
+    <label class="author-search">
+      <img src="images/icons/search-sm.svg" alt="" width="13.7333" height="13.7333" />
+      <input type="search" placeholder="Nhập tên tác giả…" aria-label="Tìm tác giả"
+             [value]="authorSearch()" (input)="onAuthorSearch($event)" />
+    </label>
+    @if (!authorSearch()) {
+      <span class="group-hint">Có nhiều đầu sách nhất</span>
+    }
+    @for (author of visibleAuthors(); track author.id) {
+      <label class="check">
+        <input type="checkbox" [checked]="selectedAuthors().includes(author.id)" (change)="toggleAuthor(author.id)" />
+        <span class="check-box" aria-hidden="true"></span>
+        <span class="check-label">{{ author.name }}</span>
+        <span class="check-count">{{ author.count }}</span>
+      </label>
+    } @empty {
+      <span class="group-hint">Không có tác giả phù hợp.</span>
+    }
+  </div>
+
+  <!-- Khoảng giá -->
+  <app-browse-price class="filters-group" role="group" aria-labelledby="filter-price"
+                    [(min)]="minPrice" [(max)]="maxPrice"></app-browse-price>
+
+  <button class="filters-apply" type="button" (click)="submit()">Áp dụng bộ lọc</button>
+</aside>

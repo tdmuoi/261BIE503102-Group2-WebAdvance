@@ -1,0 +1,14 @@
+@if (totalPages() > 1) {
+  <nav class="pagination" aria-label="Phân trang">
+    <button class="page-btn" type="button" aria-label="Trang trước" [disabled]="page() === 1" (click)="go(page() - 1)">‹</button>
+    @for (item of items(); track $index) {
+      @if (item === 'gap') {
+        <span class="page-gap" aria-hidden="true">…</span>
+      } @else {
+        <button class="page-btn" type="button" [class.is-active]="item === page()"
+                [attr.aria-current]="item === page() ? 'page' : null" (click)="go(item)">{{ item }}</button>
+      }
+    }
+    <button class="page-btn" type="button" aria-label="Trang sau" [disabled]="page() === totalPages()" (click)="go(page() + 1)">›</button>
+  </nav>
+}

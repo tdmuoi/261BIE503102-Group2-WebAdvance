@@ -1,0 +1,92 @@
+:host { display: flex; flex-direction: column; gap: var(--space-12); }
+
+.price-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.price-title { font: 800 14px/normal var(--font-sans); letter-spacing: normal; }
+
+.price-value { font: 700 11px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+/* Thanh trượt 2 đầu: 2 input range chồng lên nhau */
+.range { position: relative; height: 24px; }
+
+.range::before,
+.range-fill {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--color-bg-placeholder);
+  border-radius: var(--radius-full);
+}
+
+.range-fill { background: var(--color-border-strong); }
+
+.range input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: none;
+  pointer-events: none;
+  appearance: none;
+}
+
+.range input::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  pointer-events: auto;
+  cursor: grab;
+  appearance: none;
+}
+
+.range input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--color-bg-surface);
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.range-scale {
+  display: flex;
+  justify-content: space-between;
+  font: 400 11px/normal var(--font-sans);
+  color: var(--color-text-muted);
+}
+
+.price-inputs { display: flex; gap: var(--space-8); }
+
+.price-input {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-6) var(--space-10);
+  background: var(--color-bg-page);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-10);
+  font: 400 10px/normal var(--font-sans);
+  color: var(--color-text-muted);
+}
+
+.price-input input {
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  outline: none;
+  font: 700 13px/normal var(--font-sans);
+  color: var(--color-text-primary);
+}
