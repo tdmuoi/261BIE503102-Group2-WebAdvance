@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 600px;
+  height: 480px;
   padding: var(--space-40);
   background: var(--color-tint-mint);
   border: var(--border-default) solid var(--color-border-strong);
@@ -15,8 +15,9 @@
   box-shadow: var(--shadow-offset-md);
 }
 
+/* Nhỏ hơn Figma (316px) vì DB chỉ có 1 ảnh bìa, khung 600px trông quá to */
 .gallery-cover {
-  width: 316px;
+  width: 260px;
   max-width: 100%;
   aspect-ratio: 316 / 460;
   overflow: hidden;
