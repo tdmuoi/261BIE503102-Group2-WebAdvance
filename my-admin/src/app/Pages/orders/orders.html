@@ -1,1 +1,100 @@
-<p>orders works!</p>
+<app-page-heading
+  title="Đơn hàng"
+  subtitle="Theo dõi và xử lý đơn: xác nhận, giao vận chuyển, hoàn tất hoặc huỷ."
+  [breadcrumbs]="[{ label: 'Bán hàng' }, { label: 'Đơn hàng' }]">
+</app-page-heading>
+
+@if (error()) {
+  <div class="alert" role="alert">
+    {{ error() }}
+    <button type="button" class="btn btn-sm" (click)="load()">Thử lại</button>
+  </div>
+}
+
+<section class="stats">
+  <app-stat-card label="Chờ xác nhận" [value]="count('pending')" tone="warn" note="Cần xác nhận sớm"></app-stat-card>
+  <app-stat-card label="Chờ lấy hàng" [value]="count('confirmed')" tone="info" note="Đã xác nhận, đang đóng gói"></app-stat-card>
+  <app-stat-card label="Đang giao" [value]="count('shipping')" tone="info" note="Đã giao cho vận chuyển"></app-stat-card>
+  <app-stat-card label="Đã giao" [value]="count('delivered')" tone="ok" [note]="'Trên tổng ' + count('') + ' đơn'"></app-stat-card>
+</section>
+
+<div class="layout" [class.has-panel]="!!selectedId()">
+  <div class="card card-flush list">
+    <div class="tabs" role="tablist">
+      @for (tab of tabs; track tab.value) {
+        <button type="button" class="chip" role="tab" [class.is-active]="status() === tab.value"
+                [attr.aria-selected]="status() === tab.value" (click)="setFilter('status', tab.value)">
+          {{ tab.label }} <span class="count">{{ count(tab.value) }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="filters">
+      <input class="input search" type="search" placeholder="Mã đơn, tên, SĐT, email khách..."
+             [value]="q()" (input)="onSearch($any($event.target).value)" aria-label="Tìm đơn hàng" />
+      <select class="select" [value]="payment()" (change)="setFilter('payment', $any($event.target).value)" aria-label="Thanh toán">
+        <option value="">Mọi thanh toán</option>
+        @for (p of paymentOptions; track p) { <option [value]="p">{{ paymentInfo[p].label }}</option> }
+      </select>
+      <label class="date"><span>Từ</span>
+        <input class="input" type="date" [value]="from()" (change)="setFilter('from', $any($event.target).value)" />
+      </label>
+      <label class="date"><span>Đến</span>
+        <input class="input" type="date" [value]="to()" (change)="setFilter('to', $any($event.target).value)" />
+      </label>
+      <select class="select" [value]="sort()" (change)="setFilter('sort', $any($event.target).value)" aria-label="Sắp xếp">
+        @for (s of sortOptions; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+      </select>
+      @if (hasFilter()) { <button type="button" class="btn btn-sm" (click)="clearFilters()">Xoá lọc</button> }
+    </div>
+
+    <div class="table-wrap" [class.is-loading]="loading()">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th class="num opt">SL</th>
+            <th class="num">Tổng tiền</th><th class="opt">Thanh toán</th><th>Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (o of orders(); track o._id) {
+            <tr class="row" [class.is-active]="selectedId() === o._id" (click)="open(o)" tabindex="0" (keydown.enter)="open(o)">
+              <td><strong>{{ o.orderCode }}</strong></td>
+              <td>
+                <span class="customer">{{ o.customer.name }}</span>
+                @if (o.customer.phone) { <small class="text-muted">{{ o.customer.phone }}</small> }
+              </td>
+              <td class="text-muted">{{ o.createdAt | date: 'HH:mm dd/MM/yyyy' }}</td>
+              <td class="num opt">{{ o.itemCount }}</td>
+              <td class="num"><strong>{{ money(o.total) }}</strong></td>
+              <td class="opt">
+                <app-status-badge [status]="o.paymentStatus" [label]="paymentInfo[o.paymentStatus].label"
+                                  [tone]="paymentInfo[o.paymentStatus].tone"></app-status-badge>
+              </td>
+              <td>
+                <app-status-badge [status]="o.status" [label]="statusInfo[o.status].label" [tone]="statusInfo[o.status].tone"></app-status-badge>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty">
+                @if (loading()) { Đang tải đơn hàng... }
+                @else if (hasFilter()) { Không có đơn nào khớp bộ lọc. }
+                @else { Chưa có đơn hàng nào. Khi khách đặt hàng trên web, đơn sẽ hiện ở đây. }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="data()?.total ?? 0" itemLabel="đơn"
+                    (pageChange)="goToPage($event)"></app-pagination>
+  </div>
+
+  @if (selectedId()) {
+    <div class="panel-wrap">
+      <app-order-detail class="card card-flush" [orderId]="selectedId()" (closed)="close()" (changed)="onChanged()"></app-order-detail>
+    </div>
+  }
+</div>

@@ -1,1 +1,143 @@
-<p>order-detail works!</p>
+<aside class="panel" aria-label="Chi tiết đơn hàng">
+  <header class="panel-head">
+    <div>
+      <h2>{{ order()?.orderCode ?? 'Đơn hàng' }}</h2>
+      @if (order(); as o) { <small class="text-muted">Đặt lúc {{ o.createdAt | date: 'HH:mm dd/MM/yyyy' }}</small> }
+    </div>
+    <button type="button" class="icon-btn" (click)="closed.emit()" aria-label="Đóng chi tiết">✕</button>
+  </header>
+
+  @if (error()) { <p class="msg msg-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="msg" role="status">{{ message() }}</p> }
+
+  @if (loading() && !order()) {
+    <p class="empty">Đang tải đơn hàng...</p>
+  } @else if (order(); as o) {
+    <div class="panel-body" [class.is-busy]="saving() || loading()">
+      <!-- Trạng thái + bước -->
+      <section class="block">
+        <div class="row-between">
+          <app-status-badge [status]="o.status" [label]="statusInfo[o.status].label" [tone]="statusInfo[o.status].tone"></app-status-badge>
+          @if (o.onlyEbooks) { <small class="text-muted">Đơn ebook — không cần giao hàng</small> }
+        </div>
+        <ol class="steps" [class.is-stopped]="o.status === 'cancelled' || o.status === 'returned'">
+          @for (s of steps(); track s.status) {
+            <li [class.done]="s.done">
+              <span class="dot"></span>
+              <span>{{ s.label }}</span>
+              @if (s.at) { <small>{{ s.at | date: 'HH:mm dd/MM' }}</small> }
+            </li>
+          }
+        </ol>
+
+        @if (o.nextStatuses.length) {
+          @if (o.nextStatuses.includes('shipping')) {
+            <label class="label" for="tracking">Mã vận đơn (nếu có)</label>
+            <input id="tracking" class="input" [(ngModel)]="trackingCode" placeholder="VD: GHN123456789" />
+          }
+          <div class="actions">
+            @for (next of o.nextStatuses; track next) {
+              <button type="button" class="btn"
+                      [class.btn-primary]="actions[next].style === 'primary'" [class.btn-danger]="actions[next].style === 'danger'"
+                      [disabled]="saving()" (click)="act(next)">
+                {{ next === 'delivered' && o.onlyEbooks ? 'Đã gửi ebook' : actions[next].label }}
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="text-muted small">Đơn đã kết thúc, không còn bước xử lý.</p>
+        }
+      </section>
+
+      <!-- Khách hàng -->
+      <section class="block">
+        <h3>Khách hàng</h3>
+        <p><strong>{{ o.customer.name }}</strong></p>
+        @if (o.customer.phone) { <p><a [href]="'tel:' + o.customer.phone">{{ o.customer.phone }}</a></p> }
+        @if (o.customer.email) { <p class="text-muted">{{ o.customer.email }}</p> }
+        @if (address(o)) {
+          <h3>Giao đến</h3>
+          <p>{{ o.shippingAddress?.fullName }} @if (o.shippingAddress?.phone) { · {{ o.shippingAddress?.phone }} }</p>
+          <p class="text-muted">{{ address(o) }}</p>
+        }
+        @if (o.note) { <p class="note">Khách ghi chú: {{ o.note }}</p> }
+      </section>
+
+      <!-- Sản phẩm -->
+      <section class="block">
+        <h3>Sản phẩm ({{ o.itemCount }})</h3>
+        @for (it of o.items; track $index) {
+          <div class="item">
+            <span class="cover">@if (it.image) { <img [src]="it.image" alt="" (error)="hideImage($event)" /> }</span>
+            <span class="item-text">
+              <strong>{{ it.title }}</strong>
+              <small class="text-muted">{{ money(it.price) }} × {{ it.quantity }} @if (it.format === 'ebook') { · Ebook }</small>
+            </span>
+            <strong>{{ money(it.price * it.quantity) }}</strong>
+          </div>
+        }
+        <dl class="totals">
+          <dt>Tạm tính</dt><dd>{{ money(o.subtotal) }}</dd>
+          <dt>Phí vận chuyển</dt><dd>{{ o.shippingFee ? money(o.shippingFee) : 'Miễn phí' }}</dd>
+          @if (o.discount) { <dt>Giảm giá @if (o.voucherCode) { ({{ o.voucherCode }}) }</dt><dd>-{{ money(o.discount) }}</dd> }
+          <dt class="grand">Tổng cộng</dt><dd class="grand">{{ money(o.total) }}</dd>
+        </dl>
+      </section>
+
+      <!-- Thanh toán -->
+      <section class="block">
+        <h3>Thanh toán</h3>
+        <p>{{ paymentMethods[o.paymentMethod] ?? o.paymentMethod }}</p>
+        <select class="select" [value]="o.paymentStatus" (change)="setPayment($any($event.target).value)" aria-label="Trạng thái thanh toán">
+          @for (p of paymentOptions; track p) { <option [value]="p">{{ paymentInfo[p].label }}</option> }
+        </select>
+      </section>
+
+      <!-- Ghi chú nội bộ -->
+      <section class="block">
+        <h3>Ghi chú nội bộ</h3>
+        @if (!o.nextStatuses.includes('shipping')) {
+          <input class="input" [(ngModel)]="trackingCode" placeholder="Mã vận đơn" aria-label="Mã vận đơn" />
+        }
+        <textarea class="textarea" rows="3" [(ngModel)]="adminNote" placeholder="Chỉ admin thấy, VD: khách hẹn giao sau 17h"></textarea>
+        <button type="button" class="btn btn-sm" [disabled]="saving()" (click)="saveNote()">Lưu ghi chú</button>
+      </section>
+
+      <!-- Lịch sử -->
+      @if (o.statusHistory?.length) {
+        <section class="block">
+          <h3>Lịch sử xử lý</h3>
+          <ul class="history">
+            @for (h of o.statusHistory; track $index) {
+              <li>
+                <strong>{{ statusLabel(h.status) }}</strong>
+                <small class="text-muted">{{ h.at | date: 'HH:mm dd/MM/yyyy' }}</small>
+                @if (h.note) { <span>{{ h.note }}</span> }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  }
+</aside>
+
+<app-confirm-dialog
+  [open]="!!pending()"
+  [title]="pending() === 'cancelled' ? 'Huỷ đơn ' + order()?.orderCode + '?' : 'Ghi nhận trả hàng cho ' + order()?.orderCode + '?'"
+  [message]="pending() === 'cancelled' ? 'Đơn sẽ chuyển sang Đã huỷ và không xử lý tiếp được.' : 'Đơn sẽ chuyển sang Trả hàng. Việc hoàn tiền xử lý ở trang Đổi trả & hoàn tiền.'"
+  [confirmText]="pending() === 'cancelled' ? 'Huỷ đơn' : 'Ghi nhận trả hàng'"
+  cancelText="Quay lại"
+  [loading]="saving()"
+  (confirmed)="confirmPending()"
+  (cancelled)="pending.set(null)">
+  <div class="reason">
+    <label class="label" for="reason">Lý do *</label>
+    <textarea id="reason" class="textarea" rows="3" [(ngModel)]="reason" (ngModelChange)="reasonError.set('')"
+              [placeholder]="pending() === 'cancelled' ? 'VD: Khách đổi ý, hết hàng...' : 'VD: Sách bị lỗi in'"></textarea>
+    @if (reasonError()) { <small class="error">{{ reasonError() }}</small> }
+    @if (pending() === 'cancelled' && order()?.items?.length) {
+      <label class="check"><input type="checkbox" [(ngModel)]="restock" /> Cộng lại số lượng sách vào tồn kho</label>
+    }
+  </div>
+</app-confirm-dialog>

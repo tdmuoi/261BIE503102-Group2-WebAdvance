@@ -99,7 +99,7 @@
           </thead>
           <tbody>
             @for (o of d.recentOrders; track o._id) {
-              <tr class="clickable" [routerLink]="['/order-detail', o._id]">
+              <tr class="clickable" routerLink="/orders" [queryParams]="{ id: o._id }">
                 <td><strong>{{ o.code }}</strong></td>
                 <td>
                   <span class="customer"><span class="mini-avatar">{{ initials(o.customerName) }}</span>{{ o.customerName }}</span>

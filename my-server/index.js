@@ -133,6 +133,10 @@ app.use('/api/admin', adminBooksRoutes(() => database));
 const bannersRoutes = require('./routes/admin-banners');
 app.use('/api', bannersRoutes(() => database));
 
+// API Đơn hàng cho admin: /api/admin/orders (xem routes/admin-orders.js)
+const adminOrdersRoutes = require('./routes/admin-orders');
+app.use('/api/admin', adminOrdersRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {

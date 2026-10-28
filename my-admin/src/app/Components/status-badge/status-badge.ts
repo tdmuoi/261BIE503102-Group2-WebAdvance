@@ -44,6 +44,7 @@ export const STATUS_MAP: Record<string, { label: string; tone: BadgeTone }> = {
   // Đỏ — lỗi / huỷ / khoá
   cancelled: { label: 'Đã huỷ', tone: 'bad' },
   rejected: { label: 'Từ chối', tone: 'bad' },
+  returned: { label: 'Trả hàng', tone: 'bad' },
   failed: { label: 'Thất bại', tone: 'bad' },
   locked: { label: 'Bị khoá', tone: 'bad' },
   blocked: { label: 'Bị khoá', tone: 'bad' },
