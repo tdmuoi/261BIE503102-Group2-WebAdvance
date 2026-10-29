@@ -1,1 +1,134 @@
-<p>address works!</p>
+<div class="page">
+  <ol class="breadcrumb">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><a routerLink="/account">Tài khoản</a></li>
+    <li aria-current="page">Thông tin cá nhân</li>
+  </ol>
+
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Thông tin cá nhân</h1>
+      <p class="page-subtitle">Quản lý địa chỉ để giao hàng nhanh và đúng hơn.</p>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Thông tin cá nhân">
+    <a class="tab" routerLink="/account/profile-info">Thông tin tài khoản</a>
+    <a class="tab is-active" routerLink="/account/address" aria-current="page">Địa chỉ nhận hàng</a>
+  </nav>
+
+  <div class="list-head">
+    <h2 class="list-title">Sổ địa chỉ ({{ addresses().length }})</h2>
+    <button type="button" class="btn-outline add-btn" (click)="startCreate()">
+      <img src="images/account/plus.svg" alt="" width="14" height="14" />Thêm địa chỉ mới
+    </button>
+  </div>
+
+  @switch (status()) {
+    @case ('loading') {
+      <app-status-card tone="loading" message="Đang tải sổ địa chỉ…" />
+    }
+    @case ('error') {
+      <app-status-card tone="error" title="Chưa tải được sổ địa chỉ" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn-outline" (click)="load()">Thử lại</button>
+      </app-status-card>
+    }
+    @default {
+      @if (addresses().length) {
+        <ul class="addresses">
+          @for (a of addresses(); track a._id) {
+            <li class="address" [class.is-default]="a.isDefault">
+              <div class="address-top">
+                <div class="who">
+                  <img src="images/account/pin.svg" alt="" width="18" height="18" />
+                  <span class="name">{{ a.fullName }}</span>
+                  <span class="sep">|</span>
+                  <span class="phone">{{ formatPhone(a.phone) }}</span>
+                  @if (a.isDefault) { <span class="badge badge--default">Mặc định</span> }
+                  <span class="badge">{{ typeLabel(a.type) }}</span>
+                </div>
+                <div class="links">
+                  <button type="button" (click)="edit(a)">Sửa</button>
+                  <button type="button" class="danger" (click)="remove(a)" [disabled]="saving()">Xoá</button>
+                </div>
+              </div>
+              <p class="line">{{ fullAddress(a) }}</p>
+              @if (!a.isDefault) {
+                <button type="button" class="set-default" (click)="setDefault(a)" [disabled]="saving()">Đặt làm mặc định</button>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty">Bạn chưa có địa chỉ nào. Thêm địa chỉ đầu tiên ở bên dưới nhé.</p>
+      }
+    }
+  }
+
+  <section #formCard class="card" [formGroup]="form">
+    <h2 class="card-title">{{ editingId() ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+
+    <div class="row">
+      <div class="field" [class.field--error]="error('fullName')">
+        <label class="label" for="ad-name">Họ tên người nhận</label>
+        <div class="input"><input id="ad-name" formControlName="fullName" autocomplete="name" placeholder="Nhập họ tên" /></div>
+        @if (error('fullName'); as err) { <p class="helper">{{ err }}</p> }
+      </div>
+      <div class="field" [class.field--error]="error('phone')">
+        <label class="label" for="ad-phone">Số điện thoại</label>
+        <div class="input"><input id="ad-phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
+        @if (error('phone'); as err) { <p class="helper">{{ err }}</p> }
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field" [class.field--error]="error('province')">
+        <label class="label" for="ad-province">Tỉnh / Thành phố</label>
+        <div class="input select">
+          <select id="ad-province" formControlName="province">
+            <option value="" disabled>Chọn tỉnh / thành</option>
+            @for (p of provinces(); track p.code) { <option [value]="p.name">{{ p.name }}</option> }
+          </select>
+        </div>
+        @if (error('province'); as err) { <p class="helper">{{ err }}</p> }
+      </div>
+      <div class="field" [class.field--error]="error('ward')">
+        <label class="label" for="ad-ward">Phường / Xã</label>
+        <div class="input select">
+          <select id="ad-ward" formControlName="ward">
+            <option value="" disabled>Chọn phường / xã</option>
+            @for (w of wards(); track w) { <option [value]="w">{{ w }}</option> }
+          </select>
+        </div>
+        @if (error('ward'); as err) { <p class="helper">{{ err }}</p> }
+      </div>
+    </div>
+
+    <div class="field" [class.field--error]="error('street')">
+      <label class="label" for="ad-street">Địa chỉ cụ thể</label>
+      <div class="input"><input id="ad-street" formControlName="street" autocomplete="street-address" placeholder="Số nhà, tên đường, toà nhà…" /></div>
+      @if (error('street'); as err) { <p class="helper">{{ err }}</p> }
+    </div>
+
+    <div class="type-row" role="radiogroup" aria-label="Loại địa chỉ">
+      <span class="label">Loại địa chỉ</span>
+      @for (t of types; track t.value) {
+        <label class="chip" [class.is-on]="form.controls.type.value === t.value">
+          <input type="radio" formControlName="type" [value]="t.value" />
+          {{ form.controls.type.value === t.value ? '✓ ' : '' }}{{ t.label }}
+        </label>
+      }
+    </div>
+
+    <label class="check">
+      <input type="checkbox" formControlName="isDefault" />
+      <span class="check-box"><img src="images/auth/check-white.svg" alt="" width="12" height="12" /></span>
+      Đặt làm địa chỉ mặc định
+    </label>
+
+    <div class="actions">
+      <button type="button" class="btn-outline" (click)="resetForm()" [disabled]="saving()">Huỷ</button>
+      <button type="button" class="btn-save" (click)="save()" [disabled]="saving()">{{ saving() ? 'Đang lưu…' : 'Lưu địa chỉ' }}</button>
+    </div>
+  </section>
+</div>

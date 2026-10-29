@@ -1,1 +1,149 @@
-<p>cart works!</p>
+<section class="shop container">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a routerLink="/">Trang chủ</a>
+    <img src="images/shop/chevron-sm.svg" alt="" width="14" height="14" />
+    <span aria-current="page">Giỏ hàng</span>
+  </nav>
+
+  @if (!lines().length) {
+    <!-- Giỏ hàng trống -->
+    <div class="empty">
+      <div class="art" aria-hidden="true">
+        <span class="circle"><img src="images/shop/bag-lg.svg" alt="" width="64" height="64" /></span>
+        <span class="sticker">0 cuốn</span>
+      </div>
+      <h1 class="page-title"><span>Giỏ hàng trống</span> <span class="accent-h1">for now.</span></h1>
+      <p class="body-lead empty-text">Chưa có cuốn nào trong giỏ. Ghé Flash Sale hôm nay hoặc xem vài gợi ý bên dưới — biết đâu có một câu chuyện thay đổi ngày của bạn.</p>
+      <div class="empty-actions">
+        <a class="btn btn-primary cta" routerLink="/books">Khám phá sách mới <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" /></a>
+        <a class="btn btn-secondary cta" routerLink="/">Xem Flash Sale hôm nay</a>
+      </div>
+      <ul class="perks">
+        @for (p of perks; track p.label) {
+          <li><img [src]="p.icon" alt="" [width]="p.w" height="16" />{{ p.label }}</li>
+        }
+      </ul>
+    </div>
+  } @else {
+    <h1 class="page-title"><span>Giỏ hàng của tôi</span> <span class="accent-h1">your little stack.</span></h1>
+
+    <div class="columns">
+      <!-- Danh sách sách -->
+      <div class="list-card">
+        <div class="list-head">
+          <label class="check">
+            <input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" />
+            <span class="check-box"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>
+            Chọn tất cả ({{ lines().length }} sản phẩm)
+          </label>
+          <button type="button" class="text-btn" (click)="removeSelected()" [disabled]="!selected().length">
+            <img src="images/shop/trash.svg" alt="" width="16" height="16" />Xóa đã chọn
+          </button>
+        </div>
+
+        <ul class="items">
+          @for (line of lines(); track line.bookId) {
+            <li class="item">
+              <label class="check">
+                <input type="checkbox" [checked]="line.selected" (change)="toggle(line)" [attr.aria-label]="'Chọn ' + line.title" />
+                <span class="check-box"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>
+              </label>
+              <a class="cover" [routerLink]="['/product-detail', line.bookId]">
+                <img [src]="line.image" [alt]="line.title" loading="lazy" />
+              </a>
+              <div class="info">
+                @if (line.bestseller) { <span class="badge">Bán chạy</span> }
+                <a class="title" [routerLink]="['/product-detail', line.bookId]">{{ line.title }}</a>
+                @if (line.author) { <p class="author">{{ line.author }}</p> }
+                <p class="meta">{{ line.meta || line.variant }}</p>
+                <div class="actions">
+                  <button type="button" class="text-btn" (click)="saveToWishlist(line)" [class.is-on]="isLiked(line)">
+                    <img src="images/shop/heart.svg" alt="" width="16" height="16" />{{ isLiked(line) ? 'Đã lưu yêu thích' : 'Lưu vào yêu thích' }}
+                  </button>
+                  <button type="button" class="text-btn" (click)="remove(line)">
+                    <img src="images/shop/trash.svg" alt="" width="16" height="16" />Xóa
+                  </button>
+                </div>
+              </div>
+              <div class="price-col">
+                <p class="price-row">
+                  @if (line.discountPercent > 0) { <span class="price-old">{{ line.originalPrice | vnd }}</span> }
+                  <span class="price">{{ line.price | vnd }}</span>
+                </p>
+                <app-quantity-stepper [value]="line.quantity" (valueChange)="setQuantity(line, $event)" [max]="line.max" />
+                @if (line.ebook) { <p class="ebook-note">Ebook tối đa 1 cuốn</p> }
+                <p class="line-total"><span>Thành tiền</span> <strong>{{ line.price * line.quantity | vnd }}</strong></p>
+              </div>
+            </li>
+          }
+        </ul>
+
+        <p class="list-foot"><img src="images/shop/bookmark.svg" alt="" width="16" height="16" />Sách chưa được chọn sẽ được giữ trong giỏ, không tính vào đơn lần này.</p>
+      </div>
+
+      <!-- Tóm tắt đơn hàng -->
+      <aside class="summary" aria-label="Tóm tắt đơn hàng">
+        <h2 class="summary-title h3">Tóm tắt đơn hàng</h2>
+
+        @if (totals().hasPhysical) {
+          <div class="freeship">
+            <p class="freeship-title">
+              <img src="images/shop/truck.svg" alt="" width="19" height="18" />
+              @if (totals().freeshipRemaining > 0) {
+                Mua thêm {{ totals().freeshipRemaining | vnd }} để được Freeship
+              } @else {
+                Đơn của bạn đã được Freeship
+              }
+            </p>
+            <div class="track" role="progressbar" [attr.aria-valuenow]="totals().freeshipProgress" aria-valuemin="0" aria-valuemax="100">
+              <span [style.width.%]="totals().freeshipProgress"></span>
+            </div>
+            <p class="freeship-note">{{ totals().subtotal | vnd }} / {{ freeshipMin | vnd }} · Freeship cho đơn từ 500.000đ (áp dụng nội thành)</p>
+          </div>
+        }
+
+        <div class="voucher-field">
+          <label class="voucher-label" for="cart-voucher">Mã giảm giá</label>
+          <div class="voucher-box" [class.is-ok]="voucher()" [class.is-error]="voucherError()">
+            <img src="images/shop/tag.svg" alt="" width="20" height="20" />
+            <input id="cart-voucher" [value]="voucherInput()" (input)="onVoucherInput($event)" (keydown.enter)="applyVoucher()" (blur)="applyVoucher()"
+              placeholder="Nhập mã giảm giá" autocomplete="off" />
+            @if (voucher() || voucherInput()) {
+              <button type="button" (click)="clearVoucher()" aria-label="Bỏ mã giảm giá"><img src="images/shop/x.svg" alt="" width="20" height="20" /></button>
+            }
+          </div>
+          @if (voucher(); as v) {
+            <p class="voucher-help is-ok"><img src="images/auth/check-circle-sm.svg" alt="" width="14" height="14" />Đã áp dụng: {{ v.description }}</p>
+          } @else if (voucherError(); as err) {
+            <p class="voucher-help is-error"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+          } @else if (checkingVoucher()) {
+            <p class="voucher-help">Đang kiểm tra mã…</p>
+          }
+        </div>
+
+        <dl class="lines">
+          <div><dt>Tạm tính ({{ totals().itemCount }} sản phẩm · {{ totals().bookCount }} cuốn)</dt><dd>{{ totals().subtotal | vnd }}</dd></div>
+          @if (voucher(); as v) {
+            <div><dt>Giảm giá ({{ v.code }})</dt><dd class="is-discount">−{{ totals().discount | vnd }}</dd></div>
+          }
+          <div><dt>Phí vận chuyển</dt><dd>{{ totals().shipping ? (totals().shipping | vnd) : 'Miễn phí' }}</dd></div>
+        </dl>
+        <hr class="divider" />
+        <div class="total">
+          <div><p class="total-label">Tổng cộng</p><p class="total-sub">Đã bao gồm VAT</p></div>
+          <p class="total-value">{{ totals().total | vnd }}</p>
+        </div>
+
+        <button type="button" class="btn btn-primary cta" (click)="checkout()" [disabled]="!selected().length">
+          Thanh toán ({{ selected().length }}) <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
+        </button>
+        <p class="trust"><img src="images/shop/lock.svg" alt="" width="14" height="14" />Thanh toán an toàn · Đổi trả trong 7 ngày</p>
+      </aside>
+    </div>
+  }
+</section>
+
+@if (lines().length) {
+  <app-marquee [items]="marquee" />
+}
+<app-suggested-books [excludeIds]="cartIds()" />

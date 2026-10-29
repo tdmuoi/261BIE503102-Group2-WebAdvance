@@ -1,1 +1,46 @@
-<p>download-popup works!</p>
+<div class="overlay" (click)="closed.emit()">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="download-title" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <h2 class="modal-title" id="download-title">Tải ebook về máy</h2>
+      <button type="button" class="close" (click)="closed.emit()" aria-label="Đóng"><img src="images/account/x-sm.svg" alt="" width="14" height="14" /></button>
+    </header>
+
+    <div class="book">
+      <img class="book-cover" [src]="ebook().image" [alt]="ebook().title" />
+      <div class="book-text">
+        <p class="book-title">{{ ebook().title }}</p>
+        @if (byline()) { <p class="book-author">{{ byline() }}</p> }
+        <span class="pill">Đã mua · {{ ebook().purchasedAt | date: 'dd/MM/yyyy' }}</span>
+      </div>
+    </div>
+
+    <p class="label" id="download-format">Chọn định dạng</p>
+    <div class="formats" role="radiogroup" aria-labelledby="download-format">
+      @for (f of formats; track f.value) {
+        <button type="button" class="format" role="radio" [attr.aria-checked]="format() === f.value" [class.is-active]="format() === f.value" (click)="picked.set(f.value)">
+          <span class="format-top">
+            <span class="format-name"><span class="dot" aria-hidden="true"></span>{{ f.value }}</span>
+            <span class="format-size">{{ formatSize(ebook().sizes[f.value]) }}</span>
+          </span>
+          <span class="format-desc">{{ f.desc }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="note-box drm">
+      <img src="images/shop/lock.svg" alt="" width="18" height="18" />
+      <p>File được gắn với tài khoản {{ email() }} – mở trên các trình đọc hỗ trợ EPUB/PDF. Tối đa 3 thiết bị.</p>
+    </div>
+
+    <footer class="modal-foot">
+      <!-- Figma có link "Đọc offline trên app" nhưng chưa có app/đường dẫn → tạm hiển thị chữ -->
+      <span class="app-link"><img src="images/account/phone.svg" alt="" width="16" height="16" />Đọc offline trên app</span>
+      <div class="buttons">
+        <button type="button" class="btn-ghost" (click)="closed.emit()">Huỷ</button>
+        <button type="button" class="btn-pink" (click)="download()">
+          <img src="images/account/download.svg" alt="" width="14" height="14" />Tải về ({{ formatSize(ebook().sizes[format()]) }})
+        </button>
+      </div>
+    </footer>
+  </section>
+</div>

@@ -1,1 +1,204 @@
-<p>checkout works!</p>
+@if (placed(); as order) {
+  <!-- Đặt hàng thành công -->
+  <section class="shop container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/">Trang chủ</a>
+      <img src="images/shop/chevron-sm.svg" alt="" width="14" height="14" />
+      <span>Thanh toán</span>
+      <img src="images/shop/chevron-sm.svg" alt="" width="14" height="14" />
+      <span aria-current="page">Đặt hàng thành công</span>
+    </nav>
+
+    <div class="empty" role="status">
+      <div class="art" aria-hidden="true">
+        <span class="circle"><img src="images/shop/check-circle-lg.svg" alt="" width="64" height="64" /></span>
+        <span class="sticker">#{{ order.orderCode }}</span>
+      </div>
+      <h1 class="page-title"><span>Đặt hàng thành công</span> <span class="accent-h1">thank you!</span></h1>
+      <p class="body-lead empty-text">
+        Mã đơn #{{ order.orderCode }} · Tổng {{ order.total | vnd }}.
+        @if (hasPrintIn(order)) {
+          Lightbook đã gửi email xác nhận, đơn sẽ đến trong {{ deliveryText(order) }}.
+        } @else {
+          Lightbook đã gửi email xác nhận.
+        }
+        @if (hasEbookIn(order)) {
+          Sách điện tử trong đơn đã có trong tủ sách của bạn.
+        }
+      </p>
+      <div class="empty-actions">
+        <a class="btn btn-primary cta" routerLink="/account/orders">Xem đơn hàng <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" /></a>
+        <a class="btn btn-secondary cta" routerLink="/books">Tiếp tục mua sắm</a>
+      </div>
+      <ul class="perks">
+        @for (p of perks; track p.label) {
+          <li><img [src]="p.icon" alt="" [width]="p.w" height="16" />{{ p.label }}</li>
+        }
+      </ul>
+    </div>
+  </section>
+} @else {
+  <section class="shop container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/">Trang chủ</a>
+      <img src="images/shop/chevron-sm.svg" alt="" width="14" height="14" />
+      <a routerLink="/cart">Giỏ hàng</a>
+      <img src="images/shop/chevron-sm.svg" alt="" width="14" height="14" />
+      <span aria-current="page">Thanh toán</span>
+    </nav>
+    <h1 class="page-title"><span>Thanh toán</span> <span class="accent-h1">almost yours.</span></h1>
+
+    @if (loading()) {
+      <p class="loading" role="status">Đang tải đơn hàng…</p>
+    } @else if (!lines().length) {
+      <!-- Chưa chọn sách nào ở giỏ (Figma chưa có màn này) -->
+      <div class="empty">
+        <div class="art" aria-hidden="true">
+          <span class="circle"><img src="images/shop/bag-lg.svg" alt="" width="64" height="64" /></span>
+        </div>
+        <p class="body-lead empty-text">Chưa có sách nào để thanh toán. Chọn sách trong giỏ hàng rồi quay lại nhé.</p>
+        <div class="empty-actions">
+          <a class="btn btn-primary cta" routerLink="/cart">Về giỏ hàng <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" /></a>
+        </div>
+      </div>
+    } @else {
+      <div class="columns">
+        <div class="form">
+          @if (hasPhysical()) {
+            <!-- 1. Địa chỉ -->
+            <section class="card" aria-labelledby="co-address">
+              <h2 class="card-head" id="co-address"><span class="step">1</span>Thông tin nhận hàng</h2>
+              @if (addressesLoading()) {
+                <p class="muted" role="status">Đang tải sổ địa chỉ…</p>
+              } @else if (addressesError()) {
+                <p class="error-text" role="alert">Không tải được sổ địa chỉ. <button type="button" class="link" (click)="loadAddresses()">Thử lại</button></p>
+              } @else {
+                <div class="options" role="radiogroup" aria-label="Địa chỉ nhận hàng">
+                  @for (a of addresses(); track a._id) {
+                    <button type="button" class="option" role="radio" [attr.aria-checked]="addressId() === a._id" [class.is-active]="addressId() === a._id" (click)="addressId.set(a._id)">
+                      <span class="radio" aria-hidden="true"></span>
+                      <span class="option-text">
+                        <span class="option-title">{{ a.fullName }} · {{ formatPhone(a.phone) }}</span>
+                        <span class="option-desc">{{ fullAddress(a) }}@if (a.isDefault) { · Mặc định }</span>
+                      </span>
+                    </button>
+                  } @empty {
+                    <p class="muted">Bạn chưa có địa chỉ nào trong sổ địa chỉ.</p>
+                  }
+                </div>
+                <a class="add-link" routerLink="/account/address">+ Thêm địa chỉ mới</a>
+              }
+            </section>
+
+            <!-- 2. Vận chuyển -->
+            <section class="card" aria-labelledby="co-shipping">
+              <h2 class="card-head" id="co-shipping"><span class="step">2</span>Phương thức vận chuyển</h2>
+              <div class="options" role="radiogroup" aria-label="Phương thức vận chuyển">
+                @for (o of shippingOptions; track o.value) {
+                  <button type="button" class="option" role="radio" [attr.aria-checked]="shipping() === o.value" [class.is-active]="shipping() === o.value" (click)="shipping.set(o.value)">
+                    <span class="radio" aria-hidden="true"></span>
+                    <span class="option-text">
+                      <span class="option-title">{{ o.title }}</span>
+                      <span class="option-desc">{{ o.desc }}</span>
+                    </span>
+                    @if (o.value === 'standard' && totals().freeshipRemaining === 0) {
+                      <span class="option-price"><s>{{ shippingFees[o.value] | vnd }}</s> Miễn phí</span>
+                    } @else {
+                      <span class="option-price">{{ shippingFees[o.value] | vnd }}</span>
+                    }
+                  </button>
+                }
+              </div>
+              <p class="caption">Đơn chỉ có sách điện tử sẽ bỏ qua bước này, ebook được thêm vào tủ sách ngay sau khi thanh toán.</p>
+            </section>
+          }
+
+          <!-- 3. Thanh toán -->
+          <section class="card" aria-labelledby="co-payment">
+            <h2 class="card-head" id="co-payment"><span class="step">{{ steps().payment }}</span>Phương thức thanh toán</h2>
+            <div class="options" role="radiogroup" aria-label="Phương thức thanh toán">
+              @for (o of paymentOptions(); track o.value) {
+                @let off = o.value === 'cod' && codDisabled();
+                <button type="button" class="option" role="radio" [attr.aria-checked]="payment() === o.value" [class.is-active]="payment() === o.value"
+                  [disabled]="off" (click)="selectPayment(o.value)">
+                  <span class="radio" aria-hidden="true"></span>
+                  <span class="option-text">
+                    <span class="option-title">{{ o.title }}</span>
+                    <span class="option-desc">{{ o.desc }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+          </section>
+
+          <!-- 4. Ghi chú -->
+          <section class="card card-flat" aria-labelledby="co-note">
+            <h2 class="card-head" id="co-note"><span class="step">{{ steps().note }}</span>Ghi chú cho đơn hàng</h2>
+            <textarea class="note" aria-labelledby="co-note" maxlength="300" [value]="note()" (input)="onNote($event)"
+              placeholder="Ví dụ: gọi trước khi giao, gói quà giúp mình…"></textarea>
+          </section>
+        </div>
+
+        <aside class="summary" aria-label="Đơn hàng của bạn">
+          <h2 class="summary-title h3">Đơn hàng của bạn</h2>
+          <ul class="items">
+            @for (l of lines(); track l.bookId) {
+              <li class="item">
+                <a class="item-cover" [routerLink]="['/books', l.bookId]"><img [src]="l.image" [alt]="l.title" /></a>
+                <span class="item-text">
+                  <span class="item-title">{{ l.title }}</span>
+                  <span class="item-qty">x{{ l.quantity }}@if (l.ebook) { · Sách điện tử }</span>
+                </span>
+                <span class="item-price">{{ l.price * l.quantity | vnd }}</span>
+              </li>
+            }
+          </ul>
+
+          <div class="voucher-field">
+            <label class="voucher-label" for="co-voucher">Mã giảm giá</label>
+            <div class="voucher-box" [class.is-ok]="voucher()" [class.is-error]="voucherField.error()">
+              <img src="images/shop/tag.svg" alt="" width="20" height="20" />
+              <input id="co-voucher" [value]="voucherField.input()" (input)="voucherField.onInput($event)" (keydown.enter)="voucherField.apply()"
+                (blur)="voucherField.apply()" placeholder="Nhập mã giảm giá" autocomplete="off" />
+              @if (voucher() || voucherField.input()) {
+                <button type="button" (click)="voucherField.clear()" aria-label="Bỏ mã giảm giá"><img src="images/shop/x.svg" alt="" width="20" height="20" /></button>
+              }
+            </div>
+            @if (voucher(); as v) {
+              <p class="voucher-help is-ok"><img src="images/auth/check-circle-sm.svg" alt="" width="14" height="14" />Đã áp dụng: {{ v.description }}</p>
+            } @else if (voucherField.error(); as err) {
+              <p class="voucher-help is-error"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+            } @else if (voucherField.checking()) {
+              <p class="voucher-help">Đang kiểm tra mã…</p>
+            }
+          </div>
+
+          <dl class="lines">
+            <div><dt>Tạm tính ({{ totals().itemCount }} sản phẩm · {{ totals().bookCount }} cuốn)</dt><dd>{{ totals().subtotal | vnd }}</dd></div>
+            @if (voucher(); as v) {
+              <div><dt>Giảm giá ({{ v.code }})</dt><dd class="is-discount">−{{ totals().discount | vnd }}</dd></div>
+            }
+            @if (hasPhysical()) {
+              <div><dt>Phí vận chuyển</dt><dd>{{ totals().shipping ? (totals().shipping | vnd) : 'Miễn phí' }}</dd></div>
+            }
+          </dl>
+          <hr class="divider" />
+          <div class="total">
+            <div><p class="total-label">Tổng cộng</p><p class="total-sub">Đã bao gồm VAT</p></div>
+            <p class="total-value">{{ totals().total | vnd }}</p>
+          </div>
+
+          @if (submitError(); as err) {
+            <p class="voucher-help is-error" role="alert"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+          }
+          <button type="button" class="btn btn-primary cta" (click)="placeOrder()" [disabled]="placing() || addressesLoading() && hasPhysical()">
+            @if (placing()) { Đang đặt hàng… } @else { Đặt hàng <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" /> }
+          </button>
+          <p class="trust"><img src="images/shop/lock.svg" alt="" width="14" height="14" />Thanh toán an toàn · Đổi trả trong 7 ngày</p>
+        </aside>
+      </div>
+    }
+  </section>
+}
+
+<app-marquee [items]="marquee" />

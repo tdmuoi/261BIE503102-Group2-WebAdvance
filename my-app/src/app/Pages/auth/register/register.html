@@ -1,1 +1,180 @@
-<p>register works!</p>
+<section class="auth">
+  <div class="auth-card">
+    @if (done(); as result) {
+      <!-- Đăng ký thành công -->
+      <span class="status-icon"><img src="images/auth/check-circle.svg" alt="" width="32" height="32" /></span>
+      <h1 class="auth-title">
+        <span>Chào mừng</span>
+        <span class="accent-h1">to the club!</span>
+      </h1>
+      <p class="auth-subtitle success-text body-lead">
+        Tài khoản của bạn đã sẵn sàng. Mã giảm 10% cho đơn đầu tiên đã được gửi tới {{ result.email }}.
+      </p>
+      @if (result.coupon; as code) {
+        <div class="coupon">
+          <div>
+            <p class="label-eyebrow coupon-label">Mã của bạn</p>
+            <p class="h3 coupon-code">{{ code }}</p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" (click)="copyCoupon(code)">Sao chép mã</button>
+        </div>
+      }
+      <div class="success-actions">
+        <a class="btn btn-primary auth-cta" routerLink="/books">
+          Khám phá sách mới <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
+        </a>
+        <a class="btn btn-ghost auth-cta auth-cta--ghost" routerLink="/">Về trang chủ</a>
+      </div>
+    } @else {
+      <span class="auth-tag auth-tag--pink">Thành viên mới -10%</span>
+
+      <h1 class="auth-title">
+        <span>Đăng ký</span>
+        <span class="accent-h1">join the club.</span>
+      </h1>
+
+      <p class="auth-subtitle body-lead">Tạo tài khoản Lightbook để nhận mã giảm 10% cho đơn đầu tiên.</p>
+
+      @if (submitted() && invalidCount() > 0) {
+        <div class="auth-alert" role="alert">
+          <img src="images/auth/alert-circle.svg" alt="" width="20" height="20" />
+          <div>
+            <p class="auth-alert-title label-small">Còn {{ invalidCount() }} trường cần sửa</p>
+            <p class="body-sm">Vui lòng kiểm tra các ô được đánh dấu đỏ bên dưới.</p>
+          </div>
+        </div>
+      } @else if (serverError(); as message) {
+        <div class="auth-alert" role="alert">
+          <img src="images/auth/alert-circle.svg" alt="" width="20" height="20" />
+          <div>
+            <p class="auth-alert-title label-small">Đăng ký chưa thành công</p>
+            <p class="body-sm">{{ message }}</p>
+          </div>
+        </div>
+      }
+
+      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="field" [class.field--error]="fieldError('fullName')" [class.field--ok]="fieldOk('fullName')">
+          <label class="label-small" for="reg-name">Họ và tên</label>
+          <div class="field-box">
+            <img src="images/auth/user.svg" alt="" width="20" height="20" />
+            <input id="reg-name" formControlName="fullName" autocomplete="name" placeholder="Nguyễn Văn A"
+              [attr.aria-invalid]="!!fieldError('fullName')" />
+          </div>
+          @if (fieldError('fullName'); as err) {
+            <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+          } @else if (fieldOk('fullName')) {
+            <p class="field-helper"><img src="images/auth/check-circle-sm.svg" alt="" width="14" height="14" />Tuyệt, tên hợp lệ</p>
+          }
+        </div>
+
+        <div class="field-row">
+          <div class="field" [class.field--error]="fieldError('email')" [class.field--ok]="fieldOk('email')">
+            <label class="label-small" for="reg-email">Email</label>
+            <div class="field-box">
+              <img src="images/auth/mail.svg" alt="" width="20" height="20" />
+              <input id="reg-email" type="email" formControlName="email" autocomplete="email"
+                placeholder="email@vidu.com" [attr.aria-invalid]="!!fieldError('email')" />
+            </div>
+            @if (fieldError('email'); as err) {
+              <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+            }
+          </div>
+
+          <div class="field" [class.field--error]="fieldError('phone')" [class.field--ok]="fieldOk('phone')">
+            <label class="label-small" for="reg-phone">Số điện thoại</label>
+            <div class="field-box">
+              <img src="images/auth/phone.svg" alt="" width="20" height="20" />
+              <input id="reg-phone" type="tel" formControlName="phone" autocomplete="tel"
+                placeholder="09xx xxx xxx" [attr.aria-invalid]="!!fieldError('phone')" />
+            </div>
+            @if (fieldError('phone'); as err) {
+              <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="field" [class.field--error]="fieldError('password')" [class.field--ok]="fieldOk('password')">
+          <label class="label-small" for="reg-password">Mật khẩu</label>
+          <div class="field-box">
+            <img src="images/auth/lock.svg" alt="" width="20" height="20" />
+            <input id="reg-password" formControlName="password" autocomplete="new-password"
+              [type]="showPassword() ? 'text' : 'password'" placeholder="Tối thiểu 8 ký tự"
+              [attr.aria-invalid]="!!fieldError('password')" />
+            <button type="button" class="field-eye" (click)="togglePassword()"
+              [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+              <img [src]="showPassword() ? 'images/auth/eye.svg' : 'images/auth/eye-off.svg'" alt="" width="20" height="20" />
+            </button>
+          </div>
+          @if (fieldError('password'); as err) {
+            <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+          } @else if (!fieldOk('password')) {
+            <p class="field-helper">Ít nhất 8 ký tự, gồm cả chữ và số.</p>
+          }
+        </div>
+
+        <div class="field" [class.field--error]="fieldError('confirmPassword')" [class.field--ok]="fieldOk('confirmPassword')">
+          <label class="label-small" for="reg-confirm">Nhập lại mật khẩu</label>
+          <div class="field-box">
+            <img src="images/auth/lock.svg" alt="" width="20" height="20" />
+            <input id="reg-confirm" formControlName="confirmPassword" autocomplete="new-password"
+              [type]="showConfirm() ? 'text' : 'password'" placeholder="Nhập lại mật khẩu"
+              [attr.aria-invalid]="!!fieldError('confirmPassword')" />
+            <button type="button" class="field-eye" (click)="toggleConfirm()"
+              [attr.aria-label]="showConfirm() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+              <img [src]="showConfirm() ? 'images/auth/eye.svg' : 'images/auth/eye-off.svg'" alt="" width="20" height="20" />
+            </button>
+          </div>
+          @if (fieldError('confirmPassword'); as err) {
+            <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+          }
+        </div>
+
+        <div class="agreements">
+          <label class="checkbox" [class.checkbox--error]="termsError()">
+            <input type="checkbox" formControlName="terms" [attr.aria-invalid]="termsError()" />
+            <span class="checkbox-box"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>
+            Tôi đồng ý với Điều khoản sử dụng &amp; Chính sách bảo mật
+          </label>
+          @if (termsError()) {
+            <p class="field-helper field-helper--error">
+              <img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />Bạn cần đồng ý với điều khoản để tiếp tục
+            </p>
+          }
+          <label class="checkbox">
+            <input type="checkbox" formControlName="newsletter" />
+            <span class="checkbox-box"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>
+            Nhận bản tin sách mới mỗi thứ Năm
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-cta" [disabled]="loading()">
+          {{ loading() ? 'Đang tạo tài khoản…' : 'Tạo tài khoản' }}
+          @if (!loading()) {
+            <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
+          }
+        </button>
+      </form>
+
+      <div class="auth-divider caption"><span>hoặc tiếp tục với</span></div>
+
+      <div class="auth-social">
+        <button type="button" class="btn btn-ghost" (click)="socialLogin('Google')">
+          <img src="images/auth/google.svg" alt="" width="20" height="20" />Google
+        </button>
+        <button type="button" class="btn btn-ghost" (click)="socialLogin('Facebook')">
+          <img src="images/auth/facebook.svg" alt="" width="20" height="20" />Facebook
+        </button>
+      </div>
+
+      <p class="auth-switch">
+        Đã có tài khoản?
+        <a class="auth-link" routerLink="/login" queryParamsHandling="preserve">
+          Đăng nhập <img src="images/icons/arrow-right.svg" alt="" width="16" height="16" />
+        </a>
+      </p>
+    }
+  </div>
+
+  <app-auth-art tone="pink" />
+</section>

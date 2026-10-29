@@ -1,0 +1,117 @@
+/* =====================================================================
+   Style dùng chung cho các trang Pages/auth (login, register, forgot-password).
+   Mỗi component khai báo: styleUrls: ['../auth-form.css', './<trang>.css']
+   ===================================================================== */
+
+/* Bố cục: thẻ form 560 + minh hoạ 592, cách nhau 64 (Figma "Main – Auth") */
+.auth {
+  display: flex; gap: 64px; align-items: flex-start; justify-content: center;
+  max-width: calc(var(--layout-container) + 2 * var(--layout-gutter));
+  margin: 0 auto; padding: 64px var(--layout-gutter) var(--space-100);
+}
+.auth-card {
+  flex: 0 0 560px; display: flex; flex-direction: column; gap: var(--space-20);
+  padding: 48px; background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);
+}
+.auth-tag {
+  align-self: flex-start; padding: var(--space-6) var(--space-14);
+  background: var(--color-tint-mint); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); box-shadow: var(--shadow-offset-sm); font: 700 13px/1.25 var(--font-sans);
+}
+.auth-tag--pink { background: var(--color-tint-pink); }
+.auth-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-12); }
+.auth-subtitle { margin: 0; color: var(--color-text-secondary); }
+.auth-form { display: flex; flex-direction: column; gap: var(--space-20); }
+
+/* Khung lỗi đầu form */
+.auth-alert {
+  display: flex; gap: var(--space-10); padding: var(--space-12) var(--space-16);
+  background: var(--color-feedback-error-bg); border: var(--border-default) solid var(--color-border-error);
+  border-radius: var(--radius-14); color: var(--color-text-body);
+}
+.auth-alert p { margin: 0; }
+.auth-alert .auth-alert-title { color: var(--color-feedback-error); margin-bottom: var(--space-2); }
+
+/* Icon tròn lớn ở màn hình thành công / đã gửi */
+.status-icon {
+  display: flex; align-items: center; justify-content: center; width: 72px; height: 72px;
+  background: var(--color-feedback-success-bg); border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full); box-shadow: var(--shadow-offset-sm);
+}
+.status-icon--pink { background: var(--color-tint-pink); }
+.auth-tag--yellow { background: var(--color-tint-yellow); }
+
+/* Chip (Email / Số điện thoại) */
+.auth-segment { display: flex; gap: var(--space-8); }
+.chip {
+  padding: var(--space-8) var(--space-16); background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  font: 700 13px/1.25 var(--font-sans);
+}
+.chip--on { background: var(--color-bg-inverse); color: var(--color-text-inverse); box-shadow: var(--shadow-offset-sm); }
+
+/* Ô nhập: thường / focus / lỗi / hợp lệ */
+.field { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.field-box {
+  display: flex; align-items: center; gap: var(--space-10); height: 48px; padding: 0 var(--space-14);
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+.field-box:focus-within { border-width: var(--border-strong); box-shadow: var(--shadow-offset-sm); }
+.field-box input { flex: 1; width: 0; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; }
+.field-box input::placeholder { color: var(--color-text-muted); }
+.field--error .field-box {
+  background: var(--color-feedback-error-bg); border: var(--border-strong) solid var(--color-border-error);
+}
+.field--ok .field-box { border: var(--border-strong) solid var(--color-feedback-success); }
+.field-helper {
+  display: flex; align-items: center; gap: var(--space-4); margin: 0;
+  font: 400 11px/1.3 var(--font-sans); color: var(--color-text-secondary);
+}
+.field--error .field-helper, .field-helper--error { color: var(--color-feedback-error); }
+.field--ok .field-helper { color: var(--color-feedback-success); }
+.field-eye { display: flex; padding: 0; border: 0; background: none; }
+
+/* Checkbox */
+.checkbox { display: flex; align-items: center; gap: var(--space-8); cursor: pointer; }
+.checkbox input { position: absolute; opacity: 0; pointer-events: none; }
+.checkbox-box {
+  display: flex; flex: none; align-items: center; justify-content: center; width: 20px; height: 20px;
+  border: var(--border-strong) solid var(--color-border-strong); border-radius: var(--radius-6);
+  background: var(--color-bg-surface);
+}
+.checkbox-box img { visibility: hidden; }
+.checkbox input:checked + .checkbox-box { background: var(--color-bg-inverse); }
+.checkbox input:checked + .checkbox-box img { visibility: visible; }
+.checkbox input:focus-visible + .checkbox-box { box-shadow: var(--shadow-offset-xs); }
+.checkbox--error .checkbox-box { border-color: var(--color-border-error); background: var(--color-feedback-error-bg); }
+
+.auth-link {
+  display: inline-flex; align-items: center; gap: var(--space-4);
+  font: 700 14px/1.3 var(--font-sans); text-decoration: underline;
+}
+
+/* Nút */
+.auth-cta { width: 100%; padding: var(--space-14) 28px; font-size: 15px; font-weight: 800; box-shadow: var(--shadow-offset-sm); }
+.auth-cta:hover:not(:disabled) { box-shadow: var(--shadow-offset-md); }
+.auth-divider { display: flex; align-items: center; gap: var(--space-12); color: var(--color-text-secondary); }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border-divider); }
+.auth-social { display: flex; gap: var(--space-12); }
+.auth-social .btn { flex: 1; gap: var(--space-6); padding: var(--space-10) var(--space-20); }
+.auth-switch {
+  display: flex; justify-content: center; align-items: center; gap: var(--space-6);
+  margin: 0; color: var(--color-text-secondary);
+}
+.auth-switch .auth-link { color: var(--color-text-primary); }
+
+/* Màn hẹp: ẩn minh hoạ, form chiếm hết chiều ngang */
+@media (max-width: 1100px) {
+  .auth app-auth-art { display: none; }
+  .auth-card { flex: 1 1 auto; max-width: 560px; }
+}
+@media (max-width: 600px) {
+  .auth { padding-top: var(--space-32); }
+  .auth-card { padding: var(--space-24); }
+}

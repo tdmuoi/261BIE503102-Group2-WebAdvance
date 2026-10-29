@@ -1,0 +1,56 @@
+/* Style chung (tiêu đề, tab, thẻ, ô nhập, nút) nằm ở ../account-page.css */
+.list-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); }
+.list-title { margin: 0; font: 800 20px/normal var(--font-display); letter-spacing: -0.2px; }
+.add-btn { padding: var(--space-8) var(--space-16); font-size: 13px; }
+
+.addresses { display: flex; flex-direction: column; gap: var(--space-24); margin: 0; padding: 0; list-style: none; }
+.address {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-10); padding: var(--space-20);
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22); box-shadow: var(--shadow-offset-sm);
+}
+.address.is-default { background: var(--green-50); box-shadow: var(--shadow-offset-md); }
+.address-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); width: 100%; }
+.who { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-10); }
+.name { font: 800 15px/normal var(--font-sans); }
+.sep { color: var(--color-border-divider); font-size: 13px; }
+.phone { font-size: 13px; color: var(--color-text-secondary); }
+.badge {
+  padding: var(--space-2) var(--space-8); background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); font: 700 10px/normal var(--font-sans);
+}
+.badge--default { background: var(--color-border-subtle); }
+.links { display: flex; gap: 14px; flex: none; }
+.links button { padding: 0; border: 0; background: none; font: 700 13px/normal var(--font-sans); text-decoration: underline; }
+.links .danger { color: var(--color-feedback-error); }
+.line { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-text-body); }
+.set-default {
+  padding: 5px var(--space-12); background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); font: 700 12px/normal var(--font-sans);
+}
+.empty { margin: 0; padding: var(--space-24); text-align: center; color: var(--color-text-secondary); background: var(--color-bg-surface); border: var(--border-default) dashed var(--color-border-strong); border-radius: var(--radius-22); }
+
+.select { position: relative; }
+.select select { appearance: none; cursor: pointer; }
+.select::after { content: '⌄'; position: absolute; right: 14px; top: 9px; pointer-events: none; font: 700 12px/1 var(--font-sans); color: var(--color-text-muted); }
+.select select:invalid, .select select:has(option[value='']:checked) { color: var(--color-text-muted); }
+
+.type-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-10); }
+.chip {
+  padding: var(--space-6) var(--space-12); background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); font: 700 12px/normal var(--font-sans); cursor: pointer;
+}
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip.is-on { background: var(--color-border-subtle); box-shadow: var(--shadow-offset-xs); }
+.chip:focus-within { outline: 2px solid var(--color-border-strong); outline-offset: 2px; }
+
+.check { display: flex; align-items: center; gap: var(--space-10); font-size: 13px; cursor: pointer; }
+.check input { position: absolute; opacity: 0; pointer-events: none; }
+.check-box {
+  display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: 5px;
+}
+.check-box img { visibility: hidden; }
+.check input:checked + .check-box { background: var(--color-bg-inverse); }
+.check input:checked + .check-box img { visibility: visible; }
+.check input:focus-visible + .check-box { box-shadow: var(--shadow-offset-xs); }

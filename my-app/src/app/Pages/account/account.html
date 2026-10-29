@@ -1,15 +1,54 @@
-   <div class="account-layout">
-     <aside class="account-sidebar">
-       <a routerLink="/account/profile-info" routerLinkActive="active">Thông tin tài khoản</a>
-       <a routerLink="/account/address" routerLinkActive="active">Địa chỉ nhận hàng</a>
-       <a routerLink="/account/bookshelf-ebooks" routerLinkActive="active">Sách điện tử</a>
-       <a routerLink="/account/bookshelf-purchased" routerLinkActive="active">Sách đã mua</a>
-       <a routerLink="/account/wishlist" routerLinkActive="active">Wishlist</a>
-       <a routerLink="/account/orders" routerLinkActive="active">Quản lý đơn hàng</a>
-       <a routerLink="/account/notifications" routerLinkActive="active">Thông báo</a>
-     </aside>
+<div class="account">
+  <aside class="sidebar">
+    <div class="user">
+      <span class="avatar">
+        @if (profile()?.avatar; as src) {
+          <img [src]="src" alt="" />
+        } @else {
+          {{ initials() }}
+        }
+      </span>
+      <div class="user-text">
+        <p class="user-name">{{ shortName() }}</p>
+        @if (profile(); as p) {
+          <p class="user-meta"><span class="tier">{{ p.tier }}</span> ID {{ p.memberId }}</p>
+        } @else if (loadError()) {
+          <button type="button" class="retry" (click)="loadProfile()">Tải lại thông tin</button>
+        } @else {
+          <p class="user-meta">Đang tải…</p>
+        }
+      </div>
+    </div>
 
-     <section class="account-content">
-       <router-outlet></router-outlet>
-     </section>
-   </div>
+    <hr class="divider" />
+
+    <nav class="nav" aria-label="Tài khoản">
+      @for (item of nav; track item.link) {
+        <a class="nav-item" [class.is-active]="isActive(item)" [routerLink]="item.link"
+          [attr.aria-current]="isActive(item) ? 'page' : null">
+          <img [src]="'images/account/' + item.icon + '.svg'" alt="" width="20" height="20" />
+          <span>{{ item.label }}</span>
+          @if (item.badge && unreadCount() > 0) {
+            <span class="badge" [attr.aria-label]="unreadCount() + ' thông báo chưa đọc'">{{ unreadCount() }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <hr class="divider" />
+
+    <button type="button" class="logout" (click)="logout()">
+      <img src="images/account/logout.svg" alt="" width="20" height="20" />Đăng xuất
+    </button>
+
+    <div class="promo">
+      <p class="promo-title">Có sách đã đọc xong?</p>
+      <p class="promo-text">Thanh lý cho Lightbook – nhận tiền hoặc voucher +10%.</p>
+      <a class="promo-cta" routerLink="/book-buyback">Thanh lý sách &nbsp;→</a>
+    </div>
+  </aside>
+
+  <section class="content">
+    <router-outlet />
+  </section>
+</div>

@@ -1,0 +1,22 @@
+@if (status() !== 'error') {
+  <section class="suggest container">
+    <div class="suggest-head">
+      <div class="suggest-heading">
+        <span class="tag">✦ Gợi ý cho bạn</span>
+        <h2 class="suggest-title"><span class="h1">Có thể bạn cũng thích</span> <span class="accent-h1">you might also like</span></h2>
+        <p class="body-lead suggest-sub">{{ subtitle() }}</p>
+      </div>
+      <a class="suggest-more" routerLink="/books">Xem tất cả <img src="images/icons/arrow-right.svg" alt="" width="16" height="16" /></a>
+    </div>
+
+    @if (status() === 'loading') {
+      <app-status-card tone="loading" message="Đang tải gợi ý…" />
+    } @else if (books().length) {
+      <div class="suggest-grid">
+        @for (book of books(); track book._id) {
+          <app-book-card [book]="book" />
+        }
+      </div>
+    }
+  </section>
+}

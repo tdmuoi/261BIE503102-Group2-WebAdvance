@@ -1,1 +1,68 @@
-<p>wishlist works!</p>
+<div class="page">
+  <ol class="breadcrumb">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><a routerLink="/account">Tài khoản</a></li>
+    <li aria-current="page">Tủ sách của tôi</li>
+  </ol>
+
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Tủ sách của tôi</h1>
+      <p class="page-subtitle">Sách điện tử để đọc, sách bạn đã mua và những cuốn bạn đang để mắt tới.</p>
+    </div>
+    <label class="search">
+      <img src="images/account/search.svg" alt="" width="16" height="16" />
+      <span class="sr-only">Tìm trong tủ sách</span>
+      <input type="search" [value]="query()" (input)="query.set($any($event.target).value)" placeholder="Tìm trong tủ sách…" />
+    </label>
+  </header>
+
+  <nav class="tabs" aria-label="Tủ sách">
+    <a class="tab" routerLink="/account/bookshelf-ebooks" routerLinkActive="is-active" ariaCurrentWhenActive="page">Sách điện tử ({{ counts().ebooks }})</a>
+    <a class="tab" routerLink="/account/bookshelf-purchased" routerLinkActive="is-active" ariaCurrentWhenActive="page">Sách đã mua ({{ counts().purchased }})</a>
+    <a class="tab" routerLink="/account/wishlist" routerLinkActive="is-active" ariaCurrentWhenActive="page">Wishlist ({{ counts().wishlist }})</a>
+  </nav>
+
+  @if (loading()) {
+    <app-status-card tone="loading" message="Đang tải wishlist…" />
+  } @else if (cards().length) {
+    <div class="bar">
+      <p class="bar-text">
+        <img src="images/account/heart-fill.svg" alt="" width="20" height="20" />
+        <b>{{ cards().length }} cuốn trong wishlist</b>
+        @if (onSale()) { <span>· {{ onSale() }} cuốn đang giảm giá</span> }
+      </p>
+      <button type="button" class="btn-sm add-all" (click)="addAll()"><img src="images/account/plus.svg" alt="" width="14" height="14" />Thêm tất cả vào giỏ</button>
+    </div>
+
+    <ul class="grid">
+      @for (c of visible(); track c.bookId) {
+        <li class="card-book">
+          <div class="cover-wrap">
+            <a [routerLink]="['/books', c.bookId]"><img class="cover" [src]="c.image" [alt]="c.title" /></a>
+            <button type="button" class="heart" (click)="remove(c)" [attr.aria-label]="'Bỏ ' + c.title + ' khỏi wishlist'"><img src="images/account/heart-fill.svg" alt="" width="16" height="16" /></button>
+            @if (c.discountPercent > 0) { <span class="sale">Đang giảm {{ c.discountPercent }}%</span> }
+          </div>
+          <div class="text">
+            <p class="title">{{ c.title }}</p>
+            <p class="author">{{ c.author }}</p>
+            <p class="prices">
+              <b>{{ c.price | vnd }}</b>
+              @if (c.originalPrice > c.price) { <s>{{ c.originalPrice | vnd }}</s> }
+            </p>
+          </div>
+          <div class="actions">
+            <button type="button" class="cart-btn" (click)="addToCart(c)" [attr.aria-label]="'Thêm ' + c.title + ' vào giỏ'"><img src="images/account/bag-sm.svg" alt="" width="18" height="18" /></button>
+            <button type="button" class="btn-sm btn-sm--primary buy" (click)="buyNow(c)">Mua ngay</button>
+          </div>
+        </li>
+      } @empty {
+        <li class="grid-empty"><p class="empty-note">Không có cuốn nào khớp “{{ query() }}”.</p></li>
+      }
+    </ul>
+  } @else {
+    <app-status-card title="Wishlist đang trống" message="Bấm ♡ trên một cuốn sách để lưu lại và theo dõi khi giảm giá.">
+      <a class="btn-outline" routerLink="/books">Khám phá sách</a>
+    </app-status-card>
+  }
+</div>

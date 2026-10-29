@@ -1,1 +1,132 @@
-<p>about-us works!</p>
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-grid" aria-hidden="true"></div>
+  <h1 class="hero-title">
+    <span class="hero-line">we pick <span class="hero-highlight">the books</span></span>
+    <span class="hero-line">so you can <span class="hero-serif">simply</span> read.</span>
+  </h1>
+  <p class="hero-sub">Lightbook là hiệu sách độc lập ở Sài Gòn — nơi mỗi cuốn trên kệ đều được một người đọc thật sự chọn, đọc và giới thiệu.</p>
+  <span class="sticker sticker--since" aria-hidden="true">🍒 since 2019</span>
+  <span class="sticker sticker--community" aria-hidden="true">✦ Lightbook Community</span>
+</section>
+
+<app-marquee [items]="marquee" />
+
+<!-- Câu chuyện -->
+<section class="section story container">
+  <div class="story-text">
+    <span class="tag">✦ Câu chuyện của chúng tôi</span>
+    <h2 class="title"><span class="h1">Bắt đầu từ một kệ sách</span> <span class="accent-h1">and a lot of tea.</span></h2>
+    <p class="body-lg">Lightbook ra đời từ một căn phòng 30m² trên đường Cộng Hòa, nơi vài người bạn mê sách mang những cuốn mình yêu thích đến để đổi, để mượn và để giới thiệu cho nhau.</p>
+    <p class="body-lg">Chúng tôi không cố bán thật nhiều sách. Chúng tôi muốn mỗi cuốn rời kệ đều tìm đúng người đọc — vì vậy mọi đầu sách đều được đội ngũ đọc trước, viết vài dòng giới thiệu bằng tay và xếp theo tâm trạng thay vì theo thể loại.</p>
+    <p class="body-lg">Hôm nay Lightbook có cả hiệu sách, website và một cộng đồng hơn 12.000 độc giả — nhưng tinh thần vẫn vậy: reading made simple.</p>
+  </div>
+  <div class="timeline">
+    <p class="label-eyebrow eyebrow">Hành trình</p>
+    <ol>
+      @for (m of milestones; track m.year) {
+        <li>
+          <span class="year">{{ m.year }}</span>
+          <div>
+            <p class="title-card">{{ m.title }}</p>
+            <p class="body-sm">{{ m.text }}</p>
+          </div>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- Sứ mệnh -->
+<section class="values-section">
+  <div class="container section">
+    <header class="section-head section-head--center">
+      <span class="tag">✦ Sứ mệnh</span>
+      <h2 class="title"><span class="h1">Điều chúng tôi tin</span> <span class="accent-h1">what we believe</span></h2>
+      <p class="body-lead sub">Bốn lời hứa nhỏ mà Lightbook giữ với mỗi độc giả.</p>
+    </header>
+    <div class="values">
+      @for (v of values; track v.title) {
+        <article class="value" [attr.data-tone]="v.tone">
+          <span class="value-icon"><img [src]="'images/about/' + v.icon + '.svg'" alt="" width="22" height="22" /></span>
+          <p class="label-eyebrow eyebrow">{{ v.eyebrow }}</p>
+          <h3 class="value-title">{{ v.title }}</h3>
+          <p class="body">{{ v.text }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Con số -->
+<section class="stats-section">
+  <div class="container">
+    <h2 class="stats-title"><span class="h2">Lightbook qua những con số</span> <span class="accent-h2">by the numbers</span></h2>
+    <dl class="stats">
+      @for (s of stats; track s.label) {
+        <div class="stat">
+          <dt class="display-page-title">{{ s.value }}</dt>
+          <dd class="body-lg">{{ s.label }}</dd>
+        </div>
+      }
+    </dl>
+  </div>
+</section>
+
+<!-- Đội ngũ -->
+<section class="section container">
+  <header class="section-head">
+    <span class="tag">✦ Đội ngũ</span>
+    <h2 class="title"><span class="h1">Những người sau quầy sách</span> <span class="accent-h1">the team</span></h2>
+    <p class="body-lead sub">Bốn người đọc, bốn gu sách khác nhau — cùng một niềm tin vào những câu chuyện tốt.</p>
+  </header>
+  <div class="team">
+    @for (m of team; track m.name) {
+      <article class="member">
+        <span class="member-avatar" [attr.data-tone]="m.tone">{{ m.initials }}</span>
+        <p class="title-card-lg">{{ m.name }}</p>
+        <p class="member-role">{{ m.role }}</p>
+        <p class="body-quote member-quote">“{{ m.quote }}”</p>
+        <p class="label-small">Đang đọc: {{ m.reading }}</p>
+      </article>
+    }
+  </div>
+</section>
+
+<!-- Đối tác -->
+<section class="partners-section container">
+  <h2 class="partners-title"><span class="h3">Đối tác xuất bản</span> <span class="quote-pull">our partners</span></h2>
+  <ul class="partners">
+    @for (p of partners; track p.name) {
+      <li class="partner">
+        <span class="partner-mark" [attr.data-tone]="p.tone" [class.is-round]="p.round" [class.is-small]="p.small">{{ p.mark }}</span>
+        <span class="title-card-display">{{ p.name }}</span>
+      </li>
+    }
+  </ul>
+</section>
+
+<!-- Community CTA -->
+<section class="container cta-section">
+  <div class="cta">
+    <div class="cta-text">
+      <span class="tag tag--white">✦ Lightbook Community</span>
+      <h2 class="title"><span class="h1">Đọc cùng nhau</span> <span class="accent-h1">read together.</span></h2>
+      <p class="body-lead cta-lead">Tham gia miễn phí để nhận mã giảm 10% cho đơn đầu, ưu tiên giữ chỗ Author Talk và bản tin sách mới mỗi thứ Năm.</p>
+      <ul class="cta-benefits">
+        @for (b of benefits; track b) {
+          <li><span class="check"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>{{ b }}</li>
+        }
+      </ul>
+      <a class="btn btn-primary cta-btn" routerLink="/register">
+        Tham gia miễn phí <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
+      </a>
+    </div>
+    <div class="cta-covers" aria-hidden="true">
+      <img class="cover cover--left" src="images/about/cover-left.png" alt="" width="223" height="289" />
+      <img class="cover cover--right" src="images/about/cover-right.png" alt="" width="215" height="285" />
+      <img class="cover cover--center" src="images/about/cover-center.png" alt="" width="185" height="265" />
+      <span class="sticker sticker--readers">♥ 12.000+ độc giả</span>
+    </div>
+  </div>
+</section>

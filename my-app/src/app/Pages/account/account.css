@@ -1,4 +1,72 @@
-   .account-layout { display: flex; gap: 24px; padding: 24px; }
-   .account-sidebar { display: flex; flex-direction: column; gap: 8px; width: 240px; }
-   .account-sidebar a.active { font-weight: 700; }
-   .account-content { flex: 1; }
+/* Khung trang Tài khoản: menu bên 280 + nội dung 904, cách nhau 32 (Figma "Body") */
+.account {
+  display: flex; gap: var(--space-32); align-items: flex-start;
+  max-width: calc(var(--layout-container) + 2 * var(--layout-gutter));
+  margin: 0 auto; padding: var(--space-32) var(--layout-gutter) 96px;
+}
+.content { flex: 1; min-width: 0; }
+
+.sidebar {
+  flex: 0 0 280px; display: flex; flex-direction: column; gap: var(--space-16);
+  padding: var(--space-20) var(--space-16); background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+}
+.divider { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--color-border-divider); }
+
+.user { display: flex; align-items: center; gap: var(--space-12); padding-left: var(--space-4); }
+.avatar {
+  display: flex; flex: none; align-items: center; justify-content: center; width: 52px; height: 52px;
+  overflow: hidden; background: var(--color-tint-pink); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); font: 800 18px/1 var(--font-display);
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-text { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.user-text p { margin: 0; }
+.user-name { font: 800 16px/normal var(--font-sans); }
+.user-meta { display: flex; align-items: center; gap: var(--space-6); font: 400 11px/normal var(--font-sans); color: var(--color-text-muted); }
+.tier {
+  padding: var(--space-2) var(--space-8); background: var(--color-tint-mint); color: var(--color-text-primary);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full); font: 700 10px/normal var(--font-sans);
+}
+.retry { padding: 0; border: 0; background: none; font: 700 11px/normal var(--font-sans); color: var(--color-feedback-error); text-decoration: underline; }
+
+.nav { display: flex; flex-direction: column; gap: var(--space-4); }
+.nav-item {
+  display: flex; align-items: center; gap: var(--space-12); padding: 11px var(--space-12);
+  border: var(--border-default) solid transparent; border-radius: var(--radius-14); font: 700 14px/normal var(--font-sans);
+}
+.nav-item:hover { background: var(--color-bg-subtle); }
+.nav-item.is-active {
+  background: var(--color-border-subtle); border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-offset-xs); font-weight: 800;
+}
+.badge {
+  display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-left: auto;
+  background: var(--color-tint-pink-strong); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); font: 700 11px/1 var(--font-sans);
+}
+
+.logout {
+  display: flex; align-items: center; gap: var(--space-12); padding: 0 0 0 var(--space-12);
+  border: 0; background: none; font: 700 14px/normal var(--font-sans); color: var(--color-feedback-error);
+}
+
+.promo {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-8); padding: var(--space-16);
+  background: var(--color-tint-mint); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-16);
+}
+.promo p { margin: 0; }
+.promo-title { font: 800 16px/normal var(--font-display); letter-spacing: -0.16px; }
+.promo-text { font: 400 12px/1.45 var(--font-sans); color: var(--color-text-body); }
+.promo-cta {
+  padding: var(--space-6) var(--space-12); background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-xs); font: 700 12px/normal var(--font-sans);
+}
+
+/* Màn hẹp: menu bên lên trên */
+@media (max-width: 960px) {
+  .account { flex-direction: column; align-items: stretch; }
+  .sidebar { flex-basis: auto; }
+}

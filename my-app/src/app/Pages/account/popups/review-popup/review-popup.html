@@ -1,1 +1,77 @@
-<p>review-popup works!</p>
+<div class="overlay" (click)="close()">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="review-title" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <h2 class="modal-title" id="review-title">Viết đánh giá</h2>
+      <button type="button" class="close" (click)="close()" aria-label="Đóng"><img src="images/account/x-sm.svg" alt="" width="14" height="14" /></button>
+    </header>
+
+    <div class="book">
+      <img class="book-cover" [src]="book().image" [alt]="book().title" />
+      <div class="book-text">
+        <p class="book-title">{{ book().title }}</p>
+        @if (book().author) { <p class="book-author">{{ book().author }}</p> }
+        @if (book().meta) { <span class="pill">{{ book().meta }}</span> }
+      </div>
+    </div>
+
+    <div class="rating">
+      <p class="label" id="review-rating">Bạn chấm cuốn sách này mấy sao?</p>
+      <div class="stars" role="radiogroup" aria-labelledby="review-rating" (mouseleave)="hover.set(0)">
+        @for (s of stars; track s) {
+          <button type="button" class="star" role="radio" [attr.aria-checked]="rating() === s" [attr.aria-label]="s + ' sao'"
+            (mouseenter)="hover.set(s)" (click)="rate(s)">
+            <img [src]="s <= shown() ? 'images/account/star.svg' : 'images/account/star-o.svg'" alt="" width="30" height="30" />
+          </button>
+        }
+      </div>
+      <p class="rating-label">{{ ratingLabel() || ' ' }}</p>
+    </div>
+
+    <p class="label">Điều bạn thích</p>
+    <div class="tags">
+      @for (tag of tags; track tag) {
+        @let on = picked().includes(tag);
+        <button type="button" class="tag" [class.is-active]="on" [attr.aria-pressed]="on" (click)="toggleTag(tag)">{{ on ? '✓ ' : '' }}{{ tag }}</button>
+      }
+    </div>
+
+    <label class="textarea">
+      <span class="sr-only">Nội dung đánh giá</span>
+      <textarea [value]="content()" (input)="onContent($event)" maxlength="500"
+        placeholder="Chia sẻ cảm nhận của bạn về nội dung, bản dịch hay chất lượng sách…"></textarea>
+      <span class="counter">{{ content().length }} / {{ maxContent }}</span>
+    </label>
+
+    <div class="photos">
+      @for (p of photos(); track p.url; let i = $index) {
+        <div class="photo">
+          <img [src]="p.url" alt="Ảnh đính kèm {{ i + 1 }}" />
+          <button type="button" class="photo-remove" (click)="removePhoto(i)" aria-label="Bỏ ảnh"><img src="images/account/x-sm.svg" alt="" width="10" height="10" /></button>
+        </div>
+      }
+      @if (photos().length < maxPhotos) {
+        <label class="add-photo">
+          <img src="images/account/camera.svg" alt="" width="20" height="20" />
+          <span class="sr-only">Thêm ảnh</span>
+          <input type="file" accept="image/png,image/jpeg,image/webp" multiple (change)="addPhotos($event)" />
+        </label>
+      }
+      <span class="hint">Thêm ảnh (tối đa {{ maxPhotos }})</span>
+    </div>
+
+    <div class="note-box"><img src="images/auth/gift.svg" alt="" width="18" height="18" /><p>Nhận +50 điểm thưởng khi đánh giá kèm ảnh</p></div>
+
+    @if (error(); as err) { <p class="error" role="alert">{{ err }}</p> }
+
+    <footer class="modal-foot">
+      <label class="anon">
+        <input type="checkbox" [checked]="anonymous()" (change)="anonymous.set($any($event.target).checked)" />
+        Đăng ẩn danh
+      </label>
+      <div class="buttons">
+        <button type="button" class="btn-ghost" (click)="close()">Huỷ</button>
+        <button type="button" class="btn-pink" (click)="submit()" [disabled]="sending()">{{ sending() ? 'Đang gửi…' : 'Gửi đánh giá' }}</button>
+      </div>
+    </footer>
+  </section>
+</div>

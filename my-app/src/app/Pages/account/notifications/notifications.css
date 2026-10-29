@@ -1,0 +1,36 @@
+/* Style chung (tiêu đề, tab, nút) nằm ở ../account-page.css */
+.mark-all { flex: none; padding: 0; border: 0; background: none; font: 700 13px/normal var(--font-sans); text-decoration: underline; }
+.mark-all:disabled { color: var(--color-text-muted); cursor: default; }
+.chip { padding: var(--space-8) var(--space-12); font-size: 13px; }
+
+.group { display: flex; flex-direction: column; gap: var(--space-24); }
+.group-title { margin: 0; font: 800 18px/normal var(--font-display); }
+.list {
+  display: flex; flex-direction: column; margin: 0; padding: var(--space-8); list-style: none; background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);
+}
+.item { display: flex; align-items: flex-start; gap: 14px; padding: 14px var(--space-16) 14px 14px; border-radius: var(--radius-16); cursor: default; }
+.item + .item { margin-top: 1px; box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-border-strong) 8%, transparent); }
+.item.is-unread { background: var(--green-50); cursor: pointer; }
+.icon {
+  display: flex; flex: none; align-items: center; justify-content: center; width: 44px; height: 44px;
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-12);
+}
+.icon[data-tone='yellow'] { background: var(--color-tint-yellow); }
+.icon[data-tone='mint'] { background: var(--color-tint-mint); }
+.icon[data-tone='mint-strong'] { background: var(--color-border-subtle); }
+.text { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.text p { margin: 0; }
+.title { font: 700 14px/normal var(--font-sans); }
+.is-unread .title { font-weight: 800; }
+.message { font: 400 13px/1.45 var(--font-sans); color: var(--color-text-secondary); }
+.meta { display: flex; align-items: center; gap: var(--space-10); padding-top: var(--space-2); font-size: 11px; color: var(--color-text-muted); }
+.cta {
+  padding: var(--space-4) var(--space-10); background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); box-shadow: var(--shadow-offset-xs); font: 700 11px/normal var(--font-sans); color: var(--color-text-primary);
+}
+.dot {
+  flex: none; width: 10px; height: 10px; margin-top: var(--space-4); background: var(--color-tint-pink-strong);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+}
+.more { align-self: flex-start; padding: var(--space-10) var(--space-16); font-size: 13px; }

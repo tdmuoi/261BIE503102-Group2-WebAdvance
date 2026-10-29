@@ -1,0 +1,37 @@
+/* =====================================================================
+   Style chung 3 tab Tủ sách (bookshelf-ebooks, bookshelf-purchased, wishlist).
+   styleUrls: ['../account-page.css', '../shelf.css', './<trang>.css']
+   ===================================================================== */
+.search {
+  display: flex; align-items: center; gap: var(--space-8); width: 260px; height: 42px; padding: 0 var(--space-14);
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-12);
+}
+.search:focus-within { box-shadow: var(--shadow-offset-xs); }
+.search input { flex: 1; width: 0; border: 0; outline: 0; background: transparent; font: 400 13px/normal var(--font-sans); }
+.search input::placeholder { color: var(--color-text-muted); }
+.tab { color: var(--color-text-primary); }
+
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.chip {
+  padding: var(--space-6) var(--space-12); cursor: pointer; white-space: nowrap; background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full); font: 700 12px/normal var(--font-sans); color: var(--color-text-primary);
+}
+.chip.is-active { background: var(--color-border-subtle); box-shadow: var(--shadow-offset-xs); }
+
+.btn-sm {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-6); padding: 7px var(--space-14); cursor: pointer; white-space: nowrap;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-xs); font: 700 12px/normal var(--font-sans); color: var(--color-text-primary);
+}
+.btn-sm--primary { background: var(--green-50); box-shadow: var(--shadow-offset-sm); }
+.btn-sm.is-static { cursor: default; }
+.progress { display: flex; align-items: center; gap: var(--space-8); font: 700 11px/normal var(--font-sans); color: var(--color-text-secondary); }
+.track { position: relative; flex: 1; height: 6px; overflow: hidden; background: var(--color-border-divider); border-radius: 3px; }
+.track span { position: absolute; inset: 0 auto 0 0; background: var(--color-text-primary); }
+.empty-note { margin: 0; padding: var(--space-24); text-align: center; font: 400 14px/1.5 var(--font-sans); color: var(--color-text-secondary); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .page-head { flex-direction: column; align-items: stretch; }
+  .search { width: 100%; }
+}

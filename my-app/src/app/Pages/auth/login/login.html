@@ -1,1 +1,102 @@
-<p>login works!</p>
+<section class="auth">
+  <div class="auth-card">
+    <span class="auth-tag">Chào mừng trở lại</span>
+
+    <h1 class="auth-title">
+      <span>Đăng nhập</span>
+      <span class="accent-h1">welcome back.</span>
+    </h1>
+
+    <p class="auth-subtitle body-lead">
+      Đăng nhập để theo dõi đơn hàng, lưu sách yêu thích và nhận ưu đãi thành viên.
+    </p>
+
+    @if (alert(); as message) {
+      <div class="auth-alert" role="alert">
+        <img src="images/auth/alert-circle.svg" alt="" width="20" height="20" />
+        <div>
+          <p class="auth-alert-title label-small">Đăng nhập chưa thành công</p>
+          <p class="body-sm">{{ message }}</p>
+        </div>
+      </div>
+    }
+
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="auth-segment" role="group" aria-label="Đăng nhập bằng">
+        <button type="button" class="chip" [class.chip--on]="method() === 'email'"
+          [attr.aria-pressed]="method() === 'email'" (click)="setMethod('email')">Email</button>
+        <button type="button" class="chip" [class.chip--on]="method() === 'phone'"
+          [attr.aria-pressed]="method() === 'phone'" (click)="setMethod('phone')">Số điện thoại</button>
+      </div>
+
+      <div class="field" [class.field--error]="fieldError('identifier')">
+        <label class="label-small" for="login-identifier">Email hoặc số điện thoại</label>
+        <div class="field-box">
+          @if (method() === 'email') {
+            <img src="images/auth/mail.svg" alt="" width="20" height="20" />
+          }
+          <input id="login-identifier" formControlName="identifier" autocomplete="username"
+            [type]="method() === 'email' ? 'email' : 'tel'"
+            [placeholder]="method() === 'email' ? 'email@vidu.com' : '0901 234 567'"
+            [attr.aria-invalid]="!!fieldError('identifier')" />
+        </div>
+        @if (fieldError('identifier'); as err) {
+          <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+        }
+      </div>
+
+      <div class="field" [class.field--error]="fieldError('password')">
+        <label class="label-small" for="login-password">Mật khẩu</label>
+        <div class="field-box">
+          <img src="images/auth/lock.svg" alt="" width="20" height="20" />
+          <input id="login-password" formControlName="password" autocomplete="current-password"
+            [type]="showPassword() ? 'text' : 'password'" placeholder="••••••••••"
+            [attr.aria-invalid]="!!fieldError('password')" />
+          <button type="button" class="field-eye" (click)="togglePassword()"
+            [attr.aria-label]="showPassword() ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+            <img [src]="showPassword() ? 'images/auth/eye-off.svg' : 'images/auth/eye.svg'" alt="" width="20" height="20" />
+          </button>
+        </div>
+        @if (fieldError('password'); as err) {
+          <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+        }
+      </div>
+
+      <div class="auth-row">
+        <label class="checkbox">
+          <input type="checkbox" formControlName="remember" />
+          <span class="checkbox-box"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>
+          Ghi nhớ đăng nhập
+        </label>
+        <a class="auth-link" routerLink="/forgot-password" [queryParams]="forgotParams()">Quên mật khẩu?</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary auth-cta" [disabled]="loading()">
+        {{ loading() ? 'Đang đăng nhập…' : 'Đăng nhập' }}
+        @if (!loading()) {
+          <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
+        }
+      </button>
+    </form>
+
+    <div class="auth-divider caption"><span>hoặc tiếp tục với</span></div>
+
+    <div class="auth-social">
+      <button type="button" class="btn btn-ghost" (click)="socialLogin('Google')">
+        <img src="images/auth/google.svg" alt="" width="20" height="20" />Google
+      </button>
+      <button type="button" class="btn btn-ghost" (click)="socialLogin('Facebook')">
+        <img src="images/auth/facebook.svg" alt="" width="20" height="20" />Facebook
+      </button>
+    </div>
+
+    <p class="auth-switch">
+      Chưa có tài khoản?
+      <a class="auth-link" routerLink="/register" queryParamsHandling="preserve">
+        Đăng ký ngay <img src="images/icons/arrow-right.svg" alt="" width="16" height="16" />
+      </a>
+    </p>
+  </div>
+
+  <app-auth-art tone="yellow" />
+</section>

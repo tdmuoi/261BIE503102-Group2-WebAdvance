@@ -1,1 +1,191 @@
-<p>profile-info works!</p>
+<div class="page">
+  <ol class="breadcrumb">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><a routerLink="/account">Tài khoản</a></li>
+    <li aria-current="page">Thông tin cá nhân</li>
+  </ol>
+
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Thông tin cá nhân</h1>
+      <p class="page-subtitle">Cập nhật thông tin để nhận ưu đãi và giao hàng chính xác hơn.</p>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Thông tin cá nhân">
+    <a class="tab is-active" routerLink="/account/profile-info" aria-current="page">Thông tin tài khoản</a>
+    <a class="tab" routerLink="/account/address">Địa chỉ nhận hàng</a>
+  </nav>
+
+  @if (profile(); as p) {
+    <!-- Hồ sơ -->
+    <section class="card" [formGroup]="form">
+      <h2 class="card-title">Hồ sơ của bạn</h2>
+
+      <div class="avatar-row">
+        <div class="avatar-wrap">
+          <span class="avatar">
+            @if (avatarPreview(); as src) {
+              <img [src]="src" alt="Ảnh đại diện" />
+            } @else {
+              {{ initials() }}
+            }
+          </span>
+          <button type="button" class="avatar-camera" (click)="avatarInput.click()" aria-label="Đổi ảnh đại diện">
+            <img src="images/account/camera.svg" alt="" width="16" height="16" />
+          </button>
+        </div>
+        <div class="avatar-text">
+          <p class="avatar-title">Ảnh đại diện</p>
+          <p class="avatar-hint" [class.helper--error]="avatarError()">{{ avatarError() ?? 'JPG hoặc PNG, tối đa 1MB' }}</p>
+          <div class="avatar-actions">
+            <button type="button" class="pill" (click)="avatarInput.click()">Tải ảnh mới</button>
+            @if (avatarPreview()) {
+              <button type="button" class="link-muted" (click)="removeAvatar()">Xoá ảnh</button>
+            }
+          </div>
+          <input #avatarInput type="file" accept="image/png,image/jpeg" hidden (change)="onAvatarPicked($event)" />
+        </div>
+      </div>
+
+      <hr class="card-divider" />
+
+      <div class="row">
+        <div class="field" [class.field--error]="error('fullName')">
+          <label class="label" for="pf-name">Họ và tên</label>
+          <div class="input"><input id="pf-name" formControlName="fullName" autocomplete="name" /></div>
+          @if (error('fullName'); as err) { <p class="helper">{{ err }}</p> }
+        </div>
+        <div class="field">
+          <label class="label" for="pf-username">Tên đăng nhập</label>
+          <div class="input is-readonly">
+            <input id="pf-username" [value]="p.username" readonly />
+            <img src="images/account/lock-sm.svg" alt="Không thể đổi" width="16" height="16" />
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label class="label" for="pf-email">Email</label>
+          <div class="input">
+            <input id="pf-email" [value]="p.email" readonly />
+            @if (p.emailVerified) { <span class="verified">✓ Đã xác minh</span> }
+          </div>
+        </div>
+        <div class="field" [class.field--error]="error('phone')">
+          <label class="label" for="pf-phone">Số điện thoại</label>
+          <div class="input"><input id="pf-phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
+          @if (error('phone'); as err) { <p class="helper">{{ err }}</p> }
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field" [class.field--error]="error('birthday')">
+          <label class="label" for="pf-birthday">Ngày sinh</label>
+          <div class="input">
+            <input id="pf-birthday" formControlName="birthday" inputmode="numeric" placeholder="dd / mm / yyyy" />
+            <span class="input-hint">dd/mm/yyyy</span>
+          </div>
+          @if (error('birthday'); as err) { <p class="helper">{{ err }}</p> }
+        </div>
+        <fieldset class="field gender">
+          <legend class="label">Giới tính</legend>
+          <div class="radios">
+            <label class="radio"><input type="radio" formControlName="gender" value="female" /><span>Nữ</span></label>
+            <label class="radio"><input type="radio" formControlName="gender" value="male" /><span>Nam</span></label>
+            <label class="radio"><input type="radio" formControlName="gender" value="other" /><span>Khác</span></label>
+          </div>
+        </fieldset>
+      </div>
+    </section>
+
+    <!-- Mật khẩu & bảo mật -->
+    <section class="card" [formGroup]="passwordForm">
+      <div class="security-head">
+        <div>
+          <h2 class="card-title">Mật khẩu &amp; bảo mật</h2>
+          <p class="muted-sm">Lần đổi mật khẩu gần nhất: {{ passwordChangedText() }}</p>
+        </div>
+        <img src="images/account/lock-lg.svg" alt="" width="28" height="28" />
+      </div>
+
+      <div class="field" [class.field--error]="passwordError('current')">
+        <label class="label" for="pw-current">Mật khẩu hiện tại</label>
+        <div class="input">
+          <input id="pw-current" formControlName="currentPassword" autocomplete="current-password" [type]="show().current ? 'text' : 'password'" />
+          <button type="button" class="icon-btn" (click)="toggle('current')" [attr.aria-label]="show().current ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+            <img [src]="show().current ? 'images/auth/eye-off.svg' : 'images/account/eye.svg'" alt="" width="18" height="18" />
+          </button>
+        </div>
+        @if (passwordError('current'); as err) { <p class="helper">{{ err }}</p> }
+      </div>
+
+      <div class="row">
+        <div class="field" [class.field--error]="passwordError('next')">
+          <label class="label" for="pw-new">Mật khẩu mới</label>
+          <div class="input">
+            <input id="pw-new" formControlName="newPassword" autocomplete="new-password" [type]="show().next ? 'text' : 'password'" />
+            <button type="button" class="icon-btn" (click)="toggle('next')" [attr.aria-label]="show().next ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+              <img [src]="show().next ? 'images/auth/eye-off.svg' : 'images/account/eye.svg'" alt="" width="18" height="18" />
+            </button>
+          </div>
+          @if (passwordError('next'); as err) { <p class="helper">{{ err }}</p> }
+        </div>
+        <div class="field" [class.field--error]="passwordError('confirm')">
+          <label class="label" for="pw-confirm">Nhập lại mật khẩu mới</label>
+          <div class="input">
+            <input id="pw-confirm" formControlName="confirmPassword" autocomplete="new-password" [type]="show().confirm ? 'text' : 'password'" />
+            <button type="button" class="icon-btn" (click)="toggle('confirm')" [attr.aria-label]="show().confirm ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'">
+              <img [src]="show().confirm ? 'images/auth/eye-off.svg' : 'images/account/eye.svg'" alt="" width="18" height="18" />
+            </button>
+          </div>
+          @if (passwordError('confirm'); as err) { <p class="helper">{{ err }}</p> }
+        </div>
+      </div>
+
+      <div class="strength" aria-live="polite">
+        <div class="meter">
+          @for (bar of bars; track bar) {
+            <span class="bar" [class.is-on]="strength() >= bar"></span>
+          }
+          <span class="meter-label">{{ strengthLabel() }}</span>
+        </div>
+        <ul class="rules">
+          <li [class.is-ok]="rules().length">{{ rules().length ? '✓' : '○' }} Ít nhất 8 ký tự</li>
+          <li [class.is-ok]="rules().upper">{{ rules().upper ? '✓' : '○' }} Có chữ hoa</li>
+          <li [class.is-ok]="rules().digit">{{ rules().digit ? '✓' : '○' }} Có chữ số</li>
+          <li [class.is-ok]="rules().special">{{ rules().special ? '✓' : '○' }} Có ký tự đặc biệt</li>
+        </ul>
+      </div>
+
+      <hr class="card-divider" />
+
+      <div class="two-factor" [formGroup]="form">
+        <div>
+          <p class="two-factor-title">Xác thực 2 lớp qua SMS</p>
+          <p class="muted-sm" [class.helper--error]="twoFactorError()">
+            {{ twoFactorError() ? 'Cần có số điện thoại để bật xác thực 2 lớp.' : 'Nhập mã gửi về số điện thoại mỗi khi đăng nhập trên thiết bị mới.' }}
+          </p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" role="switch" formControlName="twoFactorEnabled" aria-label="Xác thực 2 lớp qua SMS" />
+          <span class="switch-track"></span>
+        </label>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="button" class="btn-outline" (click)="cancel()" [disabled]="saving() || !hasChanges()">Huỷ bỏ</button>
+      <button type="button" class="btn-save" (click)="save()" [disabled]="saving() || !hasChanges()">
+        {{ saving() ? 'Đang lưu…' : 'Lưu thay đổi' }}
+      </button>
+    </div>
+  } @else if (profileError()) {
+    <app-status-card tone="error" title="Chưa tải được thông tin tài khoản" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+      <button type="button" class="btn-outline" (click)="retry()">Thử lại</button>
+    </app-status-card>
+  } @else {
+    <app-status-card tone="loading" message="Đang tải thông tin tài khoản…" />
+  }
+</div>

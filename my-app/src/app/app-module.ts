@@ -2,6 +2,9 @@ import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 
+import { SuggestedBooks } from './Pages/cart/sections/suggested-books/suggested-books';
+import { AuthArt } from './Pages/auth/auth-art/auth-art';
+import { ReactiveFormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing-module';
 import { SharedModule } from './shared/shared-module';
 import { App } from './app';
@@ -105,8 +108,10 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     BrowseEmpty,
     BrowsePrice,
     BrowseMenu,
+    AuthArt,
+    SuggestedBooks,
   ],
-  imports: [BrowserModule, AppRoutingModule, SharedModule],
+  imports: [BrowserModule, AppRoutingModule, SharedModule, ReactiveFormsModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],
   bootstrap: [App],
 })

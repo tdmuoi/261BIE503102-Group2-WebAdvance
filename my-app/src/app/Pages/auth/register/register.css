@@ -1,0 +1,23 @@
+/* Style chung của form nằm ở ../auth-form.css — file này chỉ chứa phần riêng của trang Đăng ký */
+.field-row { display: flex; gap: var(--space-16); }
+.field-row .field { flex: 1; }
+.agreements { display: flex; flex-direction: column; gap: var(--space-10); }
+
+/* Màn hình đăng ký thành công */
+.success-text { color: var(--color-text-body); }
+.coupon {
+  display: flex; align-items: center; justify-content: space-between; padding: var(--space-16) var(--space-20);
+  background: var(--color-tint-yellow); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-16);
+}
+.coupon p { margin: 0; }
+.coupon-label { color: var(--color-text-secondary); }
+.coupon-code { margin-top: var(--space-2); }
+.coupon .btn { padding: var(--space-6) var(--space-14); }
+.success-actions { display: flex; gap: var(--space-12); }
+.success-actions .auth-cta { flex: 1; width: auto; }
+.success-actions .auth-cta--ghost { flex: none; box-shadow: none; }
+
+@media (max-width: 600px) {
+  .field-row, .success-actions { flex-direction: column; }
+}

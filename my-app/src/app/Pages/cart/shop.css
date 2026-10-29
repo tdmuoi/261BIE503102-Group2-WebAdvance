@@ -1,0 +1,79 @@
+/* =====================================================================
+   Style dùng chung cho Giỏ hàng, Thanh toán, trang 404 (Pages/cart, Pages/checkout, Pages/page-not-found).
+   Khai báo: styleUrls: ['<đường dẫn>/cart/shop.css', './<trang>.css']
+   ===================================================================== */
+.shop { display: flex; flex-direction: column; gap: var(--space-32); padding-block: var(--space-40) var(--space-80); }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); font: 400 12px/20px var(--font-sans); color: var(--color-text-secondary); }
+.crumbs [aria-current] { font: 700 12px/1.3 var(--font-sans); color: var(--color-text-primary); }
+.page-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-12); }
+.cta { padding: var(--space-14) 28px; font-size: 15px; font-weight: 800; box-shadow: var(--shadow-offset-sm); }
+.cta:hover:not(:disabled) { box-shadow: var(--shadow-offset-md); }
+
+/* Thẻ trạng thái lớn: 404, giỏ trống, đặt hàng thành công */
+.empty {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-20); padding: 64px var(--space-40); text-align: center;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);
+}
+.empty .page-title { justify-content: center; }
+.art { position: relative; width: 240px; height: 180px; }
+.circle {
+  position: absolute; left: 45px; top: 10px; display: flex; align-items: center; justify-content: center; width: 150px; height: 150px;
+  background: var(--color-tint-pink); border: var(--border-strong) solid var(--color-border-strong); border-radius: var(--radius-full); box-shadow: var(--shadow-offset-md);
+}
+.sticker {
+  position: absolute; left: 160px; top: 8px; padding: var(--space-4) var(--space-10); background: var(--color-tint-yellow); white-space: nowrap;
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full); box-shadow: var(--shadow-offset-sm);
+  font: 700 12px/1.3 var(--font-sans); transform: rotate(8deg);
+}
+.empty-text { width: 560px; max-width: 100%; margin: 0; color: var(--color-text-secondary); }
+.empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-12); }
+.perks { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-12); margin: 0; padding: var(--space-12) 0 0; list-style: none; }
+.perks li {
+  display: flex; align-items: center; gap: var(--space-6); padding: var(--space-6) var(--space-12); background: var(--color-bg-page);
+  border: var(--border-default) solid var(--color-border-subtle); border-radius: var(--radius-full);
+  font: 700 12px/1.3 var(--font-sans); color: var(--color-text-body);
+}
+
+/* Bố cục 2 cột: nội dung 800 + tóm tắt 392 */
+.columns { display: flex; gap: var(--space-24); align-items: flex-start; }
+.columns > :first-child { flex: 1; min-width: 0; }
+.summary {
+  position: sticky; top: var(--space-24); flex: 0 0 392px; display: flex; flex-direction: column; gap: var(--space-20); padding: 28px;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);
+}
+.summary-title { margin: 0; }
+.voucher-field { display: flex; flex-direction: column; gap: var(--space-6); }
+.voucher-label { font: 700 12px/1.3 var(--font-sans); }
+.voucher-box {
+  display: flex; align-items: center; gap: var(--space-10); height: 48px; padding: 0 var(--space-14);
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-14);
+}
+.voucher-box:focus-within { border-width: var(--border-strong); box-shadow: var(--shadow-offset-sm); }
+.voucher-box input { flex: 1; width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; text-transform: uppercase; }
+.voucher-box input::placeholder { text-transform: none; color: var(--color-text-muted); }
+.voucher-box.is-ok { border: var(--border-strong) solid var(--color-feedback-success); }
+.voucher-box.is-error { background: var(--color-feedback-error-bg); border: var(--border-strong) solid var(--color-border-error); }
+.voucher-box button { display: flex; padding: 0; border: 0; background: none; font: 700 12px/1 var(--font-sans); }
+.voucher-help { display: flex; align-items: center; gap: var(--space-4); margin: 0; font: 400 11px/1.3 var(--font-sans); }
+.voucher-help.is-ok { color: var(--color-feedback-success); }
+.voucher-help.is-error { color: var(--color-feedback-error); }
+.lines { display: flex; flex-direction: column; gap: var(--space-12); margin: 0; }
+.lines div { display: flex; justify-content: space-between; gap: var(--space-12); font-size: 14px; }
+.lines dt { line-height: 1.55; color: var(--color-text-body); }
+.lines dd { margin: 0; font-weight: 800; line-height: 1.3; }
+.lines .is-discount { color: var(--color-feedback-success); }
+.divider { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--color-border-divider); }
+.total { display: flex; align-items: center; justify-content: space-between; }
+.total p { margin: 0; }
+.total-label { font: 800 17px/1.3 var(--font-sans); }
+.total-sub { font: 400 11px/1.3 var(--font-sans); color: var(--color-text-secondary); }
+.total-value { font: 800 26px/1.2 var(--font-sans); color: var(--color-text-price); }
+.summary .cta { width: 100%; }
+.trust { display: flex; align-items: center; justify-content: center; gap: var(--space-6); margin: 0; font: 400 11px/1.3 var(--font-sans); color: var(--color-text-secondary); }
+
+@media (max-width: 1100px) {
+  .columns { flex-direction: column; align-items: stretch; }
+  .summary { position: static; flex-basis: auto; }
+}

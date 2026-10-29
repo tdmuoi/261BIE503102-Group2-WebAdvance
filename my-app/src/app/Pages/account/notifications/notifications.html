@@ -1,1 +1,67 @@
-<p>notifications works!</p>
+<div class="page">
+  <ol class="breadcrumb">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><a routerLink="/account">Tài khoản</a></li>
+    <li aria-current="page">Thông báo</li>
+  </ol>
+
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Thông báo</h1>
+      <p class="page-subtitle">Cập nhật đơn hàng, ưu đãi và yêu cầu thanh lý của bạn.</p>
+    </div>
+    <button type="button" class="mark-all" (click)="markAllRead()" [disabled]="!unread()">Đánh dấu tất cả đã đọc</button>
+  </header>
+
+  <div class="tabs" role="group" aria-label="Lọc thông báo">
+    @for (f of filters; track f.value) {
+      <button type="button" class="tab chip" [class.is-active]="filter() === f.value" [attr.aria-pressed]="filter() === f.value" (click)="setFilter(f.value)">
+        {{ filter() === f.value ? '✓ ' : '' }}{{ f.label }}{{ f.value === 'all' ? ' (' + allTotal() + ')' : '' }}
+      </button>
+    }
+  </div>
+
+  @switch (status()) {
+    @case ('loading') {
+      <app-status-card tone="loading" message="Đang tải thông báo…" />
+    }
+    @case ('error') {
+      <app-status-card tone="error" title="Chưa tải được thông báo" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn-outline" (click)="load()">Thử lại</button>
+      </app-status-card>
+    }
+    @default {
+      @for (group of groups(); track group.title) {
+        <section class="group">
+          <h2 class="group-title">{{ group.title }}</h2>
+          <ul class="list">
+            @for (n of group.items; track n._id) {
+              <li class="item" [class.is-unread]="!n.read" (click)="markRead(n)">
+                <span class="icon" [attr.data-tone]="tone(n.icon)"><img [src]="'images/account/n-' + n.icon + '.svg'" alt="" width="22" height="22" /></span>
+                <div class="text">
+                  <p class="title">{{ n.title }}</p>
+                  <p class="message">{{ n.message }}</p>
+                  <div class="meta">
+                    <time [attr.datetime]="n.createdAt">{{ timeLabel(n.createdAt) }}</time>
+                    @if (n.action) {
+                      <button type="button" class="cta" (click)="$event.stopPropagation(); open(n)">{{ n.action.label }}</button>
+                    }
+                  </div>
+                </div>
+                @if (!n.read) { <span class="dot" aria-label="Chưa đọc"></span> }
+              </li>
+            }
+          </ul>
+        </section>
+      } @empty {
+        <app-status-card tone="info" title="Chưa có thông báo nào" message="Thông báo về đơn hàng, ưu đãi và tủ sách sẽ hiện ở đây." />
+      }
+
+      @if (hasMore()) {
+        <button type="button" class="btn-outline more" (click)="loadMore()" [disabled]="loadingMore()">
+          {{ loadingMore() ? 'Đang tải…' : 'Xem thông báo cũ hơn' }}
+        </button>
+      }
+    }
+  }
+</div>

@@ -1,1 +1,41 @@
-<p>buy-again-drawer works!</p>
+<div class="overlay" (click)="closed.emit()">
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" (click)="$event.stopPropagation()">
+    <header class="head">
+      <h2 class="title" id="drawer-title">Giỏ hàng ({{ lines().length }})</h2>
+      <button type="button" class="close" (click)="closed.emit()" aria-label="Đóng"><img src="images/account/x-sm.svg" alt="" width="14" height="14" /></button>
+    </header>
+
+    <p class="added" role="status">
+      <span class="added-icon"><img src="images/account/check-sm.svg" alt="" width="14" height="14" /></span>
+      Đã thêm “{{ book().title }}” vào giỏ
+    </p>
+
+    <ul class="items">
+      @for (l of lines(); track l.bookId) {
+        <li class="item">
+          <img class="cover" [src]="l.image" [alt]="l.title" />
+          <div class="text">
+            <p class="item-title">{{ l.title }}</p>
+            <p class="item-meta">{{ metaOf(l) }}</p>
+            <div class="bottom">
+              <app-quantity-stepper [value]="l.quantity" (valueChange)="setQuantity(l, $event)" [max]="l.max" />
+              <span class="price">{{ l.price * l.quantity | vnd }}</span>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <footer class="summary">
+      <div class="row"><span>Tạm tính</span><b>{{ totals().subtotal | vnd }}</b></div>
+      @if (totals().hasPhysical) {
+        <div class="row"><span>Phí vận chuyển</span><b>{{ totals().shipping ? (totals().shipping | vnd) : 'Miễn phí' }}</b></div>
+      }
+      <div class="row total"><span>Tổng cộng</span><b>{{ totals().total | vnd }}</b></div>
+      <div class="actions">
+        <a class="btn-view" routerLink="/cart" (click)="closed.emit()">Xem giỏ hàng</a>
+        <a class="btn-pay" routerLink="/checkout" (click)="closed.emit()">Thanh toán →</a>
+      </div>
+    </footer>
+  </aside>
+</div>

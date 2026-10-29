@@ -26,6 +26,8 @@ import { Orders } from './Pages/account/orders/orders';
 import { Notifications } from './Pages/account/notifications/notifications';
 import { EbookReader } from './Pages/ebook-reader/ebook-reader';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
+import { authGuard } from './guards/auth-guard';
+
 
 const routes: Routes = [
   { path: '', component: Homepage },
@@ -38,7 +40,7 @@ const routes: Routes = [
   },
   { path: 'product-detail/:id', redirectTo: 'books/:id' },   // link cũ: book-card, các section trang chủ
   { path: 'cart', component: Cart },
-  { path: 'checkout', component: Checkout },
+  { path: 'checkout', component: Checkout, canActivate: [authGuard]},
   { path: 'author-list', component: AuthorList },
   { path: 'author-detail/:id', component: AuthorDetail },
   { path: 'author-works/:id', component: AuthorWorks },
@@ -51,7 +53,7 @@ const routes: Routes = [
   { path: 'register', component: Register },
   { path: 'forgot-password', component: ForgotPassword },
   {
-    path: 'account', component: Account, children: [
+    path: 'account', component: Account, canActivate: [authGuard], children: [
       { path: '', redirectTo: 'profile-info', pathMatch: 'full' },
       { path: 'profile-info', component: ProfileInfo },
       { path: 'address', component: Address },

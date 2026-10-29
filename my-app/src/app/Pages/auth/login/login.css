@@ -1,0 +1,2 @@
+/* Style chung của form nằm ở ../auth-form.css — file này chỉ chứa phần riêng của trang Đăng nhập */
+.auth-row { display: flex; align-items: center; justify-content: space-between; }

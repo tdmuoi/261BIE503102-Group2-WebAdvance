@@ -1,0 +1,78 @@
+/* =====================================================================
+   Style dùng chung cho các trang con trong Pages/account
+   (profile-info, address, notifications...). Khai báo:
+   styleUrls: ['../account-page.css', './<trang>.css']
+   ===================================================================== */
+.page { display: flex; flex-direction: column; gap: var(--space-24); }
+
+/* Breadcrumb + tiêu đề có gạch hồng */
+.breadcrumb { display: flex; flex-wrap: wrap; gap: var(--space-8); margin: 0; padding: 0; list-style: none; font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+.breadcrumb li + li::before { content: '/'; margin-right: var(--space-8); color: var(--color-border-divider); }
+.breadcrumb [aria-current] { font-weight: 700; color: var(--color-text-primary); }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-16); }
+.page-title { margin: 0; font: 800 36px/normal var(--font-display); letter-spacing: -0.54px; }
+.page-title::after { content: ''; display: block; width: 72px; height: 6px; margin-top: var(--space-6); background: var(--color-tint-pink-strong); border-radius: 3px; }
+.page-subtitle { margin: var(--space-6) 0 0; font: 400 14px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+/* Tab dạng pill */
+.tabs { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.tab {
+  padding: var(--space-10) 18px; background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  font: 700 14px/normal var(--font-sans);
+}
+.tab.is-active { background: var(--color-border-subtle); box-shadow: var(--shadow-offset-xs); }
+
+/* Thẻ nội dung */
+.card {
+  display: flex; flex-direction: column; gap: 18px; padding: 26px; background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);
+}
+.card-title { margin: 0; font: 800 20px/normal var(--font-display); letter-spacing: -0.2px; }
+.card-divider { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--color-border-divider); }
+
+/* Ô nhập */
+.row { display: flex; gap: var(--space-16); }
+.row > * { flex: 1; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.label { font: 700 12px/normal var(--font-sans); color: var(--color-text-body); }
+.input {
+  display: flex; align-items: center; gap: var(--space-8); height: 44px; padding: 0 14px;
+  background: var(--color-bg-page); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-12);
+}
+.input:focus-within { box-shadow: var(--shadow-offset-xs); }
+.input input, .input select { flex: 1; width: 0; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; }
+.input input::placeholder { color: var(--color-text-muted); }
+.input.is-readonly { background: var(--color-bg-disabled); color: var(--color-text-muted); }
+.input-hint { font: 700 12px/normal var(--font-sans); color: var(--color-text-muted); }
+.icon-btn { display: flex; padding: 0; border: 0; background: none; }
+.field--error .input { background: var(--color-feedback-error-bg); border-color: var(--color-border-error); }
+.helper { margin: 0; font: 400 11px/1.3 var(--font-sans); color: var(--color-text-secondary); }
+.field--error .helper, .helper--error { color: var(--color-feedback-error); }
+
+/* Radio */
+.radios { display: flex; flex-wrap: wrap; gap: var(--space-20); padding-top: var(--space-4); }
+.radio { display: flex; align-items: center; gap: var(--space-8); cursor: pointer; font-size: 14px; }
+.radio input {
+  appearance: none; width: 18px; height: 18px; margin: 0; background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+}
+.radio input:checked { background: radial-gradient(var(--color-text-primary) 4.5px, var(--color-bg-surface) 5px); }
+.radio input:checked + span { font-weight: 700; }
+.radio input:focus-visible { box-shadow: var(--shadow-offset-xs); }
+
+/* Nút */
+.btn-outline, .btn-save {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-6); padding: var(--space-10) var(--space-20);
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  font: 700 14px/normal var(--font-sans); box-shadow: var(--shadow-offset-xs);
+}
+.btn-outline { background: var(--color-bg-surface); }
+.btn-save { padding-inline: 22px; background: var(--green-50); box-shadow: var(--shadow-offset-sm); }
+.btn-outline:disabled, .btn-save:disabled { color: var(--color-text-muted); box-shadow: none; cursor: not-allowed; }
+.actions { display: flex; justify-content: flex-end; gap: var(--space-10); }
+
+@media (max-width: 720px) {
+  .row { flex-direction: column; }
+  .page-head { flex-direction: column; align-items: flex-start; }
+}

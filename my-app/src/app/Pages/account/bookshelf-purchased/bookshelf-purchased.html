@@ -1,1 +1,112 @@
-<p>bookshelf-purchased works!</p>
+<div class="page">
+  <ol class="breadcrumb">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><a routerLink="/account">Tài khoản</a></li>
+    <li aria-current="page">Tủ sách của tôi</li>
+  </ol>
+
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Tủ sách của tôi</h1>
+      <p class="page-subtitle">Sách điện tử để đọc, sách bạn đã mua và những cuốn bạn đang để mắt tới.</p>
+    </div>
+    <label class="search">
+      <img src="images/account/search.svg" alt="" width="16" height="16" />
+      <span class="sr-only">Tìm trong tủ sách</span>
+      <input type="search" [value]="query()" (input)="query.set($any($event.target).value)" placeholder="Tìm trong tủ sách…" />
+    </label>
+  </header>
+
+  <nav class="tabs" aria-label="Tủ sách">
+    <a class="tab" routerLink="/account/bookshelf-ebooks" routerLinkActive="is-active" ariaCurrentWhenActive="page">Sách điện tử ({{ counts().ebooks }})</a>
+    <a class="tab" routerLink="/account/bookshelf-purchased" routerLinkActive="is-active" ariaCurrentWhenActive="page">Sách đã mua ({{ counts().purchased }})</a>
+    <a class="tab" routerLink="/account/wishlist" routerLinkActive="is-active" ariaCurrentWhenActive="page">Wishlist ({{ counts().wishlist }})</a>
+  </nav>
+
+  <div class="filters">
+    <div class="chips" role="group" aria-label="Lọc loại sách">
+      @for (c of chips(); track c.value) {
+        <button type="button" class="chip" [class.is-active]="kind() === c.value" [attr.aria-pressed]="kind() === c.value" (click)="setKind(c.value)">
+          {{ kind() === c.value ? '✓ ' : '' }}{{ c.label }} ({{ c.count }})
+        </button>
+      }
+    </div>
+    <label class="sort">
+      Sắp xếp:
+      <select [value]="sort()" (change)="onSort($event)">
+        <option value="newest">Mới mua nhất</option>
+        <option value="oldest">Mua lâu nhất</option>
+      </select>
+    </label>
+  </div>
+
+  @switch (status()) {
+    @case ('loading') {
+      <app-status-card tone="loading" message="Đang tải sách đã mua…" />
+    }
+    @case ('error') {
+      <app-status-card tone="error" title="Chưa tải được tủ sách" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn-outline" (click)="reload()">Thử lại</button>
+      </app-status-card>
+    }
+    @default {
+      @if (visible().length) {
+        <ul class="list">
+          @for (b of visible(); track b.key) {
+            <li class="shelf-row">
+              <img class="cover" [src]="b.image" [alt]="b.title" />
+              <div class="text">
+                <p class="title">{{ b.title }}</p>
+                <p class="author">{{ b.author }}</p>
+                <p class="meta"><span class="type" [attr.data-kind]="b.kind">{{ b.typeLabel }}</span>Mua ngày {{ b.purchasedAt | date: 'dd/MM/yyyy' }} · Đơn #{{ b.orderCode }}</p>
+              </div>
+              <div class="actions">
+                @if (b.kind === 'ebook') {
+                  @if (ratings()[b.bookId]; as stars) {
+                    <span class="btn-sm is-static">Đã đánh giá ★ {{ stars }}</span>
+                  } @else {
+                    <button type="button" class="btn-sm" (click)="review(b)">Viết đánh giá</button>
+                  }
+                  <a class="btn-sm btn-sm--primary" [routerLink]="['/ebook-reader', b.bookId]">{{ readText(b) }}</a>
+                } @else {
+                  <button type="button" class="btn-sm" (click)="buyAgain(b)">Mua lại</button>
+                  @if (ratings()[b.bookId]; as stars) {
+                    <span class="btn-sm btn-sm--primary is-static">Đã đánh giá ★ {{ stars }}</span>
+                  } @else {
+                    <button type="button" class="btn-sm btn-sm--primary" (click)="review(b)">Viết đánh giá</button>
+                  }
+                }
+              </div>
+            </li>
+          }
+        </ul>
+        @if (remaining()) {
+          <button type="button" class="more" (click)="shown.set(shown() + 6)">Xem thêm {{ remaining() }} cuốn đã mua ↓</button>
+        }
+      } @else {
+        <app-status-card [title]="query() || kind() !== 'all' ? 'Không có sách phù hợp' : 'Bạn chưa mua cuốn sách nào'" message="Sách trong các đơn đã xác nhận sẽ hiện ở đây.">
+          <a class="btn-outline" routerLink="/books">Mua sắm ngay</a>
+        </app-status-card>
+      }
+
+      @if (recommendations().length) {
+        <section class="recommend" aria-labelledby="recommend-title">
+          <h2 class="recommend-title" id="recommend-title">Gợi ý đọc thêm cho bạn</h2>
+          @if (basedOn()) { <p class="recommend-sub">{{ basedOn() }}</p> }
+          <div class="recommend-grid">
+            @for (book of recommendations(); track book._id) {
+              <app-book-card [book]="book" />
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+</div>
+
+@if (reviewing(); as r) {
+  <app-review-popup [book]="r" (closed)="reviewing.set(null)" (submitted)="onReviewed($event)" />
+}
+@if (buying(); as b) {
+  <app-buy-again-drawer [book]="b" (closed)="buying.set(null)" />
+}

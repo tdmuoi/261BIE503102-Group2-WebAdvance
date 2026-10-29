@@ -1,1 +1,174 @@
-<p>orders works!</p>
+<div class="page">
+  <ol class="breadcrumb">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><a routerLink="/account">Tài khoản</a></li>
+    <li aria-current="page">Quản lý đơn hàng</li>
+  </ol>
+
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Quản lý đơn hàng</h1>
+      <p class="page-subtitle">Theo dõi đơn mua và yêu cầu thanh lý sách của bạn.</p>
+    </div>
+    <label class="search">
+      <img src="images/account/search.svg" alt="" width="16" height="16" />
+      <span class="sr-only">Tìm đơn hàng</span>
+      <input type="search" [value]="query()" (input)="onSearch($event)" placeholder="Tìm mã đơn, tên sách…" />
+    </label>
+  </header>
+
+  <div class="status-tabs" role="tablist" aria-label="Lọc đơn hàng">
+    @for (t of tabs(); track t.value) {
+      <button type="button" role="tab" class="status-tab" [class.is-active]="tab() === t.value" [attr.aria-selected]="tab() === t.value" (click)="setTab(t.value)">
+        {{ t.label }} ({{ t.count }})
+      </button>
+    }
+  </div>
+
+  @switch (status()) {
+    @case ('loading') {
+      <app-status-card tone="loading" message="Đang tải đơn hàng…" />
+    }
+    @case ('error') {
+      <app-status-card tone="error" title="Chưa tải được đơn hàng" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn-outline" (click)="load()">Thử lại</button>
+      </app-status-card>
+    }
+    @default {
+      @if (tab() === 'buyback') {
+        @for (b of buybacks(); track b.code) {
+          <article class="order">
+            <div class="order-top">
+              <p class="order-id"><b>#{{ b.code }}</b> <span>Gửi ngày {{ b.createdAt | date: 'dd/MM/yyyy' }}</span></p>
+              <span class="status" data-tone="yellow"><img src="images/account/n-recycle.svg" alt="" width="14" height="14" />{{ b.status === 'quoted' ? 'Đã có báo giá' : b.status === 'completed' ? 'Hoàn tất' : 'Đang định giá' }}</span>
+            </div>
+            <hr class="divider" />
+            <p class="buyback-text">{{ b.bookCount }} cuốn sách@if (b.quote) { · được định giá <b>{{ b.quote | vnd }}</b> }. {{ b.note }}</p>
+            <hr class="divider" />
+            <div class="order-foot">
+              <span></span>
+              <div class="order-actions">
+                <a class="btn-sm" [href]="'mailto:' + shopEmail">Liên hệ shop</a>
+                <a class="btn-sm btn-sm--primary" routerLink="/book-buyback">Xem báo giá</a>
+              </div>
+            </div>
+          </article>
+        } @empty {
+          <app-status-card title="Chưa có yêu cầu thanh lý" message="Gửi sách cũ cho Lightbook để nhận tiền hoặc voucher.">
+            <a class="btn-outline" routerLink="/book-buyback">Thanh lý sách</a>
+          </app-status-card>
+        }
+      } @else {
+        @for (o of visible(); track o._id) {
+          @let meta = statusMeta[o.status];
+          <article class="order">
+            <div class="order-top">
+              <p class="order-id"><b>#{{ o.orderCode }}</b> <span>Đặt ngày {{ o.createdAt | date: 'dd/MM/yyyy' }}</span></p>
+              <span class="status" [attr.data-tone]="meta.tone"><img [src]="meta.icon" alt="" width="14" height="14" />{{ meta.label }}</span>
+            </div>
+
+            @if (showTracker(o)) {
+              <ol class="tracker" aria-label="Tiến trình đơn hàng">
+                @for (s of steps(o); track s.status; let last = $last) {
+                  <li class="step" [attr.data-state]="s.state">
+                    <span class="step-dot">{{ s.state === 'done' ? '✓' : s.n }}</span>{{ s.label }}
+                  </li>
+                  @if (!last) { <li class="step-line" [class.is-done]="s.state === 'done'" aria-hidden="true"></li> }
+                }
+              </ol>
+            }
+
+            <hr class="divider" />
+            <ul class="items">
+              @for (item of o.items; track item.bookId) {
+                <li class="item">
+                  <img class="cover" [src]="item.image" [alt]="item.title" />
+                  <span class="item-text"><b>{{ item.title }}</b><span>{{ itemMeta(item) }}</span></span>
+                  <span class="item-price">{{ item.price * item.quantity | vnd }}</span>
+                </li>
+              }
+            </ul>
+
+            @if (expanded() === o._id) {
+              <div class="detail">
+                <section>
+                  <h3>Lịch sử đơn</h3>
+                  <ul class="history">
+                    @for (h of o.statusHistory; track $index) {
+                      <li><b>{{ statusMeta[h.status].label }}</b> · {{ h.at | date: 'HH:mm dd/MM/yyyy' }}@if (h.note) { · {{ h.note }} }</li>
+                    }
+                  </ul>
+                </section>
+                <section>
+                  <h3>Giao đến</h3>
+                  @if (o.shippingAddress; as a) {
+                    <p>{{ a.fullName }} · {{ a.phone }}<br />{{ a.address }}, {{ a.ward }}, {{ a.province }}</p>
+                  } @else {
+                    <p>Sách điện tử — đã thêm vào tủ sách, không cần giao.</p>
+                  }
+                  @if (o.note) { <p class="muted">Ghi chú: {{ o.note }}</p> }
+                </section>
+                <section>
+                  <h3>Thanh toán</h3>
+                  <p>{{ paymentLabel[o.paymentMethod] }} · {{ o.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</p>
+                  <dl class="sums">
+                    <div><dt>Tạm tính</dt><dd>{{ o.subtotal | vnd }}</dd></div>
+                    @if (o.discount) { <div><dt>Giảm giá{{ o.voucherCode ? ' (' + o.voucherCode + ')' : '' }}</dt><dd>−{{ o.discount | vnd }}</dd></div> }
+                    @if (o.shippingMethod) { <div><dt>Phí vận chuyển</dt><dd>{{ o.shippingFee ? (o.shippingFee | vnd) : 'Miễn phí' }}</dd></div> }
+                  </dl>
+                </section>
+              </div>
+            }
+
+            <hr class="divider" />
+            <div class="order-foot">
+              <p class="order-total">Tổng cộng ({{ bookCount(o) }} sản phẩm): <b>{{ o.total | vnd }}</b></p>
+              <div class="order-actions">
+                @switch (o.status) {
+                  @case ('pending') {
+                    <button type="button" class="btn-sm" (click)="cancel(o)" [disabled]="cancelling() === o._id">{{ cancelling() === o._id ? 'Đang huỷ…' : 'Huỷ đơn' }}</button>
+                    <button type="button" class="btn-sm btn-sm--primary" (click)="toggleDetail(o)" [attr.aria-expanded]="expanded() === o._id">{{ expanded() === o._id ? 'Thu gọn' : 'Xem chi tiết' }}</button>
+                  }
+                  @case ('delivered') {
+                    @if (firstUnreviewed(o); as item) {
+                      <button type="button" class="btn-sm" (click)="review(o, item)">Viết đánh giá</button>
+                    } @else {
+                      <span class="btn-sm is-static">Đã đánh giá ★ {{ ratings()[o.items[0].bookId] }}</span>
+                    }
+                    @if (isEbookOnly(o)) {
+                      <a class="btn-sm btn-sm--primary" routerLink="/account/bookshelf-ebooks">Đọc trong tủ sách</a>
+                    } @else {
+                      <button type="button" class="btn-sm btn-sm--primary" (click)="buyAgain(o)">Mua lại</button>
+                    }
+                  }
+                  @case ('cancelled') {
+                    <button type="button" class="btn-sm" (click)="buyAgain(o)">Mua lại</button>
+                    <button type="button" class="btn-sm btn-sm--primary" (click)="toggleDetail(o)" [attr.aria-expanded]="expanded() === o._id">{{ expanded() === o._id ? 'Thu gọn' : 'Xem chi tiết' }}</button>
+                  }
+                  @case ('returned') {
+                    <button type="button" class="btn-sm btn-sm--primary" (click)="toggleDetail(o)" [attr.aria-expanded]="expanded() === o._id">{{ expanded() === o._id ? 'Thu gọn' : 'Xem chi tiết' }}</button>
+                  }
+                  @default {
+                    <a class="btn-sm" [href]="mailto(o)">Liên hệ shop</a>
+                    <button type="button" class="btn-sm btn-sm--primary" (click)="toggleDetail(o)" [attr.aria-expanded]="expanded() === o._id">{{ expanded() === o._id ? 'Thu gọn' : 'Theo dõi đơn' }}</button>
+                  }
+                }
+              </div>
+            </div>
+          </article>
+        } @empty {
+          <app-status-card [title]="query() ? 'Không tìm thấy đơn phù hợp' : 'Chưa có đơn hàng nào ở mục này'" message="Khám phá thêm sách hay tại Lightbook nhé.">
+            <a class="btn-outline" routerLink="/books">Mua sắm ngay</a>
+          </app-status-card>
+        }
+      }
+    }
+  }
+</div>
+
+@if (reviewing(); as r) {
+  <app-review-popup [book]="r" (closed)="reviewing.set(null)" (submitted)="onReviewed($event)" />
+}
+@if (buying(); as b) {
+  <app-buy-again-drawer [book]="b" (closed)="buying.set(null)" />
+}

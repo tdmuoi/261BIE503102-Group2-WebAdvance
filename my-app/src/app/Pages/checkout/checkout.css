@@ -1,0 +1,61 @@
+/* Trang Thanh toán — phần chung (breadcrumb, cột tóm tắt, mã giảm giá, thẻ thành công) ở ../cart/shop.css */
+.loading, .muted { margin: 0; font-size: 14px; color: var(--color-text-secondary); }
+.error-text { margin: 0; font-size: 14px; color: var(--color-feedback-error); }
+.link { padding: 0; border: 0; background: none; font: 700 14px/1.3 var(--font-sans); text-decoration: underline; color: var(--color-text-primary); cursor: pointer; }
+
+.form { display: flex; flex-direction: column; gap: var(--space-20); }
+.card {
+  display: flex; flex-direction: column; gap: var(--space-16); padding: 28px;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);
+}
+.card-flat { box-shadow: none; }
+.card-head { display: flex; align-items: center; gap: var(--space-10); margin: 0; font: 800 20px/1.3 var(--font-display); }
+.step {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none;
+  border-radius: var(--radius-14); background: var(--color-text-primary); color: var(--color-bg-surface); font: 700 12px/1.3 var(--font-sans);
+}
+
+.options { display: flex; flex-direction: column; gap: var(--space-16); }
+.option {
+  display: flex; align-items: center; gap: var(--space-14); width: 100%; padding: var(--space-16) 18px; text-align: left; cursor: pointer;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-subtle); border-radius: var(--radius-14);
+  font: inherit; color: inherit;
+}
+.option:hover:not(:disabled) { border-color: var(--color-border-strong); }
+.option.is-active { background: var(--color-bg-highlight); border: var(--border-strong) solid var(--color-border-strong); }
+.option:disabled { opacity: 0.5; cursor: not-allowed; }
+.radio { width: 18px; height: 18px; flex: none; border: var(--border-strong) solid var(--color-border-strong); border-radius: var(--radius-full); background: var(--color-bg-surface); }
+.is-active .radio { background: radial-gradient(circle, var(--color-text-primary) 0 4px, var(--color-bg-surface) 4.5px); }
+.option-text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.option-title { font: 800 14px/1.3 var(--font-sans); }
+.option-desc { font: 400 12px/20px var(--font-sans); color: var(--color-text-secondary); }
+.option-price { font: 800 16px/1.25 var(--font-sans); white-space: nowrap; }
+.option-price s { margin-right: var(--space-4); font-weight: 400; font-size: 13px; color: var(--color-text-muted); }
+.add-link { align-self: flex-start; font: 700 12px/1.3 var(--font-sans); text-decoration: underline; color: var(--color-text-primary); }
+.caption { max-width: 600px; margin: 0; font: 400 11px/1.3 var(--font-sans); color: var(--color-text-muted); }
+
+.note {
+  width: 100%; height: 88px; padding: var(--space-14) var(--space-16); resize: vertical;
+  background: var(--color-bg-subtle); border: var(--border-default) solid var(--color-border-subtle); border-radius: var(--radius-12);
+  font: 400 14px/1.55 var(--font-sans); color: var(--color-text-primary);
+}
+.note::placeholder { color: var(--color-text-muted); }
+.note:focus { outline: none; border-color: var(--color-border-strong); }
+
+.items { display: flex; flex-direction: column; gap: var(--space-14); margin: 0; padding: 0; list-style: none; }
+.item { display: flex; align-items: center; gap: var(--space-12); }
+.item-cover {
+  width: 40px; height: 58px; flex: none; overflow: hidden;
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-8); box-shadow: var(--shadow-offset-sm);
+}
+.item-cover img { width: 100%; height: 100%; object-fit: cover; }
+.item-text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.item-title { font: 800 14px/1.3 var(--font-sans); }
+.item-qty { font: 400 12px/20px var(--font-sans); color: var(--color-text-secondary); }
+.item-price { font: 800 16px/1.25 var(--font-sans); white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .card { padding: var(--space-20); }
+  .option { flex-wrap: wrap; }
+}

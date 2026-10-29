@@ -1,1 +1,27 @@
-<p>page-not-found works!</p>
+<section class="shop container">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a routerLink="/">Trang chủ</a>
+    <img src="images/shop/chevron-sm.svg" alt="" width="14" height="14" />
+    <span aria-current="page">404</span>
+  </nav>
+
+  <div class="empty">
+    <div class="art" aria-hidden="true">
+      <span class="circle"><img src="images/shop/book-open-lg.svg" alt="" width="64" height="64" /></span>
+      <span class="sticker">404</span>
+    </div>
+    <h1 class="page-title"><span>Không tìm thấy trang</span> <span class="accent-h1">lost in the stacks.</span></h1>
+    <p class="body-lead empty-text">Trang bạn tìm có thể đã đổi địa chỉ hoặc không còn tồn tại. Thử quay về trang chủ hoặc tìm một cuốn sách khác nhé.</p>
+    <div class="empty-actions">
+      <a class="btn btn-primary cta" routerLink="/">Về trang chủ <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" /></a>
+      <a class="btn btn-secondary cta" routerLink="/books">Tìm sách</a>
+    </div>
+    <ul class="perks">
+      @for (p of perks; track p.label) {
+        <li><img [src]="p.icon" alt="" [width]="p.w" height="16" />{{ p.label }}</li>
+      }
+    </ul>
+  </div>
+</section>
+
+<app-suggested-books />

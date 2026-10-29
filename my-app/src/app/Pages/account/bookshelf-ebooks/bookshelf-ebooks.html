@@ -1,1 +1,97 @@
-<p>bookshelf-ebooks works!</p>
+<div class="page">
+  <ol class="breadcrumb">
+    <li><a routerLink="/">Trang chủ</a></li>
+    <li><a routerLink="/account">Tài khoản</a></li>
+    <li aria-current="page">Tủ sách của tôi</li>
+  </ol>
+
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Tủ sách của tôi</h1>
+      <p class="page-subtitle">Sách điện tử để đọc, sách bạn đã mua và những cuốn bạn đang để mắt tới.</p>
+    </div>
+    <label class="search">
+      <img src="images/account/search.svg" alt="" width="16" height="16" />
+      <span class="sr-only">Tìm trong tủ sách</span>
+      <input type="search" [value]="query()" (input)="query.set($any($event.target).value)" placeholder="Tìm trong tủ sách…" />
+    </label>
+  </header>
+
+  <nav class="tabs" aria-label="Tủ sách">
+    <a class="tab" routerLink="/account/bookshelf-ebooks" routerLinkActive="is-active" ariaCurrentWhenActive="page">Sách điện tử ({{ counts().ebooks }})</a>
+    <a class="tab" routerLink="/account/bookshelf-purchased" routerLinkActive="is-active" ariaCurrentWhenActive="page">Sách đã mua ({{ counts().purchased }})</a>
+    <a class="tab" routerLink="/account/wishlist" routerLinkActive="is-active" ariaCurrentWhenActive="page">Wishlist ({{ counts().wishlist }})</a>
+  </nav>
+
+  @switch (status()) {
+    @case ('loading') {
+      <app-status-card tone="loading" message="Đang tải tủ sách…" />
+    }
+    @case ('error') {
+      <app-status-card tone="error" title="Chưa tải được tủ sách" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn-outline" (click)="reload()">Thử lại</button>
+      </app-status-card>
+    }
+    @default {
+      @if (current(); as c) {
+        <section class="continue" aria-label="Đang đọc">
+          <img class="continue-cover" [src]="c.image" [alt]="c.title" />
+          <div class="continue-info">
+            <span class="tag">Đang đọc · {{ c.format }}</span>
+            <h2 class="continue-title">{{ c.title }}</h2>
+            <p class="continue-by">{{ byline(c) }}</p>
+            <div class="progress continue-progress">
+              <span class="track"><span [style.width.%]="c.progress"></span></span>{{ c.progress }}%
+            </div>
+            <p class="continue-page">{{ pageText(c) }}</p>
+            <div class="continue-actions">
+              <a class="btn-lg btn-lg--primary" [routerLink]="['/ebook-reader', c.bookId]">Đọc tiếp →</a>
+              <button type="button" class="btn-lg" (click)="downloading.set(c)"><img src="images/account/download.svg" alt="" width="14" height="14" />Tải về</button>
+            </div>
+          </div>
+        </section>
+      }
+
+      <div class="library-head">
+        <h2 class="library-title">Thư viện ebook</h2>
+        <div class="chips" role="group" aria-label="Lọc ebook">
+          @for (f of filters; track f.value) {
+            <button type="button" class="chip" [class.is-active]="filter() === f.value" [attr.aria-pressed]="filter() === f.value" (click)="filter.set(f.value)">
+              {{ filter() === f.value ? '✓ ' : '' }}{{ f.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <ul class="grid">
+        @for (e of visible(); track e.bookId) {
+          <li class="ebook">
+            <div class="ebook-cover">
+              <img [src]="e.image" [alt]="e.title" />
+              <span class="format">{{ e.format }}</span>
+            </div>
+            <div class="ebook-text">
+              <p class="ebook-title" [title]="e.title">{{ e.title }}</p>
+              <p class="ebook-author">{{ e.author }}</p>
+              <div class="progress"><span class="track"><span [style.width.%]="e.progress"></span></span>{{ progressText(e) }}</div>
+            </div>
+            <div class="ebook-actions">
+              <a class="btn-sm btn-sm--primary read" [routerLink]="['/ebook-reader', e.bookId]">{{ readLabel(e.progress) }}</a>
+              <button type="button" class="circle" (click)="downloading.set(e)" [attr.aria-label]="'Tải ' + e.title"><img src="images/account/download.svg" alt="" width="14" height="14" /></button>
+            </div>
+          </li>
+        } @empty {
+          <li class="grid-empty">
+            <app-status-card [title]="query() || filter() !== 'all' ? 'Không có ebook phù hợp' : 'Tủ sách điện tử đang trống'" message="Ebook bạn mua sẽ xuất hiện ở đây ngay sau khi thanh toán.">
+              <a class="btn-outline" routerLink="/books">Khám phá ebook</a>
+            </app-status-card>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>
+
+@if (downloading(); as d) {
+  <app-download-popup [ebook]="d" (closed)="downloading.set(null)" />
+}
