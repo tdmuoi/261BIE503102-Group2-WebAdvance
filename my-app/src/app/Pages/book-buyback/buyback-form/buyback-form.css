@@ -1,0 +1,111 @@
+/* Phiếu thanh lý — Figma 849:3939. Khung, stepper, chân phiếu, màn xác nhận.
+   Field bước 1: buyback-form-book.css · bước 2–3: buyback-form-send.css */
+
+:host { display: block; }
+
+.bb-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  padding: 32px 32px 28px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: 24px;
+  box-shadow: var(--shadow-offset-lg);
+}
+
+.bb-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-12); }
+
+.bb-heading { font: 800 26px/normal var(--font-display); letter-spacing: -0.26px; }
+
+/* ---------- Stepper ---------- */
+.bb-stepper { display: flex; align-items: center; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+
+.bb-stepper-item { display: flex; align-items: center; gap: var(--space-8); }
+
+.bb-step {
+  padding: 5px 12px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+  white-space: nowrap;
+}
+
+.bb-step.is-current { background: var(--color-tint-pink); box-shadow: var(--shadow-offset-xs); }
+
+/* Bước đã xong: nền xanh, bấm để quay lại */
+.bb-step.is-done { background: var(--color-tint-mint); }
+.bb-step.is-done:hover { box-shadow: var(--shadow-offset-xs); }
+
+.bb-connector { width: 18px; height: 1.5px; background: rgba(28, 25, 23, 0.35); }
+
+/* ---------- Panel: trượt ngang khi đổi bước ---------- */
+.bb-panel { display: flex; flex-direction: column; gap: var(--space-14); animation: bb-slide-next .28s ease-out; }
+.bb-panel.from-left { animation-name: bb-slide-prev; }
+
+@keyframes bb-slide-next { from { opacity: 0; transform: translateX(32px); } }
+@keyframes bb-slide-prev { from { opacity: 0; transform: translateX(-32px); } }
+
+@media (prefers-reduced-motion: reduce) { .bb-panel { animation: none; } }
+
+.bb-group-head { display: flex; align-items: center; gap: var(--space-10); }
+
+.bb-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/1 var(--font-sans);
+}
+
+.bb-group-title { font: 800 18px/normal var(--font-display); letter-spacing: -0.18px; }
+
+/* ---------- Chân phiếu ---------- */
+.bb-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding-top: 18px;
+  border-top: var(--border-default) solid rgba(28, 25, 23, 0.12);
+}
+
+.bb-foot-info { display: flex; flex-direction: column; gap: var(--space-2); }
+.bb-foot-step { font: 700 12px/normal var(--font-sans); color: var(--color-text-muted); }
+.bb-foot-price { font: 800 14px/normal var(--font-sans); }
+
+.bb-btn {
+  padding: 10px 18px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-xs);
+  font: 700 14px/normal var(--font-sans);
+  white-space: nowrap;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.bb-btn.is-primary { margin-left: auto; padding: 10px 20px; background: var(--color-bg-subtle); box-shadow: var(--shadow-offset-sm); }
+.bb-btn:active { transform: translateY(2px); box-shadow: none; }
+.bb-btn:disabled { background: var(--color-bg-disabled); color: var(--color-text-muted); box-shadow: none; cursor: progress; }
+
+.bb-alert {
+  margin: 0;
+  padding: var(--space-12) var(--space-14);
+  background: var(--color-feedback-error-bg);
+  border: var(--border-default) solid var(--color-border-error);
+  border-radius: var(--radius-12);
+  font: 600 13px/1.5 var(--font-sans);
+  color: var(--color-feedback-error);
+}
+
+@media (max-width: 600px) {
+  .bb-card { padding: 24px 16px 20px; }
+  .bb-stepper { width: 100%; overflow-x: auto; }
+  .bb-connector { width: 10px; }
+}

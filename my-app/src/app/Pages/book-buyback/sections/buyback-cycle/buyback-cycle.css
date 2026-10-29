@@ -1,0 +1,120 @@
+/* Vòng đời thứ hai — Figma 829:3091 (nền mint + doodle), bước 829:3460, số liệu 846:3616 */
+
+.cycle {
+  padding: 96px 0 104px;
+  background: var(--color-tint-mint) url('/images/decor/doodle-pattern.svg') center top / 1440px auto no-repeat;
+  border-bottom: var(--border-default) solid var(--color-border-strong);
+}
+
+.cycle-inner { display: flex; flex-direction: column; align-items: center; gap: 44px; }
+
+.cycle-head { display: flex; flex-direction: column; align-items: center; gap: var(--space-14); max-width: 560px; text-align: center; }
+
+.cycle-tag {
+  padding: 6px 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 13px/normal var(--font-sans);
+}
+
+.cycle-head .section-title { justify-content: center; }
+.cycle-head .section-title-accent { font-size: 52px; }
+.cycle-desc { margin: 0; font: 400 15px/1.55 var(--font-sans); color: var(--color-text-body); }
+
+/* ---------- 4 bước ---------- */
+.steps { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0; padding: 0; list-style: none; }
+
+.step {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-12);
+  align-self: stretch;
+  min-width: 0;
+  padding: 22px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.step-top { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+
+.step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+.is-pink { background: var(--color-tint-pink); }
+.is-yellow { background: var(--color-tint-yellow); }
+.is-mint { background: var(--color-tint-mint); }
+
+.step-no { font: 800 34px/normal var(--font-display); letter-spacing: -0.68px; color: rgba(28, 25, 23, 0.18); }
+.step-title { font: 800 20px/normal var(--font-display); letter-spacing: -0.2px; }
+.step-desc { flex: 1; margin: 0; font: 400 13px/1.55 var(--font-sans); color: var(--color-text-secondary); }
+
+.step-chip {
+  padding: 4px 10px;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 11px/normal var(--font-sans);
+}
+
+.step-arrow {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 15px/1 var(--font-sans);
+}
+
+/* ---------- Số liệu cộng đồng ---------- */
+.impact { display: flex; flex-direction: column; gap: var(--space-20); width: 100%; }
+.impact-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-8); }
+.impact-title { font: 800 26px/normal var(--font-display); letter-spacing: -0.26px; }
+.impact-note { margin: 0; font: italic 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.impact-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-20); }
+
+.impact-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-14);
+  margin: 0;
+  padding: 10px 10px 18px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.impact-photo { width: 100%; height: 230px; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-14); }
+.impact-text { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 8px; }
+.impact-number { font: 700 14px/normal var(--font-sans); }
+.impact-number strong { margin-right: 6px; font: 800 36px/normal var(--font-display); letter-spacing: -0.54px; }
+.impact-line { font: 400 13px/1.5 var(--font-sans); color: var(--color-text-secondary); }
+
+@media (max-width: 1100px) {
+  .steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-20); }
+  .step-arrow { display: none; }
+  .impact-cards { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; }
+}
+
+@media (max-width: 600px) {
+  .cycle { padding: 64px 0 72px; }
+  .steps { grid-template-columns: 1fr; }
+  .cycle-head .section-title-accent { font-size: 36px; }
+}

@@ -9,7 +9,6 @@ import { AuthorList } from './Pages/author/author-list/author-list';
 import { AuthorDetail } from './Pages/author/author-detail/author-detail';
 import { AuthorWorks } from './Pages/author/author-works/author-works';
 import { AuthorEvents } from './Pages/author/author-events/author-events';
-import { BookBuyback } from './Pages/book-buyback/book-buyback';
 import { NewsList } from './Pages/news/news-list/news-list';
 import { NewsDetail } from './Pages/news/news-detail/news-detail';
 import { AboutUs } from './Pages/about-us/about-us';
@@ -45,7 +44,11 @@ const routes: Routes = [
   { path: 'author-detail/:id', component: AuthorDetail },
   { path: 'author-works/:id', component: AuthorWorks },
   { path: 'author-events', component: AuthorEvents },
-  { path: 'book-buyback', component: BookBuyback },
+  // Trang thu mua sách cũng tải riêng (lazy) để không làm bundle ban đầu lớn thêm
+  {
+    path: 'book-buyback',
+    loadChildren: () => import('./Pages/book-buyback/book-buyback-module').then((m) => m.BookBuybackModule),
+  },
   { path: 'news-list', component: NewsList },
   { path: 'news-detail/:id', component: NewsDetail },
   { path: 'about-us', component: AboutUs },

@@ -1,0 +1,52 @@
+<!-- Figma: https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=829-3091 -->
+<section class="cycle" aria-labelledby="cycle-title">
+  <div class="container cycle-inner">
+    <header class="cycle-head">
+      <span class="cycle-tag">✦ Đọc tuần hoàn</span>
+      <h2 id="cycle-title" class="section-title">
+        <span class="section-title-main">Một cuốn sách,</span>
+        <span class="section-title-accent">many lives</span>
+      </h2>
+      <p class="cycle-desc">
+        Mỗi cuốn sách được thanh lý là một cuốn không cần in mới – ít giấy hơn, ít cây bị đốn hơn, và thêm một người được đọc.
+      </p>
+    </header>
+
+    <ol class="steps">
+      @for (step of steps; track step.no; let last = $last) {
+        <li class="step">
+          <div class="step-top">
+            <span class="step-icon" [class]="'is-' + step.tint">
+              <img [src]="'images/buyback/' + step.icon + '.svg'" alt="" />
+            </span>
+            <span class="step-no" aria-hidden="true">{{ step.no }}</span>
+          </div>
+          <h3 class="step-title">{{ step.title }}</h3>
+          <p class="step-desc">{{ step.desc }}</p>
+          <span class="step-chip" [class]="'is-' + step.tint">{{ step.chip }}</span>
+        </li>
+        @if (!last) {
+          <li class="step-arrow" aria-hidden="true">→</li>
+        }
+      }
+    </ol>
+
+    <div class="impact">
+      <div class="impact-head">
+        <h3 class="impact-title">Cộng đồng Lightbook đã cùng nhau</h3>
+        <p class="impact-note">Cập nhật tháng 10/2026</p>
+      </div>
+      <div class="impact-cards">
+        @for (item of impacts; track item.value) {
+          <figure class="impact-card">
+            <img class="impact-photo" [src]="'images/buyback/' + item.photo" [alt]="item.alt" loading="lazy" />
+            <figcaption class="impact-text">
+              <span class="impact-number"><strong>{{ item.value }}</strong> {{ item.label }}</span>
+              <span class="impact-line">{{ item.line }}</span>
+            </figcaption>
+          </figure>
+        }
+      </div>
+    </div>
+  </div>
+</section>

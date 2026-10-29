@@ -1,0 +1,40 @@
+<!-- Figma: https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=837-3333 -->
+<div class="guide">
+  <span class="section-tag">✦ Bước 1 · Gửi thông tin</span>
+  <h2 class="guide-title">
+    <span class="section-title-main">Thanh lý sách</span>
+    <span class="section-title-accent">in just 3 minutes</span>
+  </h2>
+  <p class="guide-desc">
+    Điền phiếu bên cạnh, Lightbook sẽ gọi xác nhận và gửi hướng dẫn đóng gói. Giá cuối cùng được chốt sau khi thẩm định trực tiếp cuốn sách.
+  </p>
+
+  <div class="pricing">
+    <h3 class="pricing-title">Bảng định giá tham khảo</h3>
+    @for (tier of tiers; track tier.grade) {
+      <div class="tier" [class]="'is-' + tints[tier.grade]">
+        <div>
+          <p class="tier-name">{{ tier.label }}</p>
+          <p class="tier-desc">{{ tier.desc }}</p>
+        </div>
+        <p class="tier-rate">
+          <strong>{{ percent(tier.minRate) }}–{{ percent(tier.maxRate) }}%</strong>
+          <span>giá bìa</span>
+        </p>
+      </div>
+    }
+    <p class="pricing-note">Không nhận: sách photo, sách lậu, rách hoặc thiếu trang, ẩm mốc.</p>
+  </div>
+
+  <div class="payouts">
+    <div class="payout">
+      <p class="payout-title">Chuyển khoản</p>
+      <p class="payout-desc">Nhận tiền trong 24h sau khi chốt giá</p>
+    </div>
+    <div class="payout">
+      <span class="payout-badge">Được chọn nhiều</span>
+      <p class="payout-title">Voucher Lightbook</p>
+      <p class="payout-desc">+10% giá trị, dùng cho mọi đầu sách</p>
+    </div>
+  </div>
+</div>

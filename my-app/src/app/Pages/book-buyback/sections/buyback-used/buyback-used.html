@@ -1,0 +1,76 @@
+<!-- Figma: https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=837-3517 -->
+<div class="container used">
+  <div class="section-head">
+    <div class="section-heading">
+      <span class="section-tag">✦ Đã qua tay · Vẫn còn mới</span>
+      <h2 class="section-title">
+        <span class="section-title-main">Sách thanh lý</span>
+        <span class="section-title-accent">second chances</span>
+      </h2>
+      <p class="section-desc">Những cuốn sách độc giả đã gửi lại – được thẩm định, làm mới và bán với giá mềm.</p>
+    </div>
+    <a class="pill-btn" routerLink="/books" [queryParams]="{ type: 'used' }">
+      Xem tất cả{{ books().length ? ' ' + books().length + ' cuốn' : '' }}&nbsp; →
+    </a>
+  </div>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="used-grid" aria-hidden="true">
+        @for (item of skeletons; track item) {
+          <div class="skeleton"><span class="skeleton-cover"></span><span class="skeleton-line"></span></div>
+        }
+      </div>
+    }
+
+    @case ('error') {
+      <app-status-card tone="error" title="Không tải được sách thanh lý"
+                       message="Hãy kiểm tra my-server đang chạy ở cổng 3002 rồi thử lại.">
+        <button class="pill-btn" type="button" (click)="retry.emit()">Thử lại</button>
+      </app-status-card>
+    }
+
+    @case ('ready') {
+      @if (books().length) {
+        <div class="used-filters">
+          <div class="used-chips" role="group" aria-label="Lọc sách thanh lý">
+            @for (chip of chips(); track chip.id) {
+              @let on = chip.id === chipId();
+              <button class="used-chip" type="button" [class.is-on]="on" [attr.aria-pressed]="on" (click)="selectChip(chip.id)">
+                @if (on) { ✓ }{{ chip.label }}
+              </button>
+            }
+          </div>
+          <label class="used-sort">
+            <span>Sắp xếp:</span>
+            <select [value]="sort()" aria-label="Sắp xếp sách thanh lý" (change)="onSort($event)">
+              @for (option of sorts; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            <span aria-hidden="true">⌄</span>
+          </label>
+        </div>
+
+        @if (shown().length) {
+          <div class="used-grid">
+            @for (book of shown(); track book._id) {
+              <app-book-card [book]="book"></app-book-card>
+            }
+          </div>
+          @if (results().length > shown().length) {
+            <button class="pill-btn used-more" type="button" (click)="showMore()">Xem thêm sách thanh lý&nbsp; ↓</button>
+          }
+        } @else {
+          <app-status-card title="Không có sách phù hợp" message="Thử chọn bộ lọc khác nhé.">
+            <button class="pill-btn" type="button" (click)="selectChip('all')">Xem tất cả</button>
+          </app-status-card>
+        }
+      } @else {
+        <app-status-card title="Chưa có sách thanh lý trên kệ"
+                         message="Sách độc giả gửi lại sẽ xuất hiện ở đây sau khi được thẩm định và làm mới.">
+        </app-status-card>
+      }
+    }
+  }
+</div>

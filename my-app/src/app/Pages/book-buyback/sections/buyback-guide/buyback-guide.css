@@ -1,0 +1,75 @@
+/* Hướng dẫn thanh lý + bảng định giá — Figma 837:3333 */
+
+:host { display: block; }
+
+.guide { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-24); }
+
+.guide-title { display: flex; flex-direction: column; margin: 0; }
+.guide-title .section-title-main,
+.guide-title .section-title-accent { line-height: 1.25; }
+
+.guide-desc { margin: 0; font: 400 15px/1.55 var(--font-sans); color: var(--color-text-secondary); }
+
+.pricing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+  width: 100%;
+  padding: 22px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.pricing-title { font: 800 18px/normal var(--font-display); letter-spacing: -0.18px; }
+
+.tier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: 12px 14px;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.tier.is-mint { background: var(--color-tint-mint); }
+.tier.is-yellow { background: var(--color-tint-yellow); }
+.tier.is-pink { background: var(--color-tint-pink); }
+
+.tier-name { margin: 0; font: 800 15px/normal var(--font-sans); }
+.tier-desc { margin: 2px 0 0; font: 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.tier-rate { display: flex; margin: 0; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.tier-rate strong { font: 800 22px/normal var(--font-display); letter-spacing: -0.22px; }
+.tier-rate span { font: 400 11px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.pricing-note { margin: 0; font: italic 400 12px/1.5 var(--font-sans); color: var(--color-text-muted); }
+
+.payouts { display: flex; gap: var(--space-12); width: 100%; }
+
+.payout {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-6);
+  padding: 16px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-16);
+  box-shadow: var(--shadow-offset-4);
+}
+
+.payout p { margin: 0; }
+.payout-title { font: 800 15px/normal var(--font-sans); }
+.payout-desc { font: 400 12px/1.45 var(--font-sans); color: var(--color-text-secondary); }
+
+.payout-badge {
+  padding: 3px 8px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 10px/normal var(--font-sans);
+}

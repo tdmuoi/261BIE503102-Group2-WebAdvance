@@ -1,0 +1,66 @@
+/* Hero Thu mua sách — cụm bìa (Figma 829:3078). Toạ độ khung 540×560 quy đổi ra %. */
+
+.hero-visual { position: relative; width: 100%; aspect-ratio: 540 / 560; }
+
+.hero-blob { position: absolute; left: 12.96%; top: 10.71%; width: 79.63%; height: auto; }
+
+.hero-cover {
+  position: absolute;
+  overflow: hidden;
+  width: 29.26%;
+  height: 40.71%;
+  background: var(--color-bg-placeholder);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+  box-shadow: var(--shadow-offset-lg);
+}
+
+.hero-cover img { width: 100%; height: 100%; object-fit: cover; }
+.hero-cover.is-left { left: 13.07%; top: 31.16%; transform: rotate(-10deg); }
+.hero-cover.is-right { left: 57.6%; top: 32.3%; transform: rotate(9deg); }
+.hero-cover.is-center { z-index: 1; left: 33.7%; top: 21.07%; width: 32.96%; height: 45.71%; }
+
+.hero-sticker {
+  position: absolute;
+  z-index: 2;
+  left: 74.7%;
+  top: 3.9%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 124px;
+  height: 124px;
+  background: var(--color-tint-pink-strong);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-4);
+  transform: rotate(-12deg);
+}
+
+.hero-sticker small { font: 700 11px/normal var(--font-sans); }
+.hero-sticker strong { font: 800 38px/1.1 var(--font-display); letter-spacing: -0.76px; }
+
+.hero-condition {
+  position: absolute;
+  z-index: 2;
+  left: 18.9%;
+  top: 84.1%;
+  padding: 6px 12px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 12px/normal var(--font-sans);
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(6deg);
+}
+
+@media (max-width: 1100px) {
+  .hero-visual { justify-self: center; max-width: 480px; }
+}
+
+@media (max-width: 600px) {
+  .hero-sticker { width: 96px; height: 96px; left: 72%; }
+  .hero-sticker strong { font-size: 28px; }
+}

@@ -1,0 +1,54 @@
+/* Trang Thu mua sách — Figma 829:2668. Các section riêng nằm trong ./sections */
+
+/* ---------- Khu thanh lý — Figma 837:3332 ---------- */
+.sell { padding: 104px 0; border-bottom: var(--border-default) solid var(--color-border-strong); }
+
+.sell-inner { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 748px); justify-content: space-between; gap: 48px; align-items: start; }
+
+/* ---------- Banner cuối — Figma 837:3772 ---------- */
+.cta-wrap { padding-top: 32px; padding-bottom: 104px; }
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-24);
+  padding: 32px 40px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: 24px;
+  box-shadow: var(--shadow-offset-md);
+}
+
+.cta-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-10); margin: 0; }
+.cta-main { font: 800 32px/normal var(--font-display); letter-spacing: -0.48px; }
+/* Instrument Serif: chỉ chữ tiếng Anh */
+.cta-accent { font: italic 400 38px/normal var(--font-serif); color: var(--color-text-serif); }
+.cta-desc { margin: 6px 0 0; font: 400 14px/normal var(--font-sans); color: var(--color-text-body); }
+
+.cta-btn {
+  padding: 12px 22px;
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 15px/normal var(--font-sans);
+  white-space: nowrap;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.cta-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-offset-md); }
+.cta-btn:active { transform: translateY(2px); box-shadow: none; }
+
+@media (max-width: 1100px) {
+  .sell-inner { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .sell { padding: 64px 0; }
+  .cta-wrap { padding-bottom: 64px; }
+  .cta { padding: 24px 20px; }
+  .cta-main { font-size: 24px; }
+  .cta-accent { font-size: 30px; }
+}

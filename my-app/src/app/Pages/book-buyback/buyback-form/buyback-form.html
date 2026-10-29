@@ -1,0 +1,402 @@
+<!-- Figma: https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=849-3939 -->
+<div class="bb-card" #card>
+  <div class="bb-head">
+    <h3 class="bb-heading">Phiếu thanh lý sách</h3>
+    @if (!receipt()) {
+      <ol class="bb-stepper" aria-label="Các bước">
+        @for (item of steps; track item.no; let last = $last) {
+          <li class="bb-stepper-item">
+            @if (item.no < step()) {
+              <button class="bb-step is-done" type="button" (click)="goTo(item.no)"
+                      [attr.aria-label]="'Quay lại bước ' + item.no + ': ' + item.label">✓ {{ item.label }}</button>
+            } @else {
+              <span class="bb-step" [class.is-current]="item.no === step()"
+                    [attr.aria-current]="item.no === step() ? 'step' : null">{{ item.no }} {{ item.label }}</span>
+            }
+            @if (!last) { <span class="bb-connector" aria-hidden="true"></span> }
+          </li>
+        }
+      </ol>
+    }
+  </div>
+
+  @if (receipt(); as r) {
+    <!-- Màn xác nhận sau khi gửi -->
+    <section class="bb-done" aria-live="polite">
+      <span class="bb-done-icon" aria-hidden="true">✓</span>
+      <h4 class="bb-done-title">Đã gửi yêu cầu thanh lý</h4>
+      @if (r.code) {
+        <p class="bb-done-code">Mã phiếu: <strong>{{ r.code }}</strong></p>
+      }
+      <p class="bb-done-lead">Lightbook sẽ liên hệ qua số điện thoại hoặc email {{ r.email }} để xác nhận phiếu.</p>
+
+      <dl class="bb-done-summary">
+        <div><dt>Số sách</dt><dd>{{ r.books }} cuốn</dd></div>
+        @if (r.estimate) {
+          <div><dt>Giá ước tính</dt><dd>{{ r.estimate.min | vnd }} – {{ r.estimate.max | vnd }}</dd></div>
+        }
+        <div><dt>Cách gửi</dt><dd>{{ deliveryLabels[r.delivery] }}</dd></div>
+        <div><dt>Nhận tiền qua</dt><dd>{{ payoutLabels[r.payout] }}</dd></div>
+      </dl>
+
+      <h5 class="bb-done-next">Bước tiếp theo</h5>
+      <ol class="bb-done-steps">
+        @if (r.delivery === 'store') {
+          <li>Mang sách đến <strong>{{ r.branch ? r.branch.name + ' – ' + r.branch.address : 'chi nhánh đã chọn' }}</strong>{{ r.code ? ' và đọc mã phiếu cho nhân viên' : '' }}.</li>
+          <li>Nhân viên thẩm định trực tiếp và báo giá ngay tại quầy.</li>
+        } @else {
+          <li>Đóng gói sách:
+            <ul>
+              @for (line of packingGuide; track line) { <li>{{ line }}</li> }
+            </ul>
+          </li>
+          <li>Gửi về <strong>{{ warehouse.name }} – {{ warehouse.address }}</strong>.</li>
+          <li>Lightbook thẩm định trong 48h sau khi nhận sách và báo giá cho bạn. Sách không đạt sẽ được hoàn về địa chỉ bạn đã cung cấp.</li>
+        }
+        <li>
+          @if (r.payout === 'bank') { Nhận tiền chuyển khoản trong 24h sau khi chốt giá. }
+          @else { Nhận voucher Lightbook +10% giá trị, dùng cho mọi đầu sách. }
+        </li>
+      </ol>
+
+      <button class="bb-btn is-primary" type="button" (click)="restart()">Thanh lý thêm sách khác</button>
+    </section>
+  } @else {
+    @switch (step()) {
+      <!-- ========== Bước 1: Sách ========== -->
+      @case (1) {
+        <section class="bb-panel" [class.from-left]="direction() === 'prev'" aria-labelledby="bb-step1">
+          <div class="bb-group-head">
+            <span class="bb-circle" aria-hidden="true">1</span>
+            <h4 id="bb-step1" class="bb-group-title">Sách bạn muốn thanh lý</h4>
+          </div>
+
+          <datalist id="bb-titles">
+            @for (book of suggestions(); track book._id) {
+              <option [value]="book.title">{{ book.authorName }}</option>
+            }
+          </datalist>
+
+          @for (item of items.controls; track item; let i = $index) {
+            @let c = item.controls;
+            @let grade = grades()[i];
+            <fieldset class="bb-book">
+              <legend class="bb-book-head">
+                <span>Cuốn {{ i + 1 }}</span>
+              </legend>
+              @if (items.length > 1) {
+                <button class="bb-remove" type="button" (click)="removeItem(i)" [attr.aria-label]="'Xoá cuốn ' + (i + 1)">Xoá</button>
+              }
+
+              <div class="bb-row">
+                <div class="bb-field">
+                  <label class="bb-label" [for]="'bb-title-' + i">Tên sách hoặc ISBN</label>
+                  @let titleError = error(c.title, 'title');
+                  <input class="bb-input" [id]="'bb-title-' + i" type="text" list="bb-titles" autocomplete="off"
+                         placeholder="VD: Người Đàn Ông Mang Tên Ove" [formControl]="c.title" (change)="onTitleChange(item)"
+                         [attr.aria-invalid]="titleError ? true : null" [attr.aria-describedby]="titleError ? 'bb-title-err-' + i : null" />
+                  @if (titleError) { <p class="bb-error" [id]="'bb-title-err-' + i">{{ titleError }}</p> }
+                </div>
+                <div class="bb-field">
+                  <label class="bb-label" [for]="'bb-author-' + i">Tác giả</label>
+                  @let authorError = error(c.author, 'author');
+                  <input class="bb-input" [id]="'bb-author-' + i" type="text" placeholder="VD: Fredrik Backman" [formControl]="c.author"
+                         [attr.aria-invalid]="authorError ? true : null" [attr.aria-describedby]="authorError ? 'bb-author-err-' + i : null" />
+                  @if (authorError) { <p class="bb-error" [id]="'bb-author-err-' + i">{{ authorError }}</p> }
+                </div>
+              </div>
+
+              <div class="bb-row">
+                <div class="bb-field bb-field-qty">
+                  <span class="bb-label" [id]="'bb-qty-' + i">Số lượng</span>
+                  <app-quantity-stepper class="bb-qty" role="group" [attr.aria-labelledby]="'bb-qty-' + i"
+                                        [value]="c.quantity.value" [max]="maxBooks" (valueChange)="setQuantity(item, $event)" />
+                </div>
+                <div class="bb-field">
+                  <label class="bb-label" [for]="'bb-price-' + i">Giá bìa (in trên sách)</label>
+                  @let priceError = error(c.coverPrice, 'coverPrice');
+                  <div class="bb-input bb-price" [class.is-error]="priceError">
+                    <input [id]="'bb-price-' + i" type="text" inputmode="numeric" placeholder="VD: 129.000"
+                           [value]="formatPrice(c.coverPrice.value)" (input)="onPriceInput(item, $event)" (blur)="c.coverPrice.markAsTouched()"
+                           [attr.aria-invalid]="priceError ? true : null" [attr.aria-describedby]="priceError ? 'bb-price-err-' + i : null" />
+                    <span aria-hidden="true">đ</span>
+                  </div>
+                  @if (priceError) { <p class="bb-error" [id]="'bb-price-err-' + i">{{ priceError }}</p> }
+                </div>
+              </div>
+
+              <!-- Tình trạng chi tiết -->
+              <div class="bb-condition">
+                <div class="bb-condition-head">
+                  <div>
+                    <p class="bb-condition-title">Tình trạng chi tiết</p>
+                    <p class="bb-condition-sub">Chọn mô tả đúng nhất cho từng phần của sách</p>
+                  </div>
+                  @if (grade.status === 'ok') {
+                    <span class="bb-estimate" aria-live="polite">Ước tính: {{ grade.tier.label }} · ~{{ grade.score }}%</span>
+                  } @else if (grade.status === 'rejected') {
+                    <span class="bb-estimate is-rejected" aria-live="polite">Không đủ điều kiện thu mua</span>
+                  }
+                </div>
+
+                @for (group of conditionGroups; track group.key) {
+                  @let control = c[group.key];
+                  @let groupError = error(control, group.key);
+                  <div class="bb-criterion" role="radiogroup" [attr.aria-label]="group.label"
+                       [attr.aria-invalid]="groupError ? true : null" [attr.tabindex]="groupError ? -1 : null">
+                    <span class="bb-criterion-label" aria-hidden="true">{{ group.label }}</span>
+                    <div class="bb-chips">
+                      @for (option of group.options; track option.id) {
+                        @let on = control.value === option.id;
+                        <button class="bb-chip" type="button" role="radio" [class.is-on]="on" [attr.aria-checked]="on"
+                                (click)="selectCondition(item, group.key, option.id)">@if (on) { ✓ }{{ option.label }}</button>
+                      }
+                      @if (groupError) { <p class="bb-error">{{ groupError }}</p> }
+                    </div>
+                  </div>
+                }
+
+                @let extrasError = error(c.extras, 'extras');
+                <div class="bb-criterion" role="group" aria-label="Kèm theo"
+                     [attr.aria-invalid]="extrasError ? true : null" [attr.tabindex]="extrasError ? -1 : null">
+                  <span class="bb-criterion-label" aria-hidden="true">Kèm theo</span>
+                  <div class="bb-chips">
+                    @for (option of extraOptions; track option.id) {
+                      @let on = c.extras.value.includes(option.id);
+                      <button class="bb-chip" type="button" [class.is-on]="on" [attr.aria-pressed]="on"
+                              (click)="toggleExtra(item, option.id)">@if (on) { ✓ }{{ option.label }}</button>
+                    }
+                    @if (extrasError) { <p class="bb-error">{{ extrasError }}</p> }
+                  </div>
+                </div>
+
+                @if (item.errors?.['notAccepted']) {
+                  <p class="bb-error bb-reject">Lightbook không nhận sách thiếu hoặc rách trang. Bạn vui lòng bỏ cuốn này khỏi phiếu.</p>
+                }
+
+                <div class="bb-field">
+                  <label class="bb-label" [for]="'bb-note-' + i">Mô tả thêm (tuỳ chọn)</label>
+                  @let noteError = error(c.note, 'note');
+                  <div class="bb-textarea" [class.is-error]="noteError">
+                    <textarea [id]="'bb-note-' + i" rows="3" [attr.maxlength]="noteMax" [formControl]="c.note"
+                              placeholder="VD: trang 45 bị gấp góc, bìa sau có vết băng keo, đã đọc 1 lần…"
+                              [attr.aria-invalid]="noteError ? true : null"></textarea>
+                    <span class="bb-count" aria-live="polite">{{ c.note.value.length }}/{{ noteMax }}</span>
+                  </div>
+                  @if (noteError) { <p class="bb-error">{{ noteError }}</p> }
+                </div>
+              </div>
+            </fieldset>
+          }
+
+          <button class="bb-add" type="button" [disabled]="items.length >= maxBooks" (click)="addItem()">+&nbsp; Thêm cuốn khác</button>
+
+          <!-- Ảnh sách -->
+          <label class="bb-upload" [class.is-drag]="dragging()" [class.is-full]="photos().length >= maxPhotos"
+                 (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+            <input class="bb-upload-input" type="file" accept="image/jpeg,image/png,image/webp" multiple
+                   [disabled]="photos().length >= maxPhotos" (change)="onPhotoPick($event)" />
+            <img src="images/buyback/upload.svg" alt="" width="19" height="18" />
+            <span class="bb-upload-title">Kéo thả ảnh hoặc bấm để tải lên</span>
+            <span class="bb-upload-hint">Bìa trước, bìa sau và gáy sách · tối đa {{ maxPhotos }} ảnh ({{ photos().length }}/{{ maxPhotos }})</span>
+          </label>
+          @if (photoError()) { <p class="bb-error" role="alert">{{ photoError() }}</p> }
+          @if (photos().length) {
+            <ul class="bb-photos">
+              @for (photo of photos(); track photo.url; let n = $index) {
+                <li class="bb-photo">
+                  <img [src]="photo.url" [alt]="'Ảnh ' + (n + 1) + ': ' + photo.file.name" />
+                  <button type="button" (click)="removePhoto(photo)" [attr.aria-label]="'Xoá ảnh ' + (n + 1)">✕</button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+
+      <!-- ========== Bước 2: Thông tin ========== -->
+      @case (2) {
+        @let f = customer.controls;
+        <section class="bb-panel" [class.from-left]="direction() === 'prev'" aria-labelledby="bb-step2">
+          <div class="bb-group-head">
+            <span class="bb-circle" aria-hidden="true">2</span>
+            <h4 id="bb-step2" class="bb-group-title">Thông tin của bạn</h4>
+          </div>
+
+          @if (user()) {
+            <div class="bb-account">
+              <span class="bb-account-avatar" aria-hidden="true">{{ initials() }}</span>
+              <div class="bb-account-text">
+                <p class="bb-account-name">Đã đăng nhập · {{ shortName() }}</p>
+                <p class="bb-account-sub">Thông tin bên dưới được điền sẵn từ tài khoản của bạn</p>
+              </div>
+              @if (!editingProfile()) {
+                <button class="bb-link" type="button" (click)="editingProfile.set(true)">Chỉnh sửa</button>
+              }
+            </div>
+          }
+
+          <div class="bb-row">
+            <div class="bb-field">
+              <label class="bb-label" for="bb-name">Họ và tên</label>
+              @let nameError = error(f.fullName, 'fullName');
+              <input class="bb-input is-soft" id="bb-name" type="text" autocomplete="name" [formControl]="f.fullName"
+                     [readonly]="isLocked('fullName')" [attr.aria-invalid]="nameError ? true : null" />
+              @if (nameError) { <p class="bb-error">{{ nameError }}</p> }
+            </div>
+            <div class="bb-field">
+              <label class="bb-label" for="bb-phone">Số điện thoại</label>
+              @let phoneError = error(f.phone, 'phone');
+              <input class="bb-input is-soft" id="bb-phone" type="tel" autocomplete="tel" placeholder="VD: 0909 123 268"
+                     [formControl]="f.phone" [readonly]="isLocked('phone')" [attr.aria-invalid]="phoneError ? true : null" />
+              @if (phoneError) { <p class="bb-error">{{ phoneError }}</p> }
+            </div>
+          </div>
+
+          <div class="bb-row">
+            <div class="bb-field">
+              <label class="bb-label" for="bb-email">Email</label>
+              @let emailError = error(f.email, 'email');
+              <input class="bb-input is-soft" id="bb-email" type="email" autocomplete="email" placeholder="VD: ban@email.com"
+                     [formControl]="f.email" [readonly]="isLocked('email')" [attr.aria-invalid]="emailError ? true : null" />
+              @if (emailError) { <p class="bb-error">{{ emailError }}</p> }
+            </div>
+            <div class="bb-field">
+              <label class="bb-label" for="bb-province">Tỉnh / Thành phố</label>
+              @let provinceError = error(f.province, 'province');
+              <div class="bb-select">
+                <select class="bb-input is-soft" id="bb-province" [formControl]="f.province" [attr.aria-invalid]="provinceError ? true : null">
+                  <option value="" disabled>Chọn tỉnh / thành phố</option>
+                  @for (province of provinces; track province) {
+                    <option [value]="province">{{ province }}</option>
+                  }
+                </select>
+              </div>
+              @if (provinceError) { <p class="bb-error">{{ provinceError }}</p> }
+            </div>
+          </div>
+
+          <div class="bb-field">
+            <label class="bb-label" for="bb-address">Địa chỉ hoàn sách (nếu sách không đạt thẩm định)</label>
+            @let addressError = error(f.returnAddress, 'returnAddress');
+            <input class="bb-input is-soft" id="bb-address" type="text" autocomplete="street-address"
+                   placeholder="Số nhà, tên đường, phường / xã" [formControl]="f.returnAddress"
+                   [attr.aria-invalid]="addressError ? true : null" />
+            @if (addressError) { <p class="bb-error">{{ addressError }}</p> }
+          </div>
+        </section>
+      }
+
+      <!-- ========== Bước 3: Gửi & nhận tiền ========== -->
+      @case (3) {
+        @let s = send.controls;
+        @let method = s.method.value;
+        <section class="bb-panel" [class.from-left]="direction() === 'prev'" aria-labelledby="bb-step3">
+          <div class="bb-group-head">
+            <span class="bb-circle" aria-hidden="true">3</span>
+            <h4 id="bb-step3" class="bb-group-title">Gửi sách &amp; nhận tiền</h4>
+          </div>
+
+          @let methodError = error(s.method, 'method');
+          <div class="bb-options" role="radiogroup" aria-label="Cách gửi sách"
+               [attr.aria-invalid]="methodError ? true : null" [attr.tabindex]="methodError ? -1 : null">
+            <button class="bb-option" type="button" role="radio" [class.is-on]="method === 'store'"
+                    [attr.aria-checked]="method === 'store'" (click)="setMethod('store')">
+              <span class="bb-radio" aria-hidden="true"></span>
+              <span class="bb-option-title">Mang đến chi nhánh</span>
+              <span class="bb-option-desc">Thẩm định trực tiếp, báo giá ngay tại quầy</span>
+            </button>
+            <button class="bb-option" type="button" role="radio" [class.is-on]="method === 'post'"
+                    [attr.aria-checked]="method === 'post'" (click)="setMethod('post')">
+              <span class="bb-radio" aria-hidden="true"></span>
+              <span class="bb-option-title">Gửi qua bưu điện</span>
+              <span class="bb-option-desc">Đóng gói theo hướng dẫn, gửi về kho Lightbook</span>
+            </button>
+          </div>
+          @if (methodError) { <p class="bb-error">{{ methodError }}</p> }
+
+          @if (method === 'store') {
+            <div class="bb-field">
+              <label class="bb-label" for="bb-branch">Chi nhánh</label>
+              @let branchError = error(s.branchId, 'branchId');
+              <div class="bb-select">
+                <select class="bb-input is-soft" id="bb-branch" [formControl]="s.branchId" [attr.aria-invalid]="branchError ? true : null">
+                  <option value="" disabled>{{ branches().length ? 'Chọn chi nhánh' : 'Chưa có danh sách chi nhánh' }}</option>
+                  @for (branch of branches(); track branch._id) {
+                    <option [value]="branch._id">{{ branch.name }} – {{ branch.address }}</option>
+                  }
+                </select>
+              </div>
+              @if (!branches().length) {
+                <p class="bb-hint">Danh sách chi nhánh đang được cập nhật. Bạn có thể chọn gửi qua bưu điện.</p>
+              }
+              @if (branchError) { <p class="bb-error">{{ branchError }}</p> }
+            </div>
+          } @else if (method === 'post') {
+            <div class="bb-field">
+              <span class="bb-label">Địa chỉ kho Lightbook</span>
+              <div class="bb-input is-soft bb-static">{{ warehouse.name }} – {{ warehouse.address }}</div>
+              <ul class="bb-guide">
+                @for (line of packingGuide; track line) { <li>{{ line }}</li> }
+              </ul>
+            </div>
+          }
+
+          @let payoutError = error(s.payout, 'payout');
+          <div class="bb-payout" role="radiogroup" aria-labelledby="bb-payout-label"
+               [attr.aria-invalid]="payoutError ? true : null" [attr.tabindex]="payoutError ? -1 : null">
+            <span id="bb-payout-label" class="bb-payout-label">Nhận tiền qua</span>
+            @for (option of payoutOptions; track option) {
+              @let on = s.payout.value === option;
+              <button class="bb-chip is-lg" type="button" role="radio" [class.is-on]="on" [attr.aria-checked]="on"
+                      (click)="setPayout(option)">@if (on) { ✓ }{{ payoutLabels[option] }}</button>
+            }
+          </div>
+          @if (payoutError) { <p class="bb-error">{{ payoutError }}</p> }
+
+          @let agreeError = error(s.agree, 'agree');
+          <label class="bb-agree">
+            <input type="checkbox" [formControl]="s.agree" [attr.aria-invalid]="agreeError ? true : null" />
+            <span class="bb-check" aria-hidden="true">✓</span>
+            Tôi đồng ý với điều khoản thu mua của Lightbook
+          </label>
+          @if (agreeError) { <p class="bb-error">{{ agreeError }}</p> }
+
+          <div class="bb-summary">
+            <div>
+              <p class="bb-summary-label">Giá ước tính {{ bookCount() > 1 ? 'cho ' + bookCount() + ' cuốn này' : 'cho cuốn này' }}</p>
+              <p class="bb-summary-value">
+                @if (estimate(); as e) { {{ e.min | vnd }} – {{ e.max | vnd }} } @else { — }
+              </p>
+            </div>
+            <p class="bb-summary-meta">{{ summary() }}</p>
+          </div>
+        </section>
+      }
+    }
+
+    @if (submitError()) {
+      <p class="bb-alert" role="alert">{{ submitError() }}</p>
+    }
+
+    <div class="bb-foot">
+      @if (step() === 1) {
+        <div class="bb-foot-info">
+          <span class="bb-foot-step">Bước 1/3</span>
+          <span class="bb-foot-price">Giá ước tính:
+            @if (estimate(); as e) { {{ e.min | vnd }} – {{ e.max | vnd }} } @else { — }
+          </span>
+        </div>
+      } @else {
+        <button class="bb-btn" type="button" (click)="back()">←&nbsp; Quay lại</button>
+      }
+      @if (step() < 3) {
+        <button class="bb-btn is-primary" type="button" (click)="next()">Tiếp tục&nbsp; →</button>
+      } @else {
+        <button class="bb-btn is-primary" type="button" [disabled]="sending()" (click)="submit()">
+          {{ sending() ? 'Đang gửi…' : 'Gửi yêu cầu thanh lý' }}&nbsp; →
+        </button>
+      }
+    </div>
+  }
+</div>

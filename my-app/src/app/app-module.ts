@@ -17,7 +17,6 @@ import { Cart } from './Pages/cart/cart';
 import { Checkout } from './Pages/checkout/checkout';
 import { AuthorList } from './Pages/author/author-list/author-list';
 import { AuthorDetail } from './Pages/author/author-detail/author-detail';
-import { BookBuyback } from './Pages/book-buyback/book-buyback';
 import { NewsList } from './Pages/news/news-list/news-list';
 import { NewsDetail } from './Pages/news/news-detail/news-detail';
 import { Login } from './Pages/auth/login/login';
@@ -38,7 +37,6 @@ import { EbookReader } from './Pages/ebook-reader/ebook-reader';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { AuthorWorks } from './Pages/author/author-works/author-works';
 import { AuthorEvents } from './Pages/author/author-events/author-events';
-import { Marquee } from './Components/marquee/marquee';
 import { HomeHero } from './Pages/homepage/sections/home-hero/home-hero';
 import { HomeSearch } from './Pages/homepage/sections/home-search/home-search';
 import { HomeFlashSale } from './Pages/homepage/sections/home-flash-sale/home-flash-sale';
@@ -69,7 +67,6 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     Checkout,
     AuthorList,
     AuthorDetail,
-    BookBuyback,
     NewsList,
     NewsDetail,
     Login,
@@ -90,7 +87,6 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     PageNotFound,
     AuthorWorks,
     AuthorEvents,
-    Marquee,
     HomeHero,
     HomeSearch,
     HomeFlashSale,

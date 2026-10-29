@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { BookCard } from '../Components/book-card/book-card';
+import { Marquee } from '../Components/marquee/marquee';
 import { QuantityStepper } from '../Components/quantity-stepper/quantity-stepper';
 import { StatusCard } from '../Components/status-card/status-card';
 import { TrimCover } from '../directives/trim-cover';
@@ -12,8 +13,8 @@ import { VndPipe } from '../pipes/vnd-pipe';
  * ví dụ trang chi tiết sách. Một component chỉ được khai báo ở một NgModule nên đặt ở đây.
  */
 @NgModule({
-  declarations: [BookCard, QuantityStepper, StatusCard, TrimCover, VndPipe],
+  declarations: [BookCard, Marquee, QuantityStepper, StatusCard, TrimCover, VndPipe],
   imports: [RouterModule],
-  exports: [BookCard, QuantityStepper, StatusCard, TrimCover, VndPipe],
+  exports: [BookCard, Marquee, QuantityStepper, StatusCard, TrimCover, VndPipe],
 })
 export class SharedModule {}

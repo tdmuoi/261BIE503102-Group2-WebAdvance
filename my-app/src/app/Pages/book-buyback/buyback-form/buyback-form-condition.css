@@ -1,0 +1,65 @@
+/* Phiếu thanh lý — bước 1: "Tình trạng chi tiết" (Figma 846:3562) */
+
+.bb-condition {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-14);
+  padding: var(--space-16);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.bb-condition-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.bb-condition-title { margin: 0; font: 800 14px/normal var(--font-sans); }
+.bb-condition-sub { margin: 2px 0 0; font: 400 11px/normal var(--font-sans); color: var(--color-text-muted); }
+
+.bb-estimate {
+  padding: 4px 10px;
+  background: var(--color-tint-mint);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 11px/normal var(--font-sans);
+  white-space: nowrap;
+}
+
+.bb-estimate.is-rejected { background: var(--color-feedback-error-bg); color: var(--color-feedback-error); }
+
+.bb-criterion { display: flex; gap: var(--space-12); align-items: flex-start; outline: none; }
+.bb-criterion-label { flex: 0 0 78px; padding-top: 6px; font: 700 12px/normal var(--font-sans); color: var(--color-text-body); }
+
+.bb-chips { display: flex; flex: 1; flex-wrap: wrap; gap: var(--space-6); min-width: 0; }
+.bb-chips .bb-error { flex-basis: 100%; }
+
+.bb-chip {
+  padding: 6px 12px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+  white-space: nowrap;
+}
+
+.bb-chip:hover { background: var(--color-bg-subtle); }
+.bb-chip.is-on { background: var(--color-tint-pink); box-shadow: var(--shadow-offset-xs); }
+.bb-chip.is-lg { padding: 8px 14px; font-size: 13px; }
+
+.bb-reject { padding: 8px 12px; background: var(--color-feedback-error-bg); border-radius: var(--radius-10); }
+
+.bb-textarea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 12px 14px;
+  background: var(--color-bg-page);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+}
+
+.bb-textarea textarea { min-height: 44px; padding: 0; background: none; border: 0; outline: none; font: 400 13px/1.5 var(--font-sans); resize: vertical; }
+.bb-count { font: 400 11px/normal var(--font-sans); color: var(--color-text-muted); }
+
+@media (max-width: 600px) {
+  .bb-criterion { flex-direction: column; gap: var(--space-6); }
+  .bb-criterion-label { flex-basis: auto; padding: 0; }
+}

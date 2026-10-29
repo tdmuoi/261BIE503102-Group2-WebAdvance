@@ -1,0 +1,56 @@
+/* Sách thanh lý — Figma 837:3517 (chip 837:3528, lưới 5 cột, nút Xem thêm 837:3769) */
+
+:host { display: block; }
+
+.used { display: flex; flex-direction: column; gap: var(--space-32); padding-top: 104px; padding-bottom: 72px; }
+
+.used-filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-12); }
+
+.used-chips { display: flex; flex-wrap: wrap; gap: var(--space-10); }
+
+.used-chip,
+.used-sort {
+  padding: 8px 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 13px/normal var(--font-sans);
+  white-space: nowrap;
+}
+
+.used-chip:hover { background: var(--color-bg-subtle); }
+.used-chip.is-on { background: var(--color-tint-pink); box-shadow: var(--shadow-offset-xs); }
+
+.used-sort { display: inline-flex; align-items: center; gap: var(--space-4); }
+.used-sort select { padding: 0; background: none; border: 0; outline: none; font: inherit; appearance: none; cursor: pointer; }
+.used-sort:focus-within { box-shadow: var(--shadow-offset-xs); }
+
+.used-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px var(--space-24); }
+
+.used-more { align-self: center; padding: 12px 24px; background: var(--color-bg-subtle); font-size: 15px; }
+
+.skeleton { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.skeleton-cover,
+.skeleton-line {
+  display: block;
+  background: linear-gradient(90deg, var(--color-bg-disabled) 25%, var(--color-bg-placeholder) 50%, var(--color-bg-disabled) 75%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-6);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-cover { aspect-ratio: 224 / 316; border-radius: var(--radius-12); }
+.skeleton-line { height: 12px; }
+
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (max-width: 1100px) {
+  .used-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .used { padding-top: 64px; padding-bottom: 48px; }
+  .used-chips { flex-wrap: nowrap; margin: 0 calc(-1 * var(--layout-gutter)); padding: 0 var(--layout-gutter) 4px; overflow-x: auto; scrollbar-width: none; }
+  .used-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-24) var(--space-16); }
+}

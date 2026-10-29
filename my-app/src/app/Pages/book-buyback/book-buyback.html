@@ -1,1 +1,32 @@
-<p>book-buyback works!</p>
+<!-- Figma: https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=1023-17719 -->
+<app-buyback-hero [covers]="heroCovers()" (sell)="scrollToForm()" (browse)="scrollToUsed()"></app-buyback-hero>
+
+<app-marquee [items]="marquee" separator="‖"></app-marquee>
+
+<app-buyback-cycle></app-buyback-cycle>
+
+<!-- Khu thanh lý: hướng dẫn bên trái, phiếu bên phải -->
+<section class="sell" id="phieu-thanh-ly" #formSection aria-label="Phiếu thanh lý sách">
+  <div class="container sell-inner">
+    <app-buyback-guide class="sell-guide"></app-buyback-guide>
+    <app-buyback-form class="sell-form" [books]="books()"></app-buyback-form>
+  </div>
+</section>
+
+<section id="sach-thanh-ly" #usedSection aria-label="Sách thanh lý">
+  <app-buyback-used [books]="usedBooks()" [state]="state()" (retry)="reload()"></app-buyback-used>
+</section>
+
+<!-- Banner cuối — Figma 837:3771 -->
+<section class="container cta-wrap">
+  <div class="cta">
+    <div>
+      <h2 class="cta-title">
+        <span class="cta-main">Kệ sách đầy rồi?</span>
+        <span class="cta-accent">make some room.</span>
+      </h2>
+      <p class="cta-desc">Trao lại cho Lightbook – nhận tiền hoặc voucher, và giúp một cuốn sách được đọc thêm lần nữa.</p>
+    </div>
+    <button class="cta-btn" type="button" (click)="scrollToForm()">Thanh lý sách ngay&nbsp; →</button>
+  </div>
+</section>

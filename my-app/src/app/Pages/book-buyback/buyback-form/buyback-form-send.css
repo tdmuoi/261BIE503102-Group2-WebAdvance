@@ -1,0 +1,99 @@
+/* Phiếu thanh lý — bước 2 (thông tin) và bước 3 (gửi & nhận tiền), Figma 849:3555 / 849:3742 */
+
+/* Field bước 2–3 nền kem như Figma */
+.bb-input.is-soft { background: var(--color-bg-page); }
+.bb-input[readonly] { color: var(--color-text-secondary); cursor: default; }
+
+.bb-select { position: relative; }
+.bb-select::after { content: '⌄'; position: absolute; top: 9px; right: 14px; font: 700 13px/normal var(--font-sans); color: var(--color-text-secondary); pointer-events: none; }
+.bb-select select { padding-right: 36px; appearance: none; cursor: pointer; }
+
+.bb-static { display: flex; align-items: center; height: auto; min-height: 44px; padding-block: 10px; }
+
+.bb-hint { margin: 0; font: 400 12px/1.4 var(--font-sans); color: var(--color-text-secondary); }
+
+/* ---------- Băng "Đã đăng nhập" ---------- */
+.bb-account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  padding: 12px 16px 12px 14px;
+  background: var(--color-tint-mint);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.bb-account-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/1 var(--font-sans);
+}
+
+.bb-account-text { flex: 1; min-width: 0; }
+.bb-account-name { margin: 0; font: 700 13px/normal var(--font-sans); }
+.bb-account-sub { margin: 1px 0 0; font: 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.bb-link { padding: 0; background: none; border: 0; font: 700 12px/normal var(--font-sans); text-decoration: underline; white-space: nowrap; }
+
+/* ---------- Cách gửi sách ---------- */
+.bb-options { display: flex; gap: var(--space-12); outline: none; }
+
+.bb-option {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-columns: 18px 1fr;
+  gap: var(--space-6) var(--space-8);
+  align-items: center;
+  padding: 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+  text-align: left;
+}
+
+.bb-option.is-on { background: var(--color-bg-subtle); box-shadow: var(--shadow-offset-sm); }
+
+.bb-radio { width: 18px; height: 18px; background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full); }
+.bb-option.is-on .bb-radio { background: url('/images/buyback/radio-checked.svg') center / 18px 18px no-repeat; border: 0; }
+
+.bb-option-title { font: 800 14px/normal var(--font-sans); }
+.bb-option-desc { grid-column: 1 / -1; font: 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+.bb-guide { margin: var(--space-4) 0 0; padding-left: 18px; font: 400 12px/1.5 var(--font-sans); color: var(--color-text-secondary); }
+
+/* ---------- Nhận tiền, đồng ý ---------- */
+.bb-payout { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-10); outline: none; }
+.bb-payout-label { font: 700 13px/normal var(--font-sans); color: var(--color-text-body); }
+
+.bb-agree { position: relative; display: flex; align-items: center; gap: var(--space-10); font: 400 13px/normal var(--font-sans); color: var(--color-text-body); cursor: pointer; }
+.bb-agree input { position: absolute; width: 20px; height: 20px; margin: 0; opacity: 0; cursor: pointer; }
+
+.bb-check {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: 5px;
+  font: 700 12px/1 var(--font-sans);
+  color: transparent;
+}
+
+.bb-agree input:checked + .bb-check { background: var(--color-tint-pink-strong); color: var(--color-text-primary); }
+.bb-agree input:focus-visible + .bb-check { box-shadow: var(--shadow-offset-xs); }
+.bb-agree input[aria-invalid='true'] + .bb-check { border-color: var(--color-border-error); }
+
+@media (max-width: 600px) {
+  .bb-options { flex-direction: column; }
+  .bb-account { flex-wrap: wrap; }
+}

@@ -1,0 +1,62 @@
+/* Phiếu thanh lý — hộp tóm tắt giá (bước 3) và màn xác nhận sau khi gửi */
+
+/* ---------- Tóm tắt giá ---------- */
+.bb-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8) var(--space-16);
+  padding: 14px 16px;
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.bb-summary-label { margin: 0; font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+.bb-summary-value { margin: 0; font: 800 26px/normal var(--font-display); letter-spacing: -0.26px; }
+.bb-summary-meta { margin: 0; font: 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
+
+/* ---------- Màn xác nhận ---------- */
+.bb-done { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-12); }
+
+.bb-done-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--color-tint-mint);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 800 22px/1 var(--font-sans);
+  color: var(--color-text-accent);
+}
+
+.bb-done-title { font: 800 24px/1.25 var(--font-display); }
+.bb-done-code, .bb-done-lead { margin: 0; color: var(--color-text-body); }
+
+.bb-done-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-16);
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.bb-done-summary dt { font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+.bb-done-summary dd { margin: 0; font: 800 15px/1.3 var(--font-sans); }
+
+.bb-done-next { margin: var(--space-4) 0 0; font: 800 16px/normal var(--font-display); }
+.bb-done-steps { margin: 0; padding-left: 20px; color: var(--color-text-body); }
+.bb-done-steps li + li { margin-top: var(--space-6); }
+.bb-done .bb-btn { margin: var(--space-8) 0 0; }
+
+@media (max-width: 600px) {
+  .bb-summary-value { font-size: 22px; }
+  .bb-done-summary { grid-template-columns: 1fr; }
+}

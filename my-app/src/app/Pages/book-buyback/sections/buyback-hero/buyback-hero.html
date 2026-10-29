@@ -1,0 +1,45 @@
+<!-- Figma: https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=829-2669 -->
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <span class="hero-tag">✦ Lightbook Buyback · Thu mua sách cũ</span>
+      <h1 class="hero-title">
+        <span class="hero-line">Sách đọc xong rồi?</span>
+        <span class="hero-line hero-line-2">
+          Trao nó
+          <span class="hero-accent">a second life</span>
+        </span>
+      </h1>
+      <p class="hero-desc">
+        Gửi Lightbook những cuốn sách bạn đã đọc xong. Chúng mình thẩm định trong 48 giờ, trả giá minh bạch và đưa sách đến tay một độc giả mới.
+      </p>
+      <div class="hero-actions">
+        <button class="hero-btn is-primary" type="button" (click)="sell.emit()">Thanh lý sách ngay&nbsp; →</button>
+        <button class="hero-btn" type="button" (click)="browse.emit()">Xem sách đã qua tay</button>
+      </div>
+      <dl class="hero-stats">
+        @for (stat of stats; track stat.label) {
+          <div class="hero-stat">
+            <dt class="hero-stat-value">{{ stat.value }}</dt>
+            <dd class="hero-stat-label">{{ stat.label }}</dd>
+          </div>
+        }
+      </dl>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <img class="hero-blob" src="images/buyback/hero-blob.svg" alt="" width="430" height="430" />
+      @for (book of covers(); track book._id; let i = $index) {
+        <span class="hero-cover" [class]="'is-' + positions[i]">
+          <img [appTrimCover]="book.image" [alt]="book.title" />
+        </span>
+      }
+      <span class="hero-sticker">
+        <small>Thu mua đến</small>
+        <strong>50%</strong>
+        <small>giá bìa</small>
+      </span>
+      <span class="hero-condition">✦ Đã qua tay · 95% mới</span>
+    </div>
+  </div>
+</section>

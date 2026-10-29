@@ -1,0 +1,78 @@
+/* Phiếu thanh lý — bước 1: khối "Cuốn N", field, chip tình trạng, tải ảnh (Figma 849:3522) */
+
+.bb-book {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-16);
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-16);
+}
+
+.bb-book-head { float: left; padding: 0; font: 800 14px/normal var(--font-sans); }
+.bb-book-head + * { clear: left; }
+
+.bb-remove {
+  position: absolute;
+  top: var(--space-16);
+  right: var(--space-16);
+  padding: 0;
+  background: none;
+  border: 0;
+  font: 700 12px/normal var(--font-sans);
+  color: var(--color-text-muted);
+  text-decoration: underline;
+}
+
+.bb-remove:hover { color: var(--color-feedback-error); }
+
+.bb-row { display: flex; gap: var(--space-12); align-items: flex-start; }
+
+.bb-field { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.bb-field-qty { flex: 0 0 140px; }
+
+.bb-label { font: 700 12px/normal var(--font-sans); color: var(--color-text-body); }
+
+.bb-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-12);
+  font: 400 14px/normal var(--font-sans);
+}
+
+.bb-input::placeholder, .bb-textarea textarea::placeholder { color: var(--color-text-muted); }
+.bb-input:focus, .bb-price:focus-within, .bb-textarea:focus-within { outline: none; box-shadow: var(--shadow-offset-xs); }
+.bb-input[aria-invalid='true'], .bb-input.is-error, .bb-textarea.is-error { border-color: var(--color-border-error); }
+
+.bb-price { display: flex; align-items: center; gap: var(--space-4); }
+.bb-price input { flex: 1; min-width: 0; padding: 0; background: none; border: 0; outline: none; }
+
+/* Ô số lượng cao bằng input bên cạnh */
+.bb-qty { justify-content: space-between; width: 100%; height: 44px; border-radius: var(--radius-12); }
+
+.bb-error { margin: 0; font: 600 12px/1.4 var(--font-sans); color: var(--color-feedback-error); }
+
+/* ---------- Thêm cuốn ---------- */
+.bb-add {
+  height: 44px;
+  background: none;
+  border: var(--border-default) dashed var(--color-border-strong);
+  border-radius: var(--radius-12);
+  font: 700 14px/normal var(--font-sans);
+}
+
+.bb-add:hover:not(:disabled) { background: var(--color-bg-subtle); }
+.bb-add:disabled { color: var(--color-text-muted); cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .bb-row { flex-direction: column; align-items: stretch; }
+  .bb-row .bb-field { flex: none; }
+  .bb-field-qty { flex-basis: auto; width: 140px; }
+}
