@@ -1,6 +1,10 @@
 
 require('dotenv').config();
 
+const dns = require('node:dns');
+const dnsServers = (process.env.MONGODB_DNS_SERVERS || '').split(',').map((server) => server.trim()).filter(Boolean);
+if (dnsServers.length) dns.setServers(dnsServers);
+
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');

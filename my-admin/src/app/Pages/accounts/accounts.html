@@ -1,1 +1,193 @@
-<p>accounts works!</p>
+<header class="page-head">
+	<div>
+		<div class="breadcrumbs"><span>Admin</span><span>/</span><span>Hệ thống</span><span>/</span><strong>Tài khoản</strong></div>
+		<h1>Tài khoản</h1>
+		<p>Quản lý khách hàng và phân quyền nhân viên quản trị.</p>
+	</div>
+	<div class="head-actions">
+		@if (tab() === 'customers') {
+			<button class="btn" type="button" (click)="exportCustomers()" [disabled]="!customerItems().length">↓ Xuất CSV</button>
+		}
+		@if (tab() === 'admins') {
+			<button class="btn" type="button" (click)="openRoleEditor()">＋ Thêm vai trò</button>
+		}
+		<button class="btn btn-primary" type="button" (click)="inviteAdmin()">＋ Mời quản trị viên</button>
+	</div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Loại tài khoản">
+	<button type="button" role="tab" [attr.aria-selected]="tab() === 'customers'"
+		[class.active]="tab() === 'customers'" (click)="setTab('customers')">
+		Khách hàng <span>{{ customers()?.total ?? '—' }}</span>
+	</button>
+	<button type="button" role="tab" [attr.aria-selected]="tab() === 'admins'"
+		[class.active]="tab() === 'admins'" (click)="setTab('admins')">
+		Quản trị viên <span>{{ admins()?.total ?? '—' }}</span>
+	</button>
+</nav>
+
+@if (error()) {
+	<div class="alert" role="alert">
+		<span>{{ error() }}</span>
+		<button class="btn btn-sm" type="button" (click)="load()">Thử lại</button>
+	</div>
+}
+
+@if (tab() === 'customers') {
+	@if (customers(); as data) {
+		<section class="customer-stats" aria-label="Thống kê khách hàng">
+			<article class="stat"><span>Khách mới tháng này</span><strong>{{ data.stats.newCustomers | number }}</strong>
+				@if (data.stats.customerChangePercent !== null) { <small>▲ {{ data.stats.customerChangePercent }}%</small> }
+			</article>
+			<article class="stat"><span>Đang hoạt động (30 ngày)</span><strong>{{ data.stats.activeAccounts | number }}</strong>
+				@if (data.stats.activeChangePercent !== null) { <small>▲ {{ data.stats.activeChangePercent }}%</small> }
+			</article>
+			<article class="stat"><span>Thành viên Vàng</span><strong>{{ data.stats.goldMembers | number }}</strong></article>
+			<article class="stat"><span>Tài khoản bị khóa</span><strong>{{ data.stats.lockedAccounts | number }}</strong></article>
+		</section>
+	}
+
+	<div class="customer-layout" [class.with-detail]="!!selectedCustomer()">
+		<section class="card list-card">
+			<div class="filters">
+				<input class="input search" type="search" placeholder="⌕  Tên, email, số điện thoại..."
+					[value]="q()" (input)="onSearch($any($event.target).value)" aria-label="Tìm khách hàng" />
+				<select class="select" [value]="tier()" (change)="setFilter('tier', $any($event.target).value)" aria-label="Hạng thành viên">
+					<option value="">Hạng thành viên</option>
+					  @for (option of customers()?.tiers ?? []; track option) { <option [value]="option">{{ option }}</option> }
+				</select>
+				<select class="select" [value]="status()" (change)="setFilter('status', $any($event.target).value)" aria-label="Trạng thái">
+					  <option value="">Trạng thái</option>
+					  @for (option of customers()?.statuses ?? []; track option.value) { <option [value]="option.value">{{ option.label }}</option> }
+				</select>
+			</div>
+			<div class="table-scroll" [class.loading]="loading()">
+				<table class="account-table customers-table">
+					<thead><tr><th>Khách hàng</th><th>Hạng</th><th class="numeric">Đơn</th><th class="numeric">Tổng chi tiêu</th><th>Trạng thái</th><th></th></tr></thead>
+					<tbody>
+						@for (customer of customerItems(); track customer._id) {
+							<tr [class.selected]="selectedCustomer()?._id === customer._id" (click)="selectCustomer(customer)">
+								<td><span class="person"><span class="avatar">{{ customer.fullName.slice(0, 1) }}</span><span><strong>{{ customer.fullName }}</strong><small>{{ customer.email }}</small></span></span></td>
+								<td><span class="tier">{{ customer.tier || '—' }}</span></td>
+								<td class="numeric"><strong>{{ customer.orderCount | number }}</strong></td>
+								<td class="numeric"><strong>{{ money(customer.totalSpent) }}</strong></td>
+								<td><span class="status" [class]="'status status-' + statusClass(customer.status)">{{ statusLabel(customer.status) }}</span></td>
+								<td class="more">···</td>
+							</tr>
+						} @empty {
+							<tr><td class="empty" colspan="6">
+								@if (loading()) { Đang tải khách hàng... }
+								@else if (error()) { Không thể hiển thị danh sách khi chưa kết nối API. }
+								@else { Không tìm thấy khách hàng phù hợp. }
+							</td></tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<footer class="pagination">
+				<span>Hiển thị {{ customerItems().length ? (page() - 1) * pageSize + 1 : 0 }}–{{ (page() - 1) * pageSize + customerItems().length }} trong {{ total() | number }} khách hàng</span>
+				<div><button class="btn btn-sm" type="button" [disabled]="page() <= 1 || loading()" (click)="goToPage(page() - 1)">Trước</button>
+					<button class="btn btn-sm" type="button" [disabled]="page() >= totalPages() || loading()" (click)="goToPage(page() + 1)">Sau</button></div>
+			</footer>
+		</section>
+
+		@if (selectedCustomer(); as customer) {
+			<aside class="card customer-detail">
+				<button class="close" type="button" aria-label="Đóng chi tiết" (click)="closeCustomer()">×</button>
+				<div class="profile"><span class="avatar avatar-large">{{ customer.fullName.slice(0, 1) }}</span>
+					<h2>{{ customer.fullName }}</h2><p>{{ customer.tier || 'Khách hàng' }} · <span class="status" [class]="'status status-' + statusClass(customer.status)">{{ statusLabel(customer.status) }}</span></p>
+				</div>
+				<div class="contact"><p>✉ <span>{{ customer.email }}</span></p><p>☎ <span>{{ customer.phone || 'Chưa có số điện thoại' }}</span></p><p>▦ <span>Tham gia {{ formatDate(customer.createdAt) }}</span></p></div>
+				<div class="customer-metrics"><div><strong>{{ customer.orderCount }}</strong><small>Đơn hàng</small></div><div><strong>{{ money(customer.totalSpent) }}</strong><small>Chi tiêu</small></div><div><strong>{{ customer.points ?? '—' }}</strong><small>Điểm</small></div></div>
+				<h3>Đơn gần nhất</h3>
+				@for (order of customer.orders; track order.code) {
+					<div class="recent-order"><strong>{{ order.code }}</strong><span>{{ statusLabel(order.status) }}</span><b>{{ money(order.total) }}</b></div>
+				} @empty { <p class="muted">Không có đơn hàng.</p> }
+				<div class="detail-actions">
+					<button class="btn" type="button" [disabled]="saving()" (click)="customerAction('send-email')">✉ Gửi email</button>
+					<button class="btn" type="button" [disabled]="saving()" (click)="customerAction('reset-password')">↗ Đặt lại mật khẩu</button>
+					  <button class="btn btn-danger" type="button" [disabled]="saving()" (click)="customerAction(isLocked(customer.status) ? 'unlock' : 'lock')">⌑ {{ isLocked(customer.status) ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}</button>
+				</div>
+			</aside>
+		}
+	</div>
+}
+
+@if (tab() === 'admins') {
+	<div class="admin-layout">
+		<section class="card admin-list-card">
+			<div class="section-title"><div><h2>Tài khoản quản trị</h2><p>{{ admins()?.total ?? '—' }} tài khoản</p></div>
+				<div class="admin-filters"><input class="input" type="search" placeholder="⌕  Tên hoặc email..." [value]="q()" (input)="onSearch($any($event.target).value)" aria-label="Tìm quản trị viên" />
+					<select class="select" [value]="status()" (change)="setFilter('status', $any($event.target).value)" aria-label="Lọc trạng thái"><option value="">Tất cả trạng thái</option>@for (option of admins()?.statuses ?? []; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></div>
+			</div>
+			<div class="table-scroll" [class.loading]="loading()"><table class="account-table admin-table">
+				<thead><tr><th>Người dùng</th><th>Vai trò</th><th>Trạng thái</th><th>Xác thực 2 bước</th><th>Đăng nhập gần nhất</th><th></th></tr></thead>
+				<tbody>
+					@for (admin of adminItems(); track admin._id) {
+						<tr><td><span class="person"><span class="avatar">{{ admin.fullName.slice(0, 1) }}</span><span><strong>{{ admin.fullName }}</strong><small>{{ admin.email }}</small></span></span></td>
+							<td><span class="role-pill">{{ admin.roleName }}</span></td><td><span class="status" [class]="'status status-' + statusClass(admin.status)">{{ statusLabel(admin.status) }}</span></td>
+							<td><span class="verified">{{ admin.emailVerified ? '◇ Đã bật' : '◇ Chưa bật' }}</span></td>
+							<td class="muted">{{ admin.lastLoginAt ? (admin.lastLoginAt | date:'dd/MM, HH:mm') : 'Chưa đăng nhập' }}</td>
+							<td class="row-actions"><button class="icon-button" type="button" title="Chỉnh sửa" (click)="openAdminEditor(admin)">✎</button><button class="icon-button" type="button" title="Xóa quản trị viên" (click)="removeAdmin(admin)">···</button></td>
+						</tr>
+					} @empty { <tr><td class="empty" colspan="6">{{ loading() ? 'Đang tải quản trị viên...' : error() ? 'Không thể hiển thị dữ liệu khi chưa kết nối API.' : 'Chưa có tài khoản quản trị.' }}</td></tr> }
+				</tbody>
+			</table></div>
+		</section>
+
+		<div class="admin-bottom">
+			<section class="card permission-card">
+				<div class="section-title"><div><h2>Ma trận phân quyền</h2><p>Quyền theo vai trò được tải từ máy chủ.</p></div>
+					@if (permissionEditing()) {
+						<div class="permission-actions"><button class="btn btn-sm" type="button" [disabled]="saving()" (click)="cancelPermissionEdit()">Hủy</button><button class="btn btn-sm btn-primary" type="button" [disabled]="saving() || !hasPermissionChanges()" (click)="savePermissions()">✓ Lưu phân quyền</button></div>
+					} @else { <button class="btn btn-sm" type="button" (click)="beginPermissionEdit()">✎ Chỉnh sửa</button> }
+				</div>
+				@if (admins(); as data) {
+					<div class="table-scroll"><table class="permission-table"><thead><tr><th>Phân hệ</th>@for (role of data.roles.roles; track role._id) { <th>{{ role.label }}</th> }</tr></thead>
+						<tbody>@for (permission of data.roles.permissions; track permission._id) { <tr><td>{{ permission.label }}</td>@for (role of data.roles.roles; track role._id) { <td><input type="checkbox" [checked]="hasPermission(role._id, permission._id)" [disabled]="!permissionEditing() || saving()" (change)="togglePermission(role._id, permission._id)" [attr.aria-label]="role.label + ': ' + permission.label" /></td> }</tr> }</tbody>
+					</table></div>
+				} @else if (loading()) { <p class="panel-empty">Đang tải vai trò và quyền...</p> }
+				<div class="legend"><span>☑ Toàn quyền</span><span>☷ Xem</span><span>— Không truy cập</span></div>
+			</section>
+
+		<aside class="admin-aside">
+			<section class="card activity-card"><h2>Nhật ký hoạt động</h2><p>Thao tác gần đây của quản trị viên.</p>
+				@for (entry of admins()?.activity ?? []; track entry._id) { <div class="activity"><span class="avatar">{{ entry.actorName.slice(0, 1) }}</span><div><strong>{{ entry.actorName }}</strong><span>{{ entry.description }}</span><small>{{ entry.createdAt | date:'dd/MM, HH:mm' }}</small></div></div> }
+				@if (!loading() && !(admins()?.activity?.length)) { <p class="panel-empty">Chưa có nhật ký hoạt động.</p> }
+			</section>
+			@if (admins()?.security; as security) {
+				<section class="card security-card"><h2>Bảo mật đăng nhập</h2>
+					<label><span><strong>Bắt buộc 2FA với Super Admin</strong><small>Áp dụng cho ứng dụng xác thực</small></span><input type="checkbox" [checked]="security.requireTwoFactor" [disabled]="saving()" (change)="updateSecurity('requireTwoFactor', $any($event.target).checked)" /></label>
+					<label><span><strong>Tự động xuất khỏi không hoạt động</strong><small>Theo chính sách bảo mật</small></span><input type="checkbox" [checked]="security.forcePasswordRotation" [disabled]="saving()" (change)="updateSecurity('forcePasswordRotation', $any($event.target).checked)" /></label>
+					<label><span><strong>Giới hạn IP văn phòng</strong><small>Chỉ đăng nhập từ IP đã duyệt</small></span><input type="checkbox" [checked]="security.restrictOfficeIp" [disabled]="saving()" (change)="updateSecurity('restrictOfficeIp', $any($event.target).checked)" /></label>
+				</section>
+			}
+		</aside>
+		</div>
+	</div>
+}
+
+@if (editorOpen()) {
+	<div class="modal-backdrop" (click)="editorOpen.set(false)">
+		<section class="editor card" role="dialog" aria-modal="true" aria-labelledby="editor-title" (click)="$event.stopPropagation()">
+			<h2 id="editor-title">{{ selectedAdmin() ? 'Chỉnh sửa quản trị viên' : 'Mời quản trị viên' }}</h2>
+			<label>Họ tên<input class="input" [value]="editName()" (input)="editName.set($any($event.target).value)" autocomplete="name" /></label>
+			<label>Email<input class="input" type="email" [value]="editEmail()" (input)="editEmail.set($any($event.target).value)" autocomplete="email" /></label>
+			<label>Vai trò<select class="select" [value]="editRole()" (change)="editRole.set($any($event.target).value)">@for (role of admins()?.roles?.roles ?? []; track role._id) { <option [value]="role._id">{{ role.label }}</option> }</select></label>
+			<label>Trạng thái<select class="select" [value]="editStatus()" (change)="editStatus.set($any($event.target).value)">@for (status of admins()?.statuses ?? []; track status.value) { <option [value]="status.value">{{ status.label }}</option> }</select></label>
+			<div class="editor-actions"><button class="btn" type="button" (click)="editorOpen.set(false)">Hủy</button><button class="btn btn-primary" type="button" [disabled]="saving()" (click)="saveAdmin()">{{ saving() ? 'Đang lưu...' : 'Lưu' }}</button></div>
+		</section>
+	</div>
+}
+
+@if (roleEditorOpen()) {
+	<div class="modal-backdrop" (click)="roleEditorOpen.set(false)">
+		<section class="editor card" role="dialog" aria-modal="true" aria-labelledby="role-editor-title" (click)="$event.stopPropagation()">
+			<h2 id="role-editor-title">Thêm vai trò</h2>
+			<label>Mã vai trò<input class="input" [value]="roleCode()" (input)="roleCode.set($any($event.target).value)" /></label>
+			<label>Tên vai trò<input class="input" [value]="roleName()" (input)="roleName.set($any($event.target).value)" /></label>
+			<label>Mô tả<input class="input" [value]="roleDescription()" (input)="roleDescription.set($any($event.target).value)" /></label>
+			<div class="editor-actions"><button class="btn" type="button" (click)="roleEditorOpen.set(false)">Hủy</button><button class="btn btn-primary" type="button" [disabled]="saving()" (click)="createRole()">{{ saving() ? 'Đang lưu...' : 'Tạo vai trò' }}</button></div>
+		</section>
+	</div>
+}
