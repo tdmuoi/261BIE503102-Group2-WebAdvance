@@ -1,0 +1,21 @@
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+  font: 400 12px/20px var(--font-sans);
+  color: var(--color-text-secondary);
+}
+
+.crumb:hover { color: var(--color-text-primary); text-decoration: underline; }
+
+.crumb-sep { width: 14px; height: 14px; }
+
+.crumb-current {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 12px/1.3 var(--font-sans);
+  color: var(--color-text-primary);
+}

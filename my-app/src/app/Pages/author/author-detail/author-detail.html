@@ -1,1 +1,128 @@
-<p>author-detail works!</p>
+<!-- Figma: author-detail · Chi tiết tác giả — https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=876-6509 -->
+@switch (status()) {
+  @case ('loading') {
+    <div class="container ad-status"><app-status-card tone="loading" title="Đang tải thông tin tác giả…" /></div>
+  }
+  @case ('error') {
+    <div class="container ad-status">
+      <app-status-card tone="error" title="Không tải được thông tin tác giả" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn btn-pill" (click)="reload()">Thử lại</button>
+      </app-status-card>
+    </div>
+  }
+  @case ('missing') {
+    <div class="container ad-status">
+      <app-status-card title="Không tìm thấy tác giả" message="Tác giả này không tồn tại hoặc đã ngừng hiển thị.">
+        <a class="btn btn-pill" routerLink="/authors">Xem tất cả tác giả</a>
+      </app-status-card>
+    </div>
+  }
+  @default {
+    @let a = author()!;
+    <section class="container ad-profile">
+      <app-breadcrumb [items]="crumbs()" />
+
+      <div class="ad-profile-row">
+        <div class="ad-portrait">
+          <app-author-avatar class="ad-avatar" [name]="a.name" [initials]="a.initials" [photo]="a.photo" [index]="2" />
+        </div>
+
+        <div class="ad-info">
+          @if (a.genres.length) {
+            <span class="ad-tag">✦ {{ a.genres[0] }}</span>
+          }
+          <h1>{{ a.name }}</h1>
+          @if (a.genres.length) {
+            <p class="ad-meta"><img src="images/icons/book-open.svg" alt="" width="16" height="16" />{{ a.genres.join(', ') }}</p>
+          }
+          @if (a.desc) {
+            <p class="ad-bio">{{ a.desc }}</p>
+          }
+          <div class="ad-stats">
+            <div class="ad-stat">
+              <strong>{{ a.books.length }}</strong>
+              <span>đầu sách đang bán</span>
+            </div>
+          </div>
+          <div class="ad-actions">
+            <button type="button" class="btn btn-primary ad-follow" (click)="follow.follow(a.id, a.name)">
+              <img src="images/icons/plus-inverse.svg" alt="" width="20" height="20" /> Theo dõi tác giả
+            </button>
+            <button type="button" class="btn btn-ghost" (click)="follow.share(a.name)">
+              <img src="images/icons/share.svg" alt="" width="20" height="20" /> Chia sẻ
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="container ad-works">
+      <app-section-head
+        [tag]="'✦ ' + a.books.length + ' đầu sách'"
+        title="Tác phẩm"
+        accent="on our shelves"
+        [linkText]="a.books.length ? 'Xem tất cả ' + a.books.length + ' tác phẩm' : ''"
+        [link]="['/authors', a.id, 'works']"
+      />
+
+      @if (a.books.length) {
+        <div class="ad-filters">
+          <div class="chips">
+            <button type="button" class="chip" [class.is-active]="!genre()" (click)="genre.set('')">Tất cả ({{ a.books.length }})</button>
+            @for (chip of genreChips(); track chip.name) {
+              <button type="button" class="chip" [class.is-active]="genre() === chip.name" (click)="genre.set(chip.name)">{{ chip.name }} ({{ chip.count }})</button>
+            }
+          </div>
+          <label class="sort">
+            Sắp xếp:
+            <select [value]="sort()" (change)="sort.set($any($event.target).value)">
+              <option value="newest">Mới phát hành</option>
+              <option value="price-asc">Giá thấp đến cao</option>
+              <option value="price-desc">Giá cao đến thấp</option>
+            </select>
+          </label>
+        </div>
+        <div class="ad-shelf">
+          @for (book of shelf(); track book._id) {
+            <app-book-card [book]="book" />
+          }
+        </div>
+      } @else {
+        <app-status-card title="Chưa có tác phẩm đang bán" message="Lightbook sẽ cập nhật sách của tác giả này sớm." />
+      }
+    </section>
+
+    @if (events().length) {
+      <section class="ad-events">
+        <div class="container ad-events-inner">
+          <app-section-head
+            tag="✦ Lightbook Author Talk"
+            title="Sự kiện sắp tới"
+            accent="meet the author"
+            subtitle="Giao lưu trực tiếp tại Lightbook Cộng Hòa và online. Giữ chỗ miễn phí cho thành viên."
+            linkText="Xem tất cả sự kiện"
+            link="/authors/events"
+          />
+          @for (ev of events(); track ev._id) {
+            <app-event-card [event]="ev" (reserve)="reserving.set($event)" />
+          }
+        </div>
+      </section>
+    }
+
+    @if (articles().length) {
+      <section class="container ad-articles">
+        <app-section-head tag="✦ Lightbook News" [title]="'Bài viết về ' + a.name" accent="further reading" linkText="Xem tất cả bài viết" link="/news" />
+        <div class="ad-article-grid">
+          @for (article of articles(); track article._id) {
+            <app-article-card [article]="article" />
+          }
+        </div>
+      </section>
+    }
+
+    @if (reserving(); as ev) {
+      <app-event-reserve [event]="ev" (closed)="reserving.set(null)" />
+    }
+  }
+}

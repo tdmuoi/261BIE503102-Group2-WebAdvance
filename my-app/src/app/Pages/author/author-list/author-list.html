@@ -1,1 +1,107 @@
-<p>author-list works!</p>
+<!-- Figma: author-list · Danh sách tác giả — https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=876-6120 -->
+@let current = query();
+<section class="container al-hero">
+  <app-breadcrumb [items]="crumbs" />
+
+  <div class="al-title">
+    <app-section-head
+      [center]="true"
+      [tag]="authors().length ? '✦ ' + authors().length + ' tác giả trên kệ Lightbook' : ''"
+      title="Tác giả"
+      accent="the people behind the pages."
+      subtitle="Đọc về những người viết ra câu chuyện bạn yêu — và tìm cuốn tiếp theo của họ."
+    />
+    <app-sticker class="al-sticker al-sticker-left" label="✦ Author of the month" />
+    <app-sticker class="al-sticker al-sticker-right" label="Author Talk hằng tháng" tone="yellow" tilt="right" />
+  </div>
+
+  <form class="filter-bar" role="search" (submit)="$event.preventDefault(); update({ q: searchInput.value.trim() || null })">
+    <div class="search">
+      <input #searchInput type="search" placeholder="Tìm tác giả, dịch giả…" aria-label="Tìm tác giả"
+        [value]="current.q" (input)="update({ q: searchInput.value || null })" />
+      <button type="submit" class="al-search-btn" aria-label="Tìm kiếm">
+        <img src="images/icons/search.svg" alt="" width="20" height="20" />
+      </button>
+    </div>
+
+    <label class="dropdown" [class.is-set]="current.genre">
+      <img src="images/icons/book-open.svg" alt="" width="20" height="20" />
+      <select aria-label="Thể loại" [value]="current.genre" (change)="update({ genre: $any($event.target).value || null })">
+        <option value="">Thể loại</option>
+        @for (genre of genres(); track genre) {
+          <option [value]="genre" [selected]="genre === current.genre">{{ genre }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="dropdown">
+      <img src="images/icons/filter.svg" alt="" width="20" height="20" />
+      <select aria-label="Sắp xếp" [value]="current.sort" (change)="update({ sort: $any($event.target).value === 'az' ? null : $any($event.target).value })">
+        <option value="az">Sắp xếp: A–Z</option>
+        <option value="za">Sắp xếp: Z–A</option>
+        <option value="books">Sắp xếp: Nhiều đầu sách</option>
+      </select>
+    </label>
+  </form>
+
+  <nav class="chips al-letters" aria-label="Lọc theo chữ cái đầu">
+    <button type="button" class="chip" [class.is-active]="!current.letter" (click)="update({ letter: null })">Tất cả</button>
+    @for (letter of letters(); track letter) {
+      <button type="button" class="chip" [class.is-active]="current.letter === letter" (click)="update({ letter })">{{ letter }}</button>
+    }
+  </nav>
+</section>
+
+@switch (status()) {
+  @case ('loading') {
+    <div class="container al-status"><app-status-card tone="loading" title="Đang tải danh sách tác giả…" /></div>
+  }
+  @case ('error') {
+    <div class="container al-status">
+      <app-status-card tone="error" title="Không tải được danh sách tác giả" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn btn-pill" (click)="load()">Thử lại</button>
+      </app-status-card>
+    </div>
+  }
+  @default {
+    @if (featured(); as author) {
+      <app-author-featured class="container" [author]="author" [event]="nextEvent()" (followed)="follow.follow(author.id, author.name)" />
+    }
+
+    <section class="container al-all" id="all-authors">
+      <header class="al-all-head">
+        <h2 class="al-all-title"><span class="h1">Tất cả tác giả</span> <span class="accent-h1">A to Z</span></h2>
+        <p class="al-count">Hiển thị {{ pageItems().length }} / {{ filtered().length }} tác giả</p>
+      </header>
+
+      @if (pageItems().length) {
+        <div class="al-grid">
+          @for (author of pageItems(); track author.id; let i = $index) {
+            <a class="al-card" [routerLink]="['/authors', author.id]">
+              <app-author-avatar class="al-avatar" [name]="author.name" [initials]="author.initials" [photo]="author.photo" [index]="i" />
+              <span class="al-name">{{ author.name }}</span>
+              @if (author.genres.length) {
+                <span class="al-genre">{{ author.genres.slice(0, 2).join(' · ') }}</span>
+              }
+              @if (author.desc) {
+                <span class="al-quote">“{{ author.desc }}”</span>
+              }
+              <span class="al-more">{{ author.books.length ? 'Xem ' + author.books.length + ' đầu sách  →' : 'Xem trang tác giả  →' }}</span>
+            </a>
+          }
+        </div>
+        @if (totalPages() > 1) {
+          <app-pagination class="al-pages" [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)" />
+        }
+      } @else {
+        <app-status-card title="Không tìm thấy tác giả" message="Thử từ khoá khác hoặc bỏ bớt bộ lọc.">
+          @if (hasFilter()) {
+            <button type="button" class="btn btn-pill" (click)="clearFilters()">Xóa bộ lọc</button>
+          }
+        </app-status-card>
+      }
+    </section>
+  }
+}
+
+<app-marquee [items]="marquee" background="var(--color-bg-inverse)" textColor="var(--color-text-inverse)" />

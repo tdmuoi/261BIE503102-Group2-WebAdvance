@@ -1,0 +1,43 @@
+<article class="af-author">
+  <app-author-avatar class="af-avatar" [name]="author().name" [initials]="author().initials" [photo]="author().photo" />
+  <div class="af-text">
+    <span class="af-tag">✦ Tác giả của tháng</span>
+    <h2 class="af-name">{{ author().name }}</h2>
+    <p class="af-meta">
+      @if (author().genres.length) {
+        {{ author().genres[0] }} ·
+      }
+      {{ author().books.length }} đầu sách tại Lightbook
+    </p>
+    @if (author().desc) {
+      <p class="af-bio">{{ author().desc }}</p>
+    }
+    <div class="af-actions">
+      <a class="btn btn-primary af-btn" [routerLink]="['/authors', author().id]">
+        Xem trang tác giả <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+      </a>
+      <button type="button" class="btn btn-ghost" (click)="followed.emit()">
+        <img src="images/icons/plus.svg" alt="" width="20" height="20" /> Theo dõi
+      </button>
+    </div>
+  </div>
+  @if (cover(); as book) {
+    <a class="af-cover" [routerLink]="['/books', book.slug || book._id]" [attr.aria-label]="book.title">
+      <img [appTrimCover]="book.image" [alt]="book.title" loading="lazy" />
+    </a>
+  }
+</article>
+
+@if (event(); as ev) {
+  <article class="af-event">
+    <p class="label-eyebrow af-eyebrow">Sắp diễn ra</p>
+    <h3 class="h4">{{ ev.title }}</h3>
+    <p class="af-line"><img src="images/icons/calendar.svg" alt="" width="16" height="16" />{{ eventDate() }}</p>
+    @if (eventPlace()) {
+      <p class="af-line"><img src="images/icons/marker-pin.svg" alt="" width="16" height="16" />{{ eventPlace() }}</p>
+    }
+    <a class="af-link" routerLink="/authors/events">
+      Xem lịch sự kiện <img src="images/icons/arrow-right.svg" alt="" width="20" height="20" />
+    </a>
+  </article>
+}

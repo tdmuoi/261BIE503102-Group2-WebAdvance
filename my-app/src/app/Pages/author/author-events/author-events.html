@@ -1,1 +1,88 @@
-<p>author-events works!</p>
+<!-- Figma: author-events · Sự kiện giao lưu — https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=877-7008 -->
+@let current = query();
+<section class="container ae-hero">
+  <app-breadcrumb [items]="crumbs" />
+
+  <div class="ae-title">
+    <app-section-head
+      [center]="true"
+      tag="✦ Lightbook Author Talk"
+      title="Sự kiện giao lưu"
+      accent="meet the minds."
+      subtitle="Mỗi tháng một buổi trò chuyện cùng tác giả, dịch giả và biên tập viên — tại Lightbook Cộng Hòa hoặc online."
+    />
+    <app-sticker class="ae-sticker ae-sticker-left" label="✦ Miễn phí cho thành viên" tone="pink" />
+    <app-sticker class="ae-sticker ae-sticker-right" label="Online & offline" tilt="right" />
+  </div>
+
+  @if (featured(); as ev) {
+    <app-event-featured [event]="ev" [catalog]="catalog()" (reserve)="reserving.set($event)" />
+  }
+</section>
+
+@switch (status()) {
+  @case ('loading') {
+    <div class="container ae-status"><app-status-card tone="loading" title="Đang tải lịch sự kiện…" /></div>
+  }
+  @case ('error') {
+    <div class="container ae-status">
+      <app-status-card tone="error" title="Không tải được lịch sự kiện" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn btn-pill" (click)="load()">Thử lại</button>
+      </app-status-card>
+    </div>
+  }
+  @default {
+    @if (events().length) {
+      <section class="container ae-list">
+        <div class="ae-filters">
+          <div class="chips">
+            @for (f of filters; track f.key) {
+              <button type="button" class="chip" [class.is-active]="current.filter === f.key" (click)="update({ filter: f.key || null })">{{ f.label }}</button>
+            }
+          </div>
+          <label class="dropdown" [class.is-set]="current.month">
+            <img src="images/icons/calendar.svg" alt="" width="20" height="20" />
+            <select aria-label="Tháng" [value]="current.month" (change)="update({ month: $any($event.target).value || null })">
+              <option value="">Tất cả các tháng</option>
+              @for (m of months(); track m.key) {
+                <option [value]="m.key" [selected]="m.key === current.month">{{ m.label }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        @if (current.filter !== 'past') {
+          <h2 class="ae-heading"><span class="h2">Sắp diễn ra</span> <span class="accent-h2">coming up</span></h2>
+          @for (ev of upcomingList(); track ev._id) {
+            <app-event-card [event]="ev" (reserve)="reserving.set($event)" />
+          } @empty {
+            <app-status-card title="Chưa có sự kiện sắp diễn ra phù hợp" message="Đăng ký nhận lịch bên dưới để không bỏ lỡ buổi tiếp theo." />
+          }
+        }
+      </section>
+
+      @if (current.filter !== 'upcoming') {
+        <section class="ae-past">
+          <div class="container ae-past-inner">
+            <h2 class="ae-heading"><span class="h2">Đã diễn ra</span> <span class="accent-h2">in case you missed it</span></h2>
+            @for (ev of pastList(); track ev._id) {
+              <app-event-card [event]="ev" />
+            } @empty {
+              <app-status-card title="Chưa có sự kiện đã diễn ra phù hợp" />
+            }
+          </div>
+        </section>
+      }
+    } @else {
+      <div class="container ae-status">
+        <app-status-card title="Chưa có sự kiện nào" message="Lịch Author Talk sẽ được cập nhật sớm. Đăng ký email bên dưới để nhận lịch đầu tiên." />
+      </div>
+    }
+  }
+}
+
+<app-events-newsletter class="container" />
+
+@if (reserving(); as ev) {
+  <app-event-reserve [event]="ev" (closed)="reserving.set(null)" />
+}

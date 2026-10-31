@@ -1,0 +1,33 @@
+@let error = errorText();
+<div class="en-box">
+  <div class="en-text">
+    <h2 class="en-title"><span class="h3">Không bỏ lỡ buổi nào</span> <span class="accent-h2">save the date.</span></h2>
+    <p>Nhận lịch Author Talk mỗi đầu tháng qua email — kèm ưu tiên giữ chỗ cho thành viên.</p>
+  </div>
+
+  <form class="en-form" (ngSubmit)="submit()" novalidate>
+    <label class="en-field">
+      <span>Email</span>
+      <span class="en-input" [class.is-error]="error">
+        <img src="images/icons/mail.svg" alt="" width="20" height="20" />
+        <input type="email" placeholder="email@vidu.com" autocomplete="email" [formControl]="email"
+          [attr.aria-invalid]="!!error" aria-describedby="en-msg" />
+      </span>
+    </label>
+    <button type="submit" class="btn btn-primary en-btn" [disabled]="state() === 'sending'">
+      {{ state() === 'sending' ? 'Đang gửi…' : 'Đăng ký' }}
+      <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+    </button>
+    <p id="en-msg" class="en-msg" role="status">
+      @if (error) {
+        <span class="text-error">{{ error }}</span>
+      } @else if (state() === 'done') {
+        <span class="text-success">Cảm ơn bạn! Lịch Author Talk sẽ được gửi vào email mỗi đầu tháng.</span>
+      } @else if (state() === 'unavailable') {
+        Chức năng đăng ký nhận lịch đang được hoàn thiện, bạn vui lòng quay lại sau nhé.
+      } @else if (state() === 'error') {
+        <span class="text-error">Không đăng ký được lúc này, vui lòng thử lại.</span>
+      }
+    </p>
+  </form>
+</div>

@@ -1,0 +1,18 @@
+<a class="ac" [routerLink]="['/news', article()._id]">
+  <span class="ac-cover">
+    <img [src]="cover()" [alt]="article().title" loading="lazy" (error)="onCoverError()" />
+  </span>
+  <span class="ac-meta">
+    @if (article().category) {
+      <span class="ac-badge">{{ article().category }}</span>
+    }
+    <span>{{ article().readMinutes }} phút đọc</span>
+  </span>
+  <span class="ac-title">{{ article().title }}</span>
+  @if (article().desc) {
+    <span class="ac-excerpt">{{ article().desc }}</span>
+  }
+  @if (date()) {
+    <span class="ac-date">{{ date() }}</span>
+  }
+</a>

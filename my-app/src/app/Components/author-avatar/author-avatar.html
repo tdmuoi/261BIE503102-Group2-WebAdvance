@@ -1,0 +1,5 @@
+@if (photo() && !failed()) {
+  <img [src]="photo()" [alt]="name()" loading="lazy" (error)="failed.set(true)" />
+} @else {
+  <span aria-hidden="true">{{ initials() }}</span>
+}

@@ -1,0 +1,91 @@
+.al-hero { display: flex; flex-direction: column; gap: 28px; padding-top: var(--space-40); padding-bottom: var(--space-56); }
+
+.al-title { position: relative; padding: 0 0 34px; }
+.al-sticker { position: absolute; }
+.al-sticker-left { top: 60px; left: 60px; }
+.al-sticker-right { top: 110px; right: 108px; }
+
+/* Nút tìm (icon kính lúp) ở cuối ô tìm kiếm */
+.al-search-btn {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--color-bg-subtle);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+.al-search-btn:hover { background: var(--color-tint-pink); }
+
+/* Hàng chữ cái luôn 1 dòng: co giãn cho vừa bề ngang, màn hẹp thì vuốt ngang */
+.al-letters {
+  flex-wrap: nowrap;
+  gap: var(--space-6);
+  overflow-x: auto;
+  padding-bottom: var(--space-4);
+  scrollbar-width: none;
+}
+
+.al-letters::-webkit-scrollbar { display: none; }
+.al-letters .chip { flex: 1 0 auto; min-width: 32px; padding: 8px 6px; }
+.al-letters .chip:first-child { padding: 8px 14px; }
+
+.al-status { padding-bottom: var(--space-80); }
+
+.al-all { padding-top: var(--space-40); padding-bottom: var(--space-80); }
+
+.al-all-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8); margin-bottom: var(--space-32); }
+.al-all-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-12); margin: 0; }
+.al-count { margin: 0; font: 400 14px/1.55 var(--font-sans); color: var(--color-text-secondary); }
+
+.al-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px var(--layout-gutter); }
+
+.al-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: 28px 22px var(--space-24);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-18);
+  box-shadow: var(--shadow-offset-md);
+  text-align: center;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.al-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-offset-lg); }
+
+.al-avatar { width: 88px; height: 88px; margin-bottom: var(--space-10); }
+.al-name { font: 800 17px/1.3 var(--font-sans); }
+.al-genre { font: 700 12px/1.3 var(--font-sans); color: var(--color-text-accent); }
+
+.al-quote {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  /* Dùng margin, không dùng padding: padding nằm trong vùng overflow làm lộ nửa dòng thứ 3 */
+  margin: var(--space-8) 0 var(--space-6);
+  font: italic 400 13px/1.6 var(--font-sans);
+  color: var(--color-text-body);
+}
+
+.al-more { margin-top: auto; font: 700 12px/1.3 var(--font-sans); white-space: pre; }
+
+.al-pages { display: flex; justify-content: center; margin-top: var(--space-32); }
+
+@media (max-width: 1100px) {
+  .al-grid { grid-template-columns: repeat(3, 1fr); }
+  .al-sticker { display: none; }
+  .al-letters { justify-content: flex-start; }
+}
+
+@media (max-width: 640px) {
+  .al-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-16); }
+  .al-card { padding: var(--space-20) var(--space-12); }
+}

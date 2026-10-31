@@ -5,10 +5,6 @@ import { Homepage } from './Pages/homepage/homepage';
 import { BrowseBook } from './Pages/browse-book/browse-book';
 import { Cart } from './Pages/cart/cart';
 import { Checkout } from './Pages/checkout/checkout';
-import { AuthorList } from './Pages/author/author-list/author-list';
-import { AuthorDetail } from './Pages/author/author-detail/author-detail';
-import { AuthorWorks } from './Pages/author/author-works/author-works';
-import { AuthorEvents } from './Pages/author/author-events/author-events';
 import { NewsList } from './Pages/news/news-list/news-list';
 import { NewsDetail } from './Pages/news/news-detail/news-detail';
 import { AboutUs } from './Pages/about-us/about-us';
@@ -40,10 +36,15 @@ const routes: Routes = [
   { path: 'product-detail/:id', redirectTo: 'books/:id' },   // link cũ: book-card, các section trang chủ
   { path: 'cart', component: Cart },
   { path: 'checkout', component: Checkout, canActivate: [authGuard]},
-  { path: 'author-list', component: AuthorList },
-  { path: 'author-detail/:id', component: AuthorDetail },
-  { path: 'author-works/:id', component: AuthorWorks },
-  { path: 'author-events', component: AuthorEvents },
+  // Trang Tác giả tải riêng (lazy): /authors, /authors/events, /authors/:id, /authors/:id/works
+  {
+    path: 'authors',
+    loadChildren: () => import('./Pages/author/author-module').then((m) => m.AuthorModule),
+  },
+  { path: 'author-list', redirectTo: 'authors' },   // link cũ (trang chủ)
+  { path: 'author-events', redirectTo: 'authors/events' },
+  { path: 'author-detail/:id', redirectTo: 'authors/:id' },
+  { path: 'author-works/:id', redirectTo: 'authors/:id/works' },
   // Trang thu mua sách cũng tải riêng (lazy) để không làm bundle ban đầu lớn thêm
   {
     path: 'book-buyback',

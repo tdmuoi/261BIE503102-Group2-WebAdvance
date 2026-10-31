@@ -28,7 +28,7 @@ export class PageHeader {
     { label: 'About', path: '/about-us' },
     { label: 'Browse book', path: '/books', menu: true },
     { label: 'Book buyback', path: '/book-buyback' },
-    { label: 'Authors', path: '/author-list' },
+    { label: 'Authors', path: '/authors' },
     { label: 'Lightbook news', path: '/news-list' },
   ];
 

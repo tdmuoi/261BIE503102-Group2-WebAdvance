@@ -1,0 +1,55 @@
+<div class="ef-date">
+  <span class="ef-month">{{ date().month }}</span>
+  <span class="ef-day">{{ date().day }}</span>
+  <span class="ef-weekday">{{ date().weekday }}</span>
+</div>
+
+<div class="ef-body">
+  @if (event().type || event().format) {
+    <div class="ef-tags">
+      @if (event().type) {
+        <span class="ef-tag">{{ event().type }}</span>
+      }
+      @if (event().format) {
+        <span class="ef-tag">{{ event().format === 'online' ? 'Online' : 'Tại cửa hàng' }}</span>
+      }
+    </div>
+  }
+  <h2>{{ event().title }}</h2>
+  @if (event().description) {
+    <p class="ef-desc">{{ event().description }}</p>
+  }
+  <div class="ef-meta">
+    <span><img src="images/icons/clock.svg" alt="" width="16" height="16" />{{ time() }}</span>
+    @if (place()) {
+      <span><img src="images/icons/marker-pin.svg" alt="" width="16" height="16" />{{ place() }}</span>
+    }
+    @if (seats() !== null) {
+      <span><img src="images/icons/users.svg" alt="" width="16" height="16" />Còn {{ seats() }}/{{ event().capacity }} chỗ</span>
+    }
+  </div>
+  @if (hosts().length) {
+    <div class="ef-hosts">
+      <span class="ef-host-avatar" aria-hidden="true">{{ hostInitials() }}</span>
+      <span>Khách mời: {{ hosts().join(', ') }}</span>
+    </div>
+  }
+  <div class="ef-actions">
+    @if (state() === 'full') {
+      <button type="button" class="btn ef-cta" disabled>Đã hết chỗ</button>
+    } @else {
+      <button type="button" class="btn btn-primary ef-cta ef-cta-primary" (click)="reserve.emit(event())">
+        Giữ chỗ miễn phí <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+      </button>
+    }
+    <button type="button" class="btn btn-ghost ef-cta" (click)="addToCalendar()">
+      <img src="images/icons/calendar.svg" alt="" width="20" height="20" /> Thêm vào lịch
+    </button>
+  </div>
+</div>
+
+@if (cover(); as book) {
+  <a class="ef-cover" [routerLink]="['/books', book.slug || book._id]" [attr.aria-label]="book.title">
+    <img [appTrimCover]="book.image" [alt]="book.title" loading="lazy" />
+  </a>
+}

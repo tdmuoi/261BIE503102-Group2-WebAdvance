@@ -1,0 +1,20 @@
+<div class="sh-heading">
+  @if (tag()) {
+    <span class="sh-tag">{{ tag() }}</span>
+  }
+  <h2 class="sh-title">
+    <span class="h1">{{ title() }}</span>
+    @if (accent()) {
+      <span class="accent-h1">{{ accent() }}</span>
+    }
+  </h2>
+  @if (subtitle()) {
+    <p class="sh-sub">{{ subtitle() }}</p>
+  }
+</div>
+@if (linkText() && link()) {
+  <a class="sh-link" [routerLink]="link()">
+    {{ linkText() }}
+    <img src="images/icons/arrow-right-sm.svg" alt="" width="16" height="16" />
+  </a>
+}

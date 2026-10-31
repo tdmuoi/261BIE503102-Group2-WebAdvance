@@ -145,6 +145,14 @@ app.use('/api/admin', adminOrdersRoutes(() => database));
 const adminReturnsRoutes = require('./routes/admin-returns');
 app.use('/api/admin', adminReturnsRoutes(() => database));
 
+// API Lightbook News cho web khách, chỉ đọc: /api/news, /api/news/:id (xem routes/news.js)
+const newsRoutes = require('./routes/news');
+app.use('/api', newsRoutes(() => database));
+
+// API Sự kiện giao lưu cho web khách, chỉ đọc: /api/events (xem routes/events.js)
+const eventsRoutes = require('./routes/events');
+app.use('/api', eventsRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {

@@ -1,1 +1,118 @@
-<p>author-works works!</p>
+<!-- Figma: author-works · Tất cả tác phẩm — https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=877-6713 -->
+@switch (status()) {
+  @case ('loading') {
+    <div class="container aw-status"><app-status-card tone="loading" title="Đang tải tác phẩm…" /></div>
+  }
+  @case ('error') {
+    <div class="container aw-status">
+      <app-status-card tone="error" title="Không tải được danh sách tác phẩm" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn btn-pill" (click)="reload()">Thử lại</button>
+      </app-status-card>
+    </div>
+  }
+  @case ('missing') {
+    <div class="container aw-status">
+      <app-status-card title="Không tìm thấy tác giả" message="Tác giả này không tồn tại hoặc đã ngừng hiển thị.">
+        <a class="btn btn-pill" routerLink="/authors">Xem tất cả tác giả</a>
+      </app-status-card>
+    </div>
+  }
+  @default {
+    @let a = author()!;
+    @let current = query();
+    <section class="container aw">
+      <app-breadcrumb [items]="crumbs()" />
+
+      <header class="aw-head">
+        <div class="aw-title-group">
+          <app-author-avatar class="aw-avatar" [name]="a.name" [initials]="a.initials" [photo]="a.photo" />
+          <div class="aw-text">
+            <h1 class="aw-title">
+              <span>Tất cả tác phẩm</span>
+              <span class="accent-h1" [class.aw-accent-vi]="!plainName()">by {{ a.name }}</span>
+            </h1>
+            <p class="aw-sub">
+              {{ a.books.length }} đầu sách đang bán tại Lightbook@if (updatedAt()) { · cập nhật {{ updatedAt() }} }
+            </p>
+          </div>
+        </div>
+        <a class="btn btn-ghost" [routerLink]="['/authors', a.id]">
+          <img src="images/icons/arrow-left.svg" alt="" width="20" height="20" /> Về trang tác giả
+        </a>
+      </header>
+
+      <form class="filter-bar" role="search" (submit)="$event.preventDefault()">
+        <label class="dropdown" [class.is-set]="current.genre">
+          <select aria-label="Thể loại" [value]="current.genre" (change)="update({ genre: $any($event.target).value || null })">
+            <option value="">Thể loại</option>
+            @for (genre of a.genres; track genre) {
+              <option [value]="genre" [selected]="genre === current.genre">{{ genre }}</option>
+            }
+          </select>
+        </label>
+        <label class="dropdown" [class.is-set]="current.type">
+          <select aria-label="Loại sách" [value]="current.type" (change)="update({ type: $any($event.target).value || null })">
+            <option value="">Loại sách</option>
+            @for (type of types(); track type) {
+              <option [value]="type" [selected]="type === current.type">{{ typeLabels[type] }}</option>
+            }
+          </select>
+        </label>
+        <label class="dropdown" [class.is-set]="current.price">
+          <select aria-label="Khoảng giá" [value]="current.price" (change)="update({ price: $any($event.target).value || null })">
+            <option value="">Khoảng giá</option>
+            @for (range of priceRanges; track range.key) {
+              <option [value]="range.key">{{ range.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="search">
+          <img src="images/icons/search.svg" alt="" width="20" height="20" />
+          <input #searchInput type="search" placeholder="Tìm trong tác phẩm của {{ a.name }}…" aria-label="Tìm trong tác phẩm"
+            [value]="current.q" (input)="update({ q: searchInput.value || null })" />
+        </label>
+      </form>
+
+      <div class="aw-result">
+        <div class="aw-active">
+          <strong>Hiển thị {{ results().length }} đầu sách</strong>
+          @for (chip of activeFilters(); track chip.label) {
+            <button type="button" class="aw-chip" (click)="update(chip.patch)" [attr.aria-label]="'Bỏ lọc ' + chip.label">
+              {{ chip.label }} <img src="images/icons/x-small.svg" alt="" width="14" height="14" />
+            </button>
+          }
+          @if (activeFilters().length) {
+            <button type="button" class="aw-clear" (click)="clearFilters()">Xóa bộ lọc</button>
+          }
+        </div>
+        <label class="sort">
+          Sắp xếp:
+          <select [value]="current.sort" (change)="update({ sort: $any($event.target).value === 'newest' ? null : $any($event.target).value })">
+            <option value="newest">Mới phát hành</option>
+            <option value="price-asc">Giá thấp đến cao</option>
+            <option value="price-desc">Giá cao đến thấp</option>
+            <option value="title">Tên A–Z</option>
+          </select>
+        </label>
+      </div>
+
+      @if (results().length) {
+        <div class="aw-grid">
+          @for (book of results(); track book._id) {
+            <app-book-card [book]="book" />
+          }
+        </div>
+        <p class="aw-end">
+          Bạn đã xem hết {{ results().length }} tác phẩm.
+          <a [routerLink]="['/authors']" [queryParams]="a.genres.length ? { genre: a.genres[0] } : {}">Khám phá tác giả tương tự →</a>
+        </p>
+      } @else if (a.books.length) {
+        <app-status-card title="Không tìm thấy tác phẩm phù hợp" message="Thử bỏ bớt bộ lọc hoặc đổi từ khoá.">
+          <button type="button" class="btn btn-pill" (click)="clearFilters()">Xóa bộ lọc</button>
+        </app-status-card>
+      } @else {
+        <app-status-card title="Chưa có tác phẩm đang bán" message="Lightbook sẽ cập nhật sách của tác giả này sớm." />
+      }
+    </section>
+  }
+}

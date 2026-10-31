@@ -1,0 +1,26 @@
+.ae-hero { display: flex; flex-direction: column; gap: 28px; padding-top: var(--space-40); padding-bottom: 48px; }
+
+.ae-title { position: relative; padding-bottom: 34px; }
+.ae-sticker { position: absolute; }
+.ae-sticker-left { top: 70px; left: 40px; }
+.ae-sticker-right { top: 20px; right: 88px; }
+
+.ae-status { padding-bottom: var(--space-80); }
+
+.ae-list { display: flex; flex-direction: column; gap: var(--space-24); padding-top: var(--space-40); padding-bottom: var(--space-80); }
+
+.ae-filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-12); }
+
+.ae-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-12); margin: 0; }
+
+.ae-past { background: var(--color-bg-subtle); border-top: var(--border-default) solid var(--color-border-strong); }
+.ae-past-inner { display: flex; flex-direction: column; gap: var(--space-24); padding-top: 60px; padding-bottom: var(--space-80); }
+
+@media (max-width: 1100px) {
+  .ae-sticker { display: none; }
+}
+
+@media (max-width: 640px) {
+  .ae-heading .h2 { font-size: 28px; }
+  .ae-heading .accent-h2 { font-size: 30px; }
+}

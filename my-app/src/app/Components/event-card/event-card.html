@@ -1,0 +1,51 @@
+<div class="ev-date">
+  <span class="ev-month">{{ date().month }}</span>
+  <span class="ev-day">{{ date().day }}</span>
+  <span class="ev-weekday">{{ date().weekday }}</span>
+</div>
+
+<div class="ev-body">
+  <div class="ev-tags">
+    @if (event().type) {
+      <span class="ev-tag">{{ event().type }}</span>
+    }
+    @if (event().format) {
+      <span class="ev-tag">{{ event().format === 'online' ? 'Online' : 'Tại cửa hàng' }}</span>
+    }
+    @if (state() === 'past') {
+      <span class="ev-tag ev-tag-muted">Đã diễn ra</span>
+    }
+  </div>
+  <h3 class="ev-title">{{ event().title }}</h3>
+  <div class="ev-meta">
+    <span><img src="images/icons/clock.svg" alt="" width="16" height="16" />{{ time() }}</span>
+    @if (place()) {
+      <span><img src="images/icons/marker-pin.svg" alt="" width="16" height="16" />{{ place() }}</span>
+    }
+  </div>
+</div>
+
+<div class="ev-action">
+  @switch (state()) {
+    @case ('upcoming') {
+      @if (seats() !== null) {
+        <span class="ev-note">Còn {{ seats() }}/{{ event().capacity }} chỗ</span>
+      }
+      <button type="button" class="ev-btn ev-btn-primary" (click)="reserve.emit(event())">
+        Giữ chỗ miễn phí <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+      </button>
+    }
+    @case ('full') {
+      <span class="ev-note ev-note-muted">Hết chỗ</span>
+      <button type="button" class="ev-btn" disabled>Đã hết chỗ</button>
+    }
+    @case ('past') {
+      @if (event().recordingUrl) {
+        <span class="ev-note ev-note-muted">Có bản ghi</span>
+        <a class="ev-btn" [href]="event().recordingUrl" target="_blank" rel="noopener">
+          Xem lại <img src="images/icons/arrow-right.svg" alt="" width="20" height="20" />
+        </a>
+      }
+    }
+  }
+</div>

@@ -15,8 +15,6 @@ import { AboutUs } from './Pages/about-us/about-us';
 import { BrowseBook } from './Pages/browse-book/browse-book';
 import { Cart } from './Pages/cart/cart';
 import { Checkout } from './Pages/checkout/checkout';
-import { AuthorList } from './Pages/author/author-list/author-list';
-import { AuthorDetail } from './Pages/author/author-detail/author-detail';
 import { NewsList } from './Pages/news/news-list/news-list';
 import { NewsDetail } from './Pages/news/news-detail/news-detail';
 import { Login } from './Pages/auth/login/login';
@@ -35,8 +33,6 @@ import { ReviewPopup } from './Pages/account/popups/review-popup/review-popup';
 import { BuyAgainDrawer } from './Pages/account/popups/buy-again-drawer/buy-again-drawer';
 import { EbookReader } from './Pages/ebook-reader/ebook-reader';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
-import { AuthorWorks } from './Pages/author/author-works/author-works';
-import { AuthorEvents } from './Pages/author/author-events/author-events';
 import { HomeHero } from './Pages/homepage/sections/home-hero/home-hero';
 import { HomeSearch } from './Pages/homepage/sections/home-search/home-search';
 import { HomeFlashSale } from './Pages/homepage/sections/home-flash-sale/home-flash-sale';
@@ -48,7 +44,6 @@ import { HomeRecommendations } from './Pages/homepage/sections/home-recommendati
 import { HomeBestPanel } from './Pages/homepage/sections/home-best-panel/home-best-panel';
 import { HomeDealCard } from './Pages/homepage/sections/home-deal-card/home-deal-card';
 import { ToastHost } from './Components/toast/toast';
-import { Pagination } from './Components/pagination/pagination';
 import { BrowseBanner } from './Pages/browse-book/sections/browse-banner/browse-banner';
 import { BrowseFilters } from './Pages/browse-book/sections/browse-filters/browse-filters';
 import { BrowseEmpty } from './Pages/browse-book/sections/browse-empty/browse-empty';
@@ -65,8 +60,6 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     BrowseBook,
     Cart,
     Checkout,
-    AuthorList,
-    AuthorDetail,
     NewsList,
     NewsDetail,
     Login,
@@ -85,8 +78,6 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     BuyAgainDrawer,
     EbookReader,
     PageNotFound,
-    AuthorWorks,
-    AuthorEvents,
     HomeHero,
     HomeSearch,
     HomeFlashSale,
@@ -98,7 +89,6 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     HomeBestPanel,
     HomeDealCard,
     ToastHost,
-    Pagination,
     BrowseBanner,
     BrowseFilters,
     BrowseEmpty,
