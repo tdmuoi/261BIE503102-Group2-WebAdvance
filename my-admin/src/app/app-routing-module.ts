@@ -21,11 +21,15 @@ import { OrderDetail } from './Pages/orders/order-detail/order-detail';
 import { BuybackDetail } from './Pages/buyback-requests/buyback-detail/buyback-detail';
 import { UsersRoles } from './Pages/settings/users-roles/users-roles';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
+import { adminAuthGuard, adminAuthChildGuard } from './services/admin-auth-service';
 
 const routes: Routes = [
   { path: 'login', component: Login },              // đăng nhập: không có sidebar
   {
-    path: '', component: AdminLayout, children: [    // các trang có sidebar
+    path: '', component: AdminLayout,
+    canActivate: [adminAuthGuard],
+    canActivateChild: [adminAuthChildGuard],
+    children: [    // các trang có sidebar
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: Dashboard },
       { path: 'book-list', component: BookList },

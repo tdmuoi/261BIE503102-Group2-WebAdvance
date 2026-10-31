@@ -1,1 +1,282 @@
-<p>customer-detail works!</p>
+﻿<app-page-heading
+  title="Hồ sơ khách hàng"
+  subtitle="Thông tin, lịch sử mua và hành vi đọc của độc giả."
+  [breadcrumbs]="[
+    { label: 'Tài khoản', link: '/accounts' },
+    { label: 'Khách hàng', link: '/accounts' },
+    { label: customer()?.fullName || 'Hồ sơ' },
+  ]"
+>
+  <button class="btn" disabled title="Chưa có dịch vụ gửi email">✉ Gửi email</button>
+  <button class="btn" disabled title="Chưa có quy trình đặt lại mật khẩu an toàn">
+    ⚿ Đặt lại mật khẩu
+  </button>
+  <button
+    class="btn btn-danger"
+    [disabled]="!customer()?.capabilities?.lock || saving()"
+    (click)="requestLock()"
+  >
+    {{ locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản' }}
+  </button>
+</app-page-heading>
+@if (loading()) {
+  <p class="state" role="status">Đang tải hồ sơ khách hàng...</p>
+}
+@if (error()) {
+  <div class="state error" role="alert">
+    {{ error() }} <button class="btn" (click)="reload()">Thử lại</button>
+    <a class="btn" routerLink="/login">Đăng nhập</a>
+  </div>
+}
+@if (message()) {
+  <p class="state" role="status">{{ message() }}</p>
+}
+<p class="muted" *ngIf="customer()?.dataNote">{{ customer()?.dataNote }}</p>
+@if (customer(); as customer) {
+  <div class="profile-grid">
+    <aside class="card profile-card">
+      <div class="identity">
+        <span class="avatar">{{ initials(customer.fullName) }}</span>
+        <h2>{{ customer.fullName }}</h2>
+        <p>
+          {{ customer.customerCode }} · Tham gia
+          {{ customer.createdAt ? (customer.createdAt | date: 'dd/MM/yyyy' : '+0700') : '—' }}
+        </p>
+        <div class="badges">
+          <span class="tier">{{
+            customer.tier ? 'Thành viên ' + customer.tier : 'Chưa có hạng'
+          }}</span>
+          @if (customer.vip) {
+            <span class="vip">● VIP</span>
+          }
+          <span
+            class="status"
+            [class.status-ok]="customer.status === 'active'"
+            [class.status-bad]="locked"
+            >{{ statusLabel(customer.status) }}</span
+          >
+        </div>
+      </div>
+      <div class="contact">
+        <p>✉ {{ customer.email || 'Chưa có email' }}</p>
+        <p>☎ {{ customer.phone || 'Chưa có số điện thoại' }}</p>
+        <p>⌖ {{ customer.address || 'Chưa có địa chỉ' }}</p>
+        <p>
+          ▦ Sinh nhật {{ customer.birthday ? (customer.birthday | date: 'dd/MM' : '+0700') : '—' }}
+        </p>
+      </div>
+      <div class="metrics">
+        <div>
+          <strong>{{ customer.orderCount ?? '—' }}</strong
+          ><small>Đơn hàng</small>
+        </div>
+        <div>
+          <strong>{{ money(customer.totalSpent) }}</strong
+          ><small>Chi tiêu</small>
+        </div>
+        <div>
+          <strong>{{ customer.points ?? '—' }}</strong
+          ><small>Điểm</small>
+        </div>
+      </div>
+      <p class="muted">Chưa có chính sách nâng hạng được Backend cung cấp.</p>
+      <div class="note">
+        <b>GHI CHÚ NỘI BỘ</b>
+        <p>{{ customer.internalNote || 'Chưa có ghi chú nội bộ.' }}</p>
+      </div>
+      <button class="text-button" disabled title="Chưa có API lưu ghi chú">＋ Thêm ghi chú</button>
+    </aside>
+    <div class="main-column">
+      <div class="stats">
+        <app-stat-card
+          label="Giá trị đơn TB"
+          [value]="money(customer.metrics.averageOrderValue)"
+          note="Từ đơn đã thanh toán / hoàn tất"
+        ></app-stat-card
+        ><app-stat-card
+          label="Tỷ lệ mua lại"
+          [value]="
+            customer.metrics.repurchaseRate === null ? '—' : customer.metrics.repurchaseRate + '%'
+          "
+          note="Chưa có dữ liệu hỗ trợ"
+        ></app-stat-card
+        ><app-stat-card
+          label="Sách đã mua"
+          [value]="customer.metrics.booksPurchased"
+          note="Số lượng trong đơn đã thanh toán"
+        ></app-stat-card
+        ><app-stat-card
+          label="Mua gần nhất"
+          [value]="lastPurchaseDays"
+          [note]="
+            customer.metrics.lastPurchaseAt
+              ? (customer.metrics.lastPurchaseAt | date: 'dd/MM/yyyy' : '+0700') || ''
+              : 'Chưa có dữ liệu'
+          "
+        ></app-stat-card>
+      </div>
+      <section class="card behavior">
+        <h2>Hành vi đọc</h2>
+        <p class="muted">Chưa có dữ liệu đọc sách, thể loại và tác giả đủ tin cậy để tính tỷ lệ.</p>
+        <div class="behavior-grid">
+          <div>
+            <h3>THỂ LOẠI YÊU THÍCH</h3>
+            <p>Chưa có dữ liệu phân tích thể loại.</p>
+          </div>
+          <div>
+            <h3>ĐỊNH DẠNG & TÁC GIẢ</h3>
+            <p>Không suy diễn hành vi đọc từ số đơn hàng.</p>
+          </div>
+        </div>
+      </section>
+      <section class="card history">
+        <div class="section-heading">
+          <h2>Lịch sử giao dịch</h2>
+          <span class="muted">{{ customer.orders.length }} đơn được tải từ Backend</span>
+        </div>
+        <nav class="history-tabs" aria-label="Lịch sử">
+          <button
+            [class.active]="transactionTab() === 'orders'"
+            (click)="transactionTab.set('orders')"
+          >
+            Đơn hàng ({{ customer.orderCount ?? '—' }})</button
+          ><button
+            [class.active]="transactionTab() === 'buyback'"
+            (click)="transactionTab.set('buyback')"
+          >
+            Yêu cầu thanh lý
+            {{ customer.buybacks?.available ? customer.buybacks?.items?.length : '—' }}</button
+          ><button
+            [class.active]="transactionTab() === 'returns'"
+            (click)="transactionTab.set('returns')"
+          >
+            Đổi trả
+            {{ customer.returns?.available ? customer.returns?.items?.length : '—' }}</button
+          ><button
+            [class.active]="transactionTab() === 'reviews'"
+            (click)="transactionTab.set('reviews')"
+          >
+            Đánh giá {{ customer.reviews?.available ? customer.reviews?.items?.length : '—' }}
+          </button>
+        </nav>
+        @if (transactionTab() === 'orders') {
+          @if (!customer.ordersAvailable) {
+            <p class="empty">Chưa có collection đơn hàng đã được xác minh.</p>
+          }
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã đơn</th>
+                  <th>Sách</th>
+                  <th>Ngày đặt</th>
+                  <th class="numeric">Tổng tiền</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (order of rows; track order._id) {
+                  <tr>
+                    <td>
+                      <a [routerLink]="['/order-detail', order._id]">{{ order.code }}</a>
+                    </td>
+                    <td>
+                      <div class="book">
+                        @if (order.items[0]?.image) {
+                          <img
+                            [src]="order.items[0].image"
+                            [alt]="order.items[0].title"
+                            (error)="imageError($event)"
+                          />
+                        }
+                        <span
+                          ><b>{{ order.items[0]?.title || 'Chưa có thông tin sách' }}</b
+                          ><small>{{
+                            order.items.length > 1
+                              ? '+ ' + (order.items.length - 1) + ' sách khác'
+                              : (order.items[0]?.quantity ?? '—') + ' cuốn'
+                          }}</small></span
+                        >
+                      </div>
+                    </td>
+                    <td>
+                      {{ order.createdAt ? (order.createdAt | date: 'dd/MM/yyyy' : '+0700') : '—' }}
+                    </td>
+                    <td class="numeric">{{ money(order.total) }}</td>
+                    <td>
+                      <span
+                        class="status"
+                        [class.status-ok]="
+                          order.status === 'delivered' || order.status === 'completed'
+                        "
+                        [class.status-info]="order.status === 'shipping'"
+                        [class.status-warn]="order.status === 'pending'"
+                        >{{ statusLabel(order.status) }}</span
+                      >
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="empty" colspan="5">Chưa có đơn hàng.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize"
+            [total]="customer.orders.length"
+            itemLabel="đơn hàng"
+            (pageChange)="page.set($event)"
+          ></app-pagination>
+        } @else if (selectedHistory?.available) {
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã yêu cầu</th>
+                  <th>Ngày tạo</th>
+                  <th>{{ transactionTab() === 'reviews' ? 'Đánh giá' : 'Giá trị' }}</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of selectedHistory?.items ?? []; track entry._id) {
+                  <tr>
+                    <td>{{ entry.code }}</td>
+                    <td>
+                      {{ entry.createdAt ? (entry.createdAt | date: 'dd/MM/yyyy' : '+0700') : '—' }}
+                    </td>
+                    <td>
+                      {{
+                        transactionTab() === 'reviews'
+                          ? (entry.rating ?? '—') + '/5'
+                          : money(entry.amount)
+                      }}
+                    </td>
+                    <td>{{ statusLabel(entry.status) }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="empty">Chưa có bản ghi liên kết với khách hàng này.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="empty">Chưa có API lịch sử này theo khách hàng. Không hiển thị dữ liệu mẫu.</p>
+        }
+      </section>
+    </div>
+  </div>
+}
+<app-confirm-dialog
+  [open]="confirming()"
+  [title]="locked ? 'Mở khóa khách hàng?' : 'Khóa khách hàng?'"
+  [message]="'Xác nhận thay đổi trạng thái của ' + (customer()?.fullName ?? '') + '?'"
+  [loading]="saving()"
+  (confirmed)="confirmLock()"
+  (cancelled)="confirming.set(false)"
+></app-confirm-dialog>

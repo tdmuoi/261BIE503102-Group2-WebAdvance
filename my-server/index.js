@@ -9,11 +9,19 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const { MongoClient } = require('mongodb');
+const createAdminAuth = require('./middleware/admin-auth');
+const adminAuthRoutes = require('./routes/admin-auth');
+const adminVouchersRoutes = require('./routes/admin-vouchers');
+const adminAccountsRoutes = require('./routes/admin-accounts');
 
 const app = express();
 const port = Number(process.env.PORT) || 3002;
 const dbName = process.env.DB_NAME;
 const mongoUri = process.env.MONGODB_URI;
+
+// Cookie/CSRF preflight must run before the existing CORS middleware.
+const adminAuth = createAdminAuth(() => database);
+app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts'], adminAuth.cors);
 
 app.use(cors({
   origin: ['http://localhost:4200', 'http://localhost:4201']
@@ -23,6 +31,10 @@ app.use(morgan('combined'));
 
 let database;
 let client;
+
+app.use('/api/admin/auth', adminAuthRoutes(() => database));
+app.use('/api/admin', adminVouchersRoutes(() => database));
+app.use('/api/admin/accounts', adminAccountsRoutes(() => database));
 
 // API kiểm tra Web Server
 app.get('/', (req, res) => {

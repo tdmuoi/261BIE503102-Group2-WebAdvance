@@ -1,9 +1,6 @@
-
 <main class="login-page">
-
   <!-- BEN TRAI: GIOI THIEU LIGHTBOOK -->
   <section class="login-story" aria-label="Giới thiệu Lightbook Admin">
-
     <a class="brand" routerLink="/login" aria-label="Lightbook Admin">
       <span class="brand-logo">L</span>
       <span class="brand-text">
@@ -16,8 +13,8 @@
       <h1>Read light,<br /><em>think bright.</em></h1>
 
       <p class="story-intro">
-        Trang quản trị dành cho đội ngũ Lightbook — sách, đơn hàng,
-        thanh lý và khách hàng ở cùng một nơi.
+        Trang quản trị dành cho đội ngũ Lightbook — sách, đơn hàng, thanh lý và khách hàng ở cùng
+        một nơi.
       </p>
 
       <ul class="feature-list">
@@ -37,25 +34,17 @@
 
       <!-- HINH BIA SACH -->
       <div class="book-row" aria-label="Một số đầu sách Lightbook">
-
         @if (books.length > 0) {
           @for (book of books; track book._id; let i = $index) {
             <div class="book-cover" [ngClass]="'cover-' + (i + 1)">
-
               @if (book.image) {
-                <img
-                  [src]="book.image"
-                  [alt]="book.title"
-                  (error)="onImageError($event)"
-                />
+                <img [src]="book.image" [alt]="book.title" (error)="onImageError($event)" />
               }
 
               <div class="book-overlay">
                 <small>{{ book.authorName || 'Lightbook' }}</small>
                 <strong>
-                  {{ book.title.length > 14
-                    ? (book.title | slice:0:14) + '…'
-                    : book.title }}
+                  {{ book.title.length > 14 ? (book.title | slice: 0 : 14) + '…' : book.title }}
                 </strong>
                 <span>{{ book.categoryName || 'Bestseller' }}</span>
               </div>
@@ -87,47 +76,51 @@
             <span>một vụ án chưa lời giải</span>
           </div>
         }
-
       </div>
     </div>
 
     <footer class="story-footer">
       <span>© 2026 Lightbook · Admin v2.4</span>
-      <span class="system-status">
-        <i></i> Cổng quản trị LightBooks
-      </span>
+      <span class="system-status"> <i></i> Cổng quản trị LightBooks </span>
     </footer>
   </section>
 
-
   <!-- BEN PHAI: FORM DANG NHAP -->
   <section class="login-panel" aria-label="Đăng nhập quản trị">
-
     <div class="login-content">
       <div class="login-card">
-
         <header class="form-heading">
           <h2>Đăng nhập quản trị</h2>
           <p>Dùng tài khoản được cấp quyền quản trị để tiếp tục.</p>
-          <p class="demo-note">Thử nhập email hợp lệ và mật khẩu để bật nút đăng nhập. Đây là minh họa, chưa kết nối API.</p>
+          <p class="demo-note">
+            Phiên đăng nhập được bảo vệ bằng cookie HttpOnly. Phiên kết thúc sau 30 phút không hoạt
+            động.
+          </p>
         </header>
 
         <!-- FORM VALIDATION - CHUONG V -->
         <form
           class="login-form"
           #loginForm="ngForm"
-          (ngSubmit)="onLogin()"
+          (ngSubmit)="onLogin(loginForm)"
+          [attr.aria-busy]="loading || checking"
           novalidate
         >
+          <p role="status" *ngIf="checking">Đang kiểm tra phiên đăng nhập...</p>
+          <div class="session-note" *ngIf="auth.user">
+            Đang đăng nhập: {{ auth.user?.email }}.
+            <button type="button" class="forgot-password" (click)="logout()" [disabled]="loading">
+              Đăng xuất và kết thúc phiên
+            </button>
+          </div>
+          <p class="form-error" role="alert" *ngIf="error">{{ error }}</p>
+          <p role="status" *ngIf="message">{{ message }}</p>
 
           <!-- EMAIL -->
           <div class="field-group">
             <label for="email">Email</label>
 
-            <div
-              class="input-wrap"
-              [class.has-error]="emailCtrl.invalid && emailCtrl.touched"
-            >
+            <div class="input-wrap" [class.has-error]="emailCtrl.invalid && emailCtrl.touched">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="3" y="5" width="18" height="14" rx="2"></rect>
                 <path d="m4 7 8 6 8-6"></path>
@@ -139,36 +132,26 @@
                 type="email"
                 placeholder="Nhập email quản trị"
                 autocomplete="username"
-
+                maxlength="254"
+                [disabled]="loading"
                 [(ngModel)]="user.email"
                 #emailCtrl="ngModel"
-
                 required
                 email
-
                 [class.is-invalid]="emailCtrl.invalid && emailCtrl.touched"
               />
             </div>
 
             <!-- KIEM TRA EMAIL -->
-            <div
-              class="form-error"
-              *ngIf="emailCtrl.invalid && emailCtrl.touched"
-            >
-              <small *ngIf="emailCtrl.errors?.['required']">
-                Vui lòng nhập email.
-              </small>
+            <div class="form-error" *ngIf="emailCtrl.invalid && emailCtrl.touched">
+              <small *ngIf="emailCtrl.errors?.['required']"> Vui lòng nhập email. </small>
 
-              <small *ngIf="emailCtrl.errors?.['email']">
-                Email không đúng định dạng.
-              </small>
+              <small *ngIf="emailCtrl.errors?.['email']"> Email không đúng định dạng. </small>
             </div>
           </div>
 
-
           <!-- MAT KHAU -->
           <div class="field-group">
-
             <div class="label-row">
               <label for="password">Mật khẩu</label>
               <button
@@ -196,12 +179,11 @@
                 [type]="showPassword ? 'text' : 'password'"
                 placeholder="Nhập mật khẩu"
                 autocomplete="current-password"
-
+                maxlength="1024"
+                [disabled]="loading"
                 [(ngModel)]="user.password"
                 #passwordCtrl="ngModel"
-
                 required
-
                 [class.is-invalid]="passwordCtrl.invalid && passwordCtrl.touched"
               />
 
@@ -214,29 +196,18 @@
                 [attr.aria-pressed]="showPassword"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"
-                  ></path>
+                  <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
                   <circle cx="12" cy="12" r="2.5"></circle>
-                  <path
-                    *ngIf="showPassword"
-                    d="M3 3l18 18"
-                  ></path>
+                  <path *ngIf="showPassword" d="M3 3l18 18"></path>
                 </svg>
               </button>
             </div>
 
             <!-- KIEM TRA MAT KHAU -->
-            <div
-              class="form-error"
-              *ngIf="passwordCtrl.invalid && passwordCtrl.touched"
-            >
-              <small *ngIf="passwordCtrl.errors?.['required']">
-                Vui lòng nhập mật khẩu.
-              </small>
+            <div class="form-error" *ngIf="passwordCtrl.invalid && passwordCtrl.touched">
+              <small *ngIf="passwordCtrl.errors?.['required']"> Vui lòng nhập mật khẩu. </small>
             </div>
           </div>
-
 
           <!-- GHI NHO DANG NHAP -->
           <label class="remember-row">
@@ -244,23 +215,21 @@
               type="checkbox"
               name="rememberMe"
               [(ngModel)]="user.rememberMe"
+              [disabled]="loading"
             />
             <span>Ghi nhớ đăng nhập trên thiết bị này</span>
           </label>
-
 
           <!-- NUT DANG NHAP -->
           <button
             class="submit-button"
             type="submit"
-            [disabled]="loginForm.invalid"
+            [disabled]="loginForm.invalid || loading || checking"
           >
-            Đăng nhập
+            {{ loading ? 'Đang xử lý...' : 'Đăng nhập' }}
             <span aria-hidden="true">→</span>
           </button>
-
         </form>
-
 
         <!-- PHAN CACH -->
         <div class="separator">
@@ -268,21 +237,13 @@
         </div>
 
         <!-- SSO CHUA TICH HOP -->
-        <button
-          class="sso-button"
-          type="button"
-          disabled
-          title="SSO chưa được tích hợp"
-        >
+        <button class="sso-button" type="button" disabled title="SSO chưa được tích hợp">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="5" y="3" width="14" height="18" rx="1"></rect>
-            <path
-              d="M9 7h2m2 0h2M9 11h2m2 0h2M9 15h2m2 0h2m-5 6v-4h2v4"
-            ></path>
+            <path d="M9 7h2m2 0h2M9 11h2m2 0h2M9 15h2m2 0h2m-5 6v-4h2v4"></path>
           </svg>
           Đăng nhập bằng SSO công ty
         </button>
-
 
         <!-- THONG BAO BAO MAT -->
         <div class="security-note">
@@ -292,11 +253,10 @@
           </svg>
 
           <p>
-            Khu vực dành riêng cho nhân viên được phân quyền.
-            Vui lòng không chia sẻ thông tin đăng nhập.
+            Khu vực dành riêng cho nhân viên được phân quyền. Vui lòng không chia sẻ thông tin đăng
+            nhập.
           </p>
         </div>
-
       </div>
 
       <!-- LINK WEBSITE KHACH HANG -->
@@ -307,7 +267,6 @@
           <span aria-hidden="true">→</span>
         </a>
       </p>
-
     </div>
   </section>
 </main>

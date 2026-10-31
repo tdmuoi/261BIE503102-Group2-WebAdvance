@@ -59,13 +59,14 @@
           <span class="avatar">{{ initials }}</span>
         </div>
 
-        <button type="button" class="icon-btn" (click)="logout()" aria-label="Đăng xuất" title="Đăng xuất">
+        <button type="button" class="icon-btn" (click)="logout()" [disabled]="loggingOut" [attr.aria-busy]="loggingOut" aria-label="Đăng xuất" title="Đăng xuất">
           <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.logout" /></svg>
         </button>
       </div>
     </header>
 
     <main class="content">
+      <p class="status status-bad" role="alert" *ngIf="logoutError">{{ logoutError }}</p>
       <router-outlet></router-outlet>
     </main>
   </div>

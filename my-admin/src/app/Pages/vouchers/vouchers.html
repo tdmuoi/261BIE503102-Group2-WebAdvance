@@ -1,1 +1,456 @@
-<p>vouchers works!</p>
+﻿<section class="voucher-page">
+  <div class="breadcrumb">Admin　/　Nội dung　/　<b>Mã giảm giá</b></div>
+  <header>
+    <div>
+      <h1>Mã giảm giá</h1>
+      <p>Tạo voucher, đặt điều kiện áp dụng và theo dõi hiệu quả khuyến mãi.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" (click)="exportCsv()" [disabled]="exporting || loading || !loaded">
+        <svg class="voucher-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5" />
+        </svg>
+        {{ exporting ? 'Đang xuất...' : 'Xuất CSV' }}</button
+      ><button class="btn btn-primary" (click)="openForm()" [disabled]="saving">
+        ＋ Tạo mã giảm giá
+      </button>
+    </div>
+  </header>
+  <p class="demo">
+    Dữ liệu được tải từ Backend. Thay đổi chỉ được xác nhận đã lưu khi API trả về thành công.
+  </p>
+  <div class="notice" role="status" *ngIf="message">
+    {{ message }} <button (click)="message = ''" aria-label="Đóng thông báo">×</button>
+  </div>
+  <p class="demo" *ngIf="dataNote">{{ dataNote }}</p>
+  <div class="notice" role="alert" *ngIf="apiError">
+    {{ apiError }} <a class="btn" routerLink="/login">Đăng nhập</a>
+    <button type="button" class="btn" (click)="loadVouchers()">Thử lại</button>
+  </div>
+  <div class="stats">
+    <article>
+      <h2>Mã đang chạy</h2>
+      <strong>{{ summary?.active ?? '—' }}</strong>
+      <p>{{ expiring }} mã sắp hết hạn trong 7 ngày</p>
+    </article>
+    <article>
+      <h2>Tổng lượt sử dụng</h2>
+      <strong>{{ totalUses === null ? '—' : totalUses.toLocaleString('vi-VN') }}</strong>
+      <p *ngIf="totalUses === null">Chưa có dữ liệu sử dụng</p>
+    </article>
+    <article>
+      <h2>Doanh thu có voucher</h2>
+      <strong>{{ million(totalRevenue) }}</strong>
+      <p *ngIf="totalRevenue === null">Chưa có dữ liệu doanh thu</p>
+    </article>
+    <article>
+      <h2>Tổng tiền đã giảm</h2>
+      <strong>{{ million(totalDiscount) }}</strong>
+      <p *ngIf="totalDiscount === null">Chưa có dữ liệu tiền giảm</p>
+    </article>
+  </div>
+  <div class="workspace" [class.full]="!formOpen">
+    <div class="left">
+      <section class="panel" [attr.aria-busy]="loading">
+        <div class="toolbar">
+          <div class="filters">
+            <button
+              class="chip"
+              *ngFor="let f of filters"
+              [class.is-active]="filter === f.key"
+              [attr.aria-pressed]="filter === f.key"
+              (click)="selectFilter(f.key)"
+            >
+              {{ filter === f.key ? '✓ ' : '' }}{{ f.label }} ({{ count(f.key) }})
+            </button>
+          </div>
+          <input
+            class="search"
+            placeholder="⌕ Tìm mã..."
+            aria-label="Tìm mã hoặc mô tả"
+            maxlength="160"
+            [(ngModel)]="search"
+            (ngModelChange)="searchChanged()"
+          />
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã / mô tả</th>
+                <th>Loại</th>
+                <th>Giá trị</th>
+                <th>Đã dùng</th>
+                <th>Thời gian</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let v of rows">
+                <td>
+                  <button
+                    class="code"
+                    (click)="copy(v.code)"
+                    [attr.aria-label]="'Sao chép ' + v.code"
+                  >
+                    {{ v.code }}
+                    <svg class="voucher-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="8" y="8" width="12" height="12" rx="2" />
+                      <path d="M15 8V4H4v11h4" />
+                    </svg>
+                  </button>
+                  <p class="description">{{ v.description || 'Ưu đãi Lightbook' }}</p>
+                </td>
+                <td>{{ typeLabel(v.type) }}</td>
+                <td>
+                  <b>{{ valueLabel(v) }}</b>
+                </td>
+                <td class="usage">
+                  <b>{{ v.used }} / {{ v.limit }}</b>
+                  <div class="track">
+                    <span
+                      [style.width.%]="progress(v)"
+                      [class.exhausted]="status(v) === 'expired'"
+                    ></span>
+                  </div>
+                </td>
+                <td [attr.title]="date(v.start) + ' – ' + date(v.end)">
+                  {{ date(v.start).slice(0, 5) }} – {{ date(v.end).slice(0, 5) }}
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="status(v)">● {{ statusLabel(v) }}</span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button
+                      class="icon"
+                      [attr.aria-label]="'Sửa ' + v.code"
+                      (click)="openForm(v)"
+                      [disabled]="saving || changingId !== null"
+                    >
+                      <svg class="voucher-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0-4-4L5 15Z" />
+                      </svg></button
+                    ><button
+                      class="icon"
+                      [attr.aria-label]="'Thao tác ' + v.code"
+                      [attr.aria-expanded]="menuId === v._id"
+                      [disabled]="saving || changingId !== null"
+                      (click)="menuId = menuId === v._id ? null : v._id"
+                    >
+                      ⋯
+                    </button>
+                    <div class="menu" *ngIf="menuId === v._id">
+                      <button (click)="toggleStatus(v)">
+                        {{ v.paused ? 'Kích hoạt lại' : 'Tạm dừng' }}</button
+                      ><button (click)="openReport(); menuId = null">Xem báo cáo</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="7" class="empty" role="status">Đang tải danh sách voucher...</td>
+              </tr>
+              <tr *ngIf="!loading && !rows.length">
+                <td colspan="7" class="empty">
+                  {{
+                    apiError
+                      ? 'Không tải được dữ liệu.'
+                      : search || filter !== 'all'
+                        ? 'Không tìm thấy mã phù hợp.'
+                        : 'Chưa có voucher. Bạn có thể tạo mã mới.'
+                  }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <app-pagination
+          *ngIf="!loading && loaded"
+          [page]="page"
+          [pageSize]="pageSize"
+          [total]="total"
+          itemLabel="mã"
+          (pageChange)="changePage($event)"
+        ></app-pagination>
+      </section>
+      <section class="panel performance">
+        <div class="report-heading">
+          <div>
+            <h2>Hiệu quả theo mã · Tích luỹ</h2>
+            <p>Doanh thu từ đơn có áp dụng mã</p>
+          </div>
+          <button class="btn" (click)="openReport()" [disabled]="reportLoading">Xem báo cáo</button>
+        </div>
+        <p class="empty" *ngIf="!report?.dataAvailable">
+          Chưa có dữ liệu hiệu quả voucher. Chức năng ghi nhận sử dụng khi đặt hàng chưa được tích
+          hợp.
+        </p>
+        <div class="bar-row" *ngFor="let v of leaders; let i = index">
+          <div>
+            <b>{{ v.code }}</b
+            ><b>{{ million(v.revenue) }}</b>
+          </div>
+          <div class="track">
+            <span
+              [style.width.%]="totalRevenue ? (v.revenue / totalRevenue) * 100 : 0"
+              [style.opacity]="1 - i * 0.22"
+            ></span>
+          </div>
+        </div>
+      </section>
+    </div>
+    <aside class="panel editor" *ngIf="formOpen">
+      <div class="editor-heading">
+        <h2>{{ editingId ? 'Sửa mã giảm giá' : 'Tạo mã giảm giá' }}</h2>
+        <button class="icon" aria-label="Đóng form" (click)="closeForm()" [disabled]="saving">
+          ×
+        </button>
+      </div>
+      <form #voucherForm="ngForm" (ngSubmit)="save(voucherForm)" novalidate>
+        <p role="status" *ngIf="loadingDetail">Đang tải chi tiết voucher...</p>
+        <fieldset class="voucher-fields" [disabled]="saving || loadingDetail">
+          <label for="code">Mã giảm giá</label>
+          <div class="code-field">
+            <input
+              id="code"
+              name="code"
+              [(ngModel)]="draft.code"
+              required
+              pattern="[a-zA-Z0-9_-]{3,24}"
+              maxlength="24"
+              #code="ngModel"
+            /><button type="button" class="btn" (click)="randomCode()">⟳ Ngẫu nhiên</button>
+          </div>
+          <small class="error" *ngIf="code.invalid && code.touched"
+            >Mã gồm 3–24 chữ, số, _ hoặc -.</small
+          >
+          <label for="voucher-name">Tên ưu đãi</label>
+          <input
+            id="voucher-name"
+            name="name"
+            [(ngModel)]="draft.name"
+            required
+            maxlength="120"
+            placeholder="Nhập tên ưu đãi"
+          />
+          <label>Loại giảm giá</label>
+          <div class="segments">
+            <button
+              type="button"
+              [class.selected]="draft.type === 'percent'"
+              (click)="draft.type = 'percent'"
+            >
+              Phần trăm</button
+            ><button
+              type="button"
+              [class.selected]="draft.type === 'amount'"
+              (click)="draft.type = 'amount'"
+            >
+              Số tiền</button
+            ><button
+              type="button"
+              [class.selected]="draft.type === 'shipping'"
+              (click)="draft.type = 'shipping'"
+            >
+              Freeship
+            </button>
+          </div>
+          <div class="two">
+            <div>
+              <label for="value">Giá trị {{ draft.type === 'percent' ? '(%)' : '(đ)' }}</label
+              ><input
+                id="value"
+                name="value"
+                type="number"
+                [(ngModel)]="draft.value"
+                required
+                min="1"
+                [max]="draft.type === 'percent' ? 100 : 1000000000"
+              />
+            </div>
+            <div>
+              <label for="max">Giảm tối đa (đ)</label
+              ><input
+                id="max"
+                name="maxDiscount"
+                type="number"
+                [(ngModel)]="draft.maxDiscount"
+                required
+                min="0"
+              />
+            </div>
+          </div>
+          <label for="minimum">Đơn hàng tối thiểu (đ)</label
+          ><input
+            id="minimum"
+            name="minOrder"
+            type="number"
+            [(ngModel)]="draft.minOrder"
+            required
+            min="0"
+          />
+          <label>Áp dụng cho</label>
+          <p class="demo">
+            Database hiện chưa có điều kiện nhóm sách, khách hàng mới hoặc gợi ý giỏ hàng. Các tuỳ
+            chọn này chưa được lưu.
+          </p>
+          <div class="filters">
+            <button
+              type="button"
+              class="chip"
+              *ngFor="let c of categories"
+              [class.is-active]="draft.categories.includes(c)"
+              [attr.aria-pressed]="draft.categories.includes(c)"
+              (click)="toggleCategory(c)"
+              disabled
+            >
+              {{ draft.categories.includes(c) ? '✓ ' : '' }}{{ c }}
+            </button>
+          </div>
+          <div class="two">
+            <div>
+              <label for="limit">Tổng lượt dùng</label
+              ><input
+                id="limit"
+                name="limit"
+                type="number"
+                [(ngModel)]="draft.limit"
+                required
+                min="1"
+                step="1"
+              />
+            </div>
+            <div>
+              <label for="customer">Mỗi khách</label
+              ><input
+                id="customer"
+                name="perCustomer"
+                type="number"
+                [(ngModel)]="draft.perCustomer"
+                required
+                min="1"
+                step="1"
+              />
+            </div>
+          </div>
+          <div class="two">
+            <div>
+              <label for="start">Bắt đầu</label
+              ><input id="start" name="start" type="date" [(ngModel)]="draft.start" required />
+            </div>
+            <div>
+              <label for="end">Kết thúc</label
+              ><input
+                id="end"
+                name="end"
+                type="date"
+                [(ngModel)]="draft.end"
+                [min]="draft.start"
+                required
+              />
+            </div>
+          </div>
+          <label class="toggle-row"
+            ><span><b>Chỉ khách hàng mới</b><small>Áp dụng cho tài khoản chưa có đơn</small></span
+            ><input
+              class="toggle"
+              name="newOnly"
+              type="checkbox"
+              [(ngModel)]="draft.newOnly"
+              disabled
+          /></label>
+          <label class="toggle-row"
+            ><span><b>Gợi ý ở trang giỏ hàng</b><small>Hiện voucher khi đủ điều kiện</small></span
+            ><input
+              class="toggle"
+              name="suggest"
+              type="checkbox"
+              [(ngModel)]="draft.suggest"
+              disabled
+          /></label>
+          <p class="preview-label">XEM TRƯỚC Ở GIỎ HÀNG</p>
+          <div class="preview">
+            <strong
+              >{{ draft.code || 'MÃ GIẢM GIÁ' }}
+              <span>{{
+                draft.type === 'shipping' ? 'Freeship' : '-' + valueLabel(draft)
+              }}</span></strong
+            >
+            <p>
+              {{ draft.type === 'shipping' ? 'Hỗ trợ phí vận chuyển ' : 'Giảm ' + valueLabel(draft)
+              }}{{
+                draft.type === 'percent' && draft.maxDiscount
+                  ? ' · tối đa ' + money(draft.maxDiscount)
+                  : ''
+              }}
+            </p>
+            <small>Đơn từ {{ money(draft.minOrder) }} · HSD {{ date(draft.end) }}</small>
+          </div>
+          <label for="description">Mô tả</label
+          ><input
+            id="description"
+            name="description"
+            [(ngModel)]="draft.description"
+            maxlength="160"
+            placeholder="Mô tả ưu đãi (không bắt buộc)"
+          />
+          <div class="error" role="alert" *ngIf="errors.length">
+            <p *ngFor="let error of errors">{{ error }}</p>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn" (click)="closeForm()">Huỷ</button
+            ><button type="submit" class="btn btn-primary">
+              {{ saving ? 'Đang lưu...' : '✓ Lưu & kích hoạt' }}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </aside>
+  </div>
+  <div class="backdrop" *ngIf="reportOpen" (click)="reportOpen = false">
+    <section
+      class="panel report-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="report-title"
+      tabindex="0"
+      (keydown.escape)="reportOpen = false"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="editor-heading">
+        <h2 id="report-title">Báo cáo hiệu quả voucher</h2>
+        <button class="icon" aria-label="Đóng báo cáo" (click)="reportOpen = false">×</button>
+      </div>
+      <p role="status" *ngIf="reportLoading">Đang tải báo cáo...</p>
+      <p role="alert" *ngIf="reportError">{{ reportError }}</p>
+      <p *ngIf="report">{{ report.message }}</p>
+      <div class="table-scroll" *ngIf="report?.dataAvailable">
+        <table>
+          <thead>
+            <tr>
+              <th>Mã</th>
+              <th>Lượt dùng tích luỹ</th>
+              <th>Doanh thu tích luỹ</th>
+              <th>Tiền giảm tích luỹ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of report?.items">
+              <td>{{ v.code }}</td>
+              <td>{{ v.used }}</td>
+              <td>{{ money(v.revenue) }}</td>
+              <td>{{ money(v.discount) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p *ngIf="report?.dataAvailable">
+        Tổng doanh thu: {{ money(report?.revenue ?? null) }} · Tổng tiền giảm:
+        {{ money(report?.discount ?? null) }}
+      </p>
+      <button class="btn" (click)="reportOpen = false">Đóng báo cáo</button>
+    </section>
+  </div>
+</section>
