@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="480" viewBox="0 0 768 480" fill="none">
+  <!-- Lightbook News · Hướng dẫn: bảng kẹp checklist + bút chì -->
+  <defs><pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse" x="24" y="24"><path d="M56 0H0V56" stroke="#F5E7A1" stroke-width="1.5"/></pattern></defs>
+  <rect width="768" height="480" fill="#FEF9C3"/><rect width="768" height="480" fill="url(#g)"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <rect x="276" y="84" width="216" height="300" rx="16" fill="#1C1917" transform="translate(0 6)"/>
+    <rect x="276" y="84" width="216" height="300" rx="16" fill="#FFFFFF"/>
+    <rect x="336" y="68" width="96" height="34" rx="10" fill="#FFD8EB"/>
+    <rect x="306" y="136" width="30" height="30" rx="8" fill="#D8F0ED"/>
+    <rect x="306" y="196" width="30" height="30" rx="8" fill="#D8F0ED"/>
+    <rect x="306" y="256" width="30" height="30" rx="8" fill="#D8F0ED"/>
+    <rect x="306" y="316" width="30" height="30" rx="8" fill="#FFFFFF"/>
+  </g>
+  <g stroke="#1C1917" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M313 151l7 7 12-14M313 211l7 7 12-14M313 271l7 7 12-14"/></g>
+  <g stroke="#D6D3D1" stroke-width="6" stroke-linecap="round"><path d="M352 151H462M352 211H448M352 271H462M352 331H436"/></g>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round" transform="rotate(35 560 260)">
+    <rect x="540" y="150" width="40" height="180" fill="#FDE047"/>
+    <path d="M540 330L560 370L580 330Z" fill="#FFD8EB"/>
+    <rect x="540" y="136" width="40" height="18" rx="4" fill="#F9A8D4"/>
+  </g>
+  <circle cx="140" cy="350" r="28" fill="#D8F0ED" stroke="#1C1917" stroke-width="2"/>
+  <path d="M640 100c9 0 16-7 16-16 0 9 7 16 16 16-9 0-16 7-16 16 0-9-7-16-16-16z" fill="#1C1917"/>
+  <g transform="rotate(-8 160 126)"><rect x="80" y="110" width="160" height="40" rx="20" fill="#1C1917"/><rect x="80" y="106" width="160" height="40" rx="20" fill="#FFD8EB" stroke="#1C1917" stroke-width="2"/><text x="160" y="132" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#1C1917">✦ HƯỚNG DẪN</text></g>
+</svg>

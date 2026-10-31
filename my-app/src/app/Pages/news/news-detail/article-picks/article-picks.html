@@ -1,0 +1,67 @@
+@let a = article();
+<header class="ap-hero">
+  <div class="ap-title">
+    <p class="ap-meta">
+      @if (category()) {
+        <span class="ap-badge">{{ category() }}</span>
+      }
+      {{ a.readMinutes }} phút đọc@if (date()) { · {{ date() }} }
+    </p>
+    <h1 class="display-page-title">{{ a.title }}</h1>
+    @if (a.desc) {
+      <p class="ap-dek">{{ a.desc }}</p>
+    }
+    <div class="ap-byline">
+      @if (a.author?.name) {
+        <span class="ap-avatar" aria-hidden="true">{{ authorInitials() }}</span>
+        <span class="ap-author">
+          <strong>{{ a.author!.name }}</strong>
+          @if (a.author!.role) {
+            <small>{{ a.author!.role }}</small>
+          }
+        </span>
+      }
+      <app-article-share [articleId]="a._id" [showLabel]="!a.author?.name" />
+    </div>
+  </div>
+
+  <figure class="ap-cover">
+    <img [src]="cover()" [alt]="a.title" (error)="onCoverError()" />
+    @if (a.imageCredit) {
+      <figcaption>{{ a.imageCredit }}</figcaption>
+    }
+  </figure>
+</header>
+
+<div class="ap-body">
+  <app-article-content [html]="html()" />
+
+  <ol class="ap-list">
+    @for (book of books(); track book._id; let i = $index) {
+      <li><app-pick-item [book]="book" [index]="i" (add)="addToCart($event)" /></li>
+    }
+  </ol>
+
+  @if (combo().books.length >= 2) {
+    <div class="ap-combo">
+      <span class="ap-combo-icon"><img src="images/icons/gift.svg" alt="" width="26" height="26" /></span>
+      <div class="ap-combo-text">
+        <strong class="h4">Combo – trọn {{ combo().books.length }} cuốn trong bài</strong>
+        <span class="ap-combo-price">
+          <span class="price-lg">{{ combo().price | vnd }}</span>
+          @if (combo().saving) {
+            <span class="price-old">{{ combo().original | vnd }}</span>
+            <span class="ap-combo-note">· tiết kiệm {{ combo().saving }}%</span>
+          }
+        </span>
+      </div>
+      <button type="button" class="btn btn-primary ap-combo-btn" (click)="addCombo()">
+        Thêm combo vào giỏ <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+      </button>
+    </div>
+  }
+
+  @if (chips().length) {
+    <app-article-tags [chips]="chips()" />
+  }
+</div>

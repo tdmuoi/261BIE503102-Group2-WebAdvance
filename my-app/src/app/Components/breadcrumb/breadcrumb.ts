@@ -1,9 +1,11 @@
 import { Component, input } from '@angular/core';
+import { Params } from '@angular/router';
 
 export interface Crumb {
   label: string;
   /** Không có link = trang hiện tại (mục cuối) */
   link?: string | unknown[];
+  queryParams?: Params;
 }
 
 /** Breadcrumb chung — Figma "Breadcrumb" (860:287): mục trước là link stone-600, mục cuối Bold ink */

@@ -1,0 +1,62 @@
+@let a = article();
+<a class="nf" [routerLink]="['/news', a._id]">
+  <span class="nf-cover">
+    <img [src]="cover()" [alt]="a.title" (error)="onCoverError()" />
+    <app-sticker class="nf-sticker" label="✦ Bài nổi bật tuần" tone="pink" tilt="right" />
+    @if (a.quote) {
+      <span class="nf-quote">
+        <strong>“{{ a.quote }}”</strong>
+        @if (a.author?.name) {
+          <small>— {{ a.author!.name }}</small>
+        }
+      </span>
+    }
+  </span>
+
+  <span class="nf-body">
+    <span class="nf-meta">
+      @if (a.category) {
+        <span class="nf-badge">{{ categoryLabel(a.category) }}</span>
+      }
+      {{ a.readMinutes }} phút đọc@if (date()) {  ·  {{ date() }} }
+    </span>
+    <span class="h2 nf-title">{{ a.title }}</span>
+    @if (a.desc) {
+      <span class="nf-excerpt">{{ a.desc }}</span>
+    }
+    <span class="nf-byline">
+      @if (a.author?.name) {
+        <span class="nf-author">
+          <span class="nf-avatar" aria-hidden="true">{{ authorInitials() }}</span>
+          <span>
+            <strong>{{ a.author!.name }}</strong>
+            @if (a.author!.role) {
+              <small>{{ a.author!.role }}</small>
+            }
+          </span>
+        </span>
+      }
+      <span class="btn btn-primary nf-cta">
+        Đọc bài viết <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+      </span>
+    </span>
+  </span>
+</a>
+
+@if (mostRead().length) {
+  <aside class="nf-popular" aria-label="Đọc nhiều">
+    <h2 class="nf-popular-title"><span class="h3">Đọc nhiều</span> <span class="nf-popular-accent">this week</span></h2>
+    @for (item of mostRead(); track item._id; let i = $index) {
+      <a class="nf-rank" [routerLink]="['/news', item._id]">
+        <span class="nf-rank-no">{{ (i + 1).toString().padStart(2, '0') }}</span>
+        <span class="nf-rank-text">
+          @if (item.category) {
+            <span class="nf-rank-cat">{{ item.category }}</span>
+          }
+          <strong>{{ item.title }}</strong>
+          <small>{{ item.readMinutes }} phút đọc</small>
+        </span>
+      </a>
+    }
+  </aside>
+}

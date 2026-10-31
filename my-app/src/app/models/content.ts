@@ -42,6 +42,11 @@ export interface NewsItem {
   readMinutes: number;
   content?: string;
   contentFormat?: string | null;
+  /** Các field dưới chưa có trong DB — có thì UI tự hiện */
+  quote?: string | null;
+  author?: { name: string; role?: string | null; bio?: string | null; avatar?: string | null } | null;
+  bookIds?: string[] | null;
+  tags?: string[] | null;
 }
 
 export interface NewsPage {

@@ -1,1 +1,77 @@
-<p>news-list works!</p>
+<!-- Figma: news-list · Danh sách bài viết — https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=878-7226 -->
+@let current = query();
+<section class="container nl-hero">
+  <app-breadcrumb [items]="crumbs" />
+
+  <div class="nl-title">
+    <app-section-head
+      [center]="true"
+      tag="✦ Cập nhật mỗi thứ Năm"
+      title="Lightbook News"
+      accent="stories about stories."
+      subtitle="Review sách, phỏng vấn tác giả, lịch sự kiện và ưu đãi — viết bởi những người mê sách ở Lightbook."
+    />
+    <app-sticker class="nl-sticker nl-sticker-left" label="✦ Fresh off the press" tone="yellow" />
+    @if (publishedTotal()) {
+      <app-sticker class="nl-sticker nl-sticker-right" [label]="publishedTotal() + ' bài viết'" tone="pink" tilt="right" />
+    }
+  </div>
+
+  @if (featured(); as article) {
+    <app-news-featured [article]="article" [mostRead]="mostRead()" />
+  }
+</section>
+
+<section class="container nl-all" id="all-news">
+  <div class="nl-filters">
+    <nav class="nl-chips" aria-label="Chuyên mục">
+      <button type="button" class="nl-chip" [class.is-active]="!current.category" (click)="update({ category: null })">Tất cả</button>
+      @for (category of categories(); track category) {
+        <button type="button" class="nl-chip" [class.is-active]="current.category === category" (click)="update({ category })">
+          {{ categoryLabel(category) }}
+        </button>
+      }
+    </nav>
+    <form class="nl-search" role="search" (submit)="$event.preventDefault()">
+      <input #searchInput type="search" placeholder="Tìm bài viết…" aria-label="Tìm bài viết"
+        [value]="current.q" (input)="update({ q: searchInput.value || null })" />
+      <button type="submit" class="nl-search-btn" aria-label="Tìm kiếm">
+        <img src="images/icons/search.svg" alt="" width="20" height="20" />
+      </button>
+    </form>
+  </div>
+
+  @switch (status()) {
+    @case ('loading') {
+      <app-status-card tone="loading" title="Đang tải bài viết…" />
+    }
+    @case ('error') {
+      <app-status-card tone="error" title="Không tải được bài viết" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn btn-pill" (click)="retry()">Thử lại</button>
+      </app-status-card>
+    }
+    @default {
+      @if (gridItems().length) {
+        <div class="nl-grid">
+          @for (article of gridItems(); track article._id) {
+            <app-article-card [article]="article" />
+          }
+        </div>
+        @if (remaining()) {
+          <button type="button" class="nl-more" [disabled]="loadingMore()" (click)="loadMore()">
+            {{ loadingMore() ? 'Đang tải…' : 'Xem thêm ' + remaining() + ' bài viết' }}
+            <img src="images/icons/chevron-down.svg" alt="" width="20" height="20" />
+          </button>
+        }
+      } @else if (hasFilter()) {
+        <app-status-card title="Không tìm thấy bài viết" message="Thử từ khoá khác hoặc chọn chuyên mục khác.">
+          <button type="button" class="btn btn-pill" (click)="clearFilters()">Xóa bộ lọc</button>
+        </app-status-card>
+      } @else if (!featured()) {
+        <app-status-card title="Chưa có bài viết nào" message="Lightbook News sẽ sớm có những câu chuyện đầu tiên. Đăng ký bản tin bên dưới để không bỏ lỡ." />
+      }
+    }
+  }
+</section>
+
+<app-news-newsletter class="container" />

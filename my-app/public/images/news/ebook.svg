@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="480" viewBox="0 0 768 480" fill="none">
+  <!-- Lightbook News · Ebook: máy đọc sách điện tử + tai nghe -->
+  <defs><pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse" x="24" y="24"><path d="M56 0H0V56" stroke="#FCDDEC" stroke-width="1.5"/></pattern></defs>
+  <rect width="768" height="480" fill="#FDF2F8"/><rect width="768" height="480" fill="url(#g)"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <rect x="300" y="80" width="200" height="300" rx="20" fill="#1C1917" transform="translate(0 6)"/>
+    <rect x="300" y="80" width="200" height="300" rx="20" fill="#D8F0ED"/>
+    <rect x="318" y="100" width="164" height="236" rx="8" fill="#FFFFFF"/>
+    <circle cx="400" cy="358" r="10" fill="#FFFFFF"/>
+  </g>
+  <g stroke="#D6D3D1" stroke-width="6" stroke-linecap="round">
+    <path d="M338 130H462M338 152H450M338 174H462M338 196H430M338 218H462M338 240H446M338 262H462M338 284H420"/>
+  </g>
+  <path d="M338 308H404" stroke="#F9A8D4" stroke-width="6" stroke-linecap="round"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <path d="M168 300a64 64 0 0 1 128 0" fill="none" stroke-width="8" stroke-linecap="round"/>
+    <rect x="152" y="292" width="34" height="58" rx="12" fill="#FDE047"/>
+    <rect x="278" y="292" width="34" height="58" rx="12" fill="#FDE047"/>
+  </g>
+  <circle cx="610" cy="140" r="28" fill="#FEF9C3" stroke="#1C1917" stroke-width="2"/>
+  <rect x="580" y="300" width="70" height="70" rx="35" fill="#FFD8EB" stroke="#1C1917" stroke-width="2"/>
+  <path d="M120 112c9 0 16-7 16-16 0 9 7 16 16 16-9 0-16 7-16 16 0-9-7-16-16-16z" fill="#1C1917"/>
+  <g transform="rotate(-8 600 236)"><rect x="540" y="220" width="124" height="40" rx="20" fill="#1C1917"/><rect x="540" y="216" width="124" height="40" rx="20" fill="#FEF9C3" stroke="#1C1917" stroke-width="2"/><text x="602" y="242" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#1C1917">✦ EBOOK</text></g>
+</svg>

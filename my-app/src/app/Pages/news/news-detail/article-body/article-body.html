@@ -1,0 +1,58 @@
+@if (toc().length) {
+  <nav class="ab-toc" aria-label="Mục lục">
+    <p class="label-eyebrow ab-toc-title">Mục lục</p>
+    @for (item of toc(); track $index; let i = $index) {
+      <button type="button" class="ab-toc-item" [class.is-sub]="item.level === 3" [class.is-active]="active() === i"
+        [attr.aria-current]="active() === i ? 'location' : null" (click)="scrollTo(i)">
+        <span class="ab-toc-no">{{ (i + 1).toString().padStart(2, '0') }}</span>
+        <span>{{ item.text }}</span>
+      </button>
+    }
+  </nav>
+}
+
+<div class="ab-main">
+  <app-article-content [html]="parts()[0]" />
+
+  @if (parts().length > 1) {
+    <figure class="ab-figure">
+      <div class="ab-figure-covers">
+        @for (book of figureBooks(); track book._id) {
+          <a [routerLink]="['/books', book.slug || book._id]" [attr.aria-label]="book.title">
+            <img [appTrimCover]="book.image" [alt]="book.title" loading="lazy" />
+          </a>
+        }
+      </div>
+      <figcaption>Những cuốn sách được nhắc đến trong bài, hiện có tại Lightbook.</figcaption>
+    </figure>
+    <app-article-content [html]="parts()[1]" />
+  }
+
+  @if (books().length) {
+    <section class="ab-books">
+      <h2 class="ab-books-title"><span class="h3">Sách được nhắc đến</span> <span class="quote-pull">in this story</span></h2>
+      <div class="ab-books-grid">
+        @for (book of books(); track book._id) {
+          <app-book-card [book]="book" />
+        }
+      </div>
+    </section>
+  }
+
+  @if (chips().length) {
+    <app-article-tags [chips]="chips()" />
+  }
+
+  @if (article().author; as author) {
+    <aside class="ab-author">
+      <span class="ab-author-avatar" aria-hidden="true">{{ authorInitials() }}</span>
+      <div class="ab-author-text">
+        <strong>{{ author.name }}</strong>
+        @if (author.bio || author.role) {
+          <p>{{ author.bio || author.role }}</p>
+        }
+      </div>
+      <a class="btn btn-ghost btn-sm" routerLink="/news" [queryParams]="{ q: author.name }">Bài viết khác</a>
+    </aside>
+  }
+</div>

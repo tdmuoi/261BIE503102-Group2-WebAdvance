@@ -1,0 +1,55 @@
+:host { display: block; padding-top: var(--space-40); padding-bottom: 100px; }
+
+.nn-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-32) 48px;
+  padding: 48px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-lg);
+}
+
+.nn-text { display: flex; flex: 1 1 420px; flex-direction: column; align-items: flex-start; gap: var(--space-12); }
+.nn-text p { margin: 0; font: 400 15px/1.5 var(--font-sans); color: var(--color-text-body); }
+
+.nn-tag {
+  padding: 6px 14px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 13px/1.25 var(--font-sans);
+}
+
+.nn-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-12); margin: 0; }
+
+.nn-form { display: flex; flex: 0 1 420px; flex-direction: column; gap: var(--space-6); }
+.nn-field { display: flex; flex-direction: column; gap: var(--space-6); font: 700 12px/1.3 var(--font-sans); }
+
+.nn-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  height: 48px;
+  padding: 0 var(--space-14);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.nn-input:focus-within { border-width: var(--border-strong); box-shadow: var(--shadow-offset-sm); }
+.nn-input.is-error { background: var(--color-feedback-error-bg); border-color: var(--color-border-error); }
+.nn-input input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 400 14px/1.55 var(--font-sans); }
+
+.nn-msg { min-height: 16px; margin: 0; font: 400 11px/1.4 var(--font-sans); color: var(--color-text-secondary); }
+
+.nn-btn { width: 100%; margin-top: var(--space-6); padding: 12px 28px; font: 800 15px/1.3 var(--font-sans); box-shadow: var(--shadow-offset-sm); }
+
+@media (max-width: 640px) {
+  .nn-box { padding: var(--space-24) var(--space-20); }
+  .nn-title .h1 { font-size: 32px; }
+  .nn-title .accent-h1 { font-size: 34px; }
+}

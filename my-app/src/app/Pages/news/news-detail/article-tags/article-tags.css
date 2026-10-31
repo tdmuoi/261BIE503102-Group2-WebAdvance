@@ -1,0 +1,13 @@
+:host { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+
+.at-label { font: 700 12px/1.3 var(--font-sans); color: var(--color-text-secondary); }
+
+.at-chip {
+  padding: 8px 16px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 13px/1.25 var(--font-sans);
+}
+
+.at-chip:hover { background: var(--color-bg-subtle); }

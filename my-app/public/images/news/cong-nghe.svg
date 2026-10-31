@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="480" viewBox="0 0 768 480" fill="none">
+  <!-- Lightbook News · Công nghệ: laptop + bong bóng trò chuyện -->
+  <defs><pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse" x="24" y="24"><path d="M56 0H0V56" stroke="#CDEBE6" stroke-width="1.5"/></pattern></defs>
+  <rect width="768" height="480" fill="#EEF8F6"/><rect width="768" height="480" fill="url(#g)"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <rect x="234" y="146" width="300" height="190" rx="14" fill="#1C1917" transform="translate(0 6)"/>
+    <rect x="234" y="146" width="300" height="190" rx="14" fill="#FFFFFF"/>
+    <rect x="254" y="166" width="260" height="150" rx="8" fill="#D8F0ED"/>
+    <path d="M200 352H568L548 380H220Z" fill="#FDE047"/>
+    <path d="M288 196h110a14 14 0 0 1 14 14v26a14 14 0 0 1-14 14h-74l-22 16v-16h-14a14 14 0 0 1-14-14v-26a14 14 0 0 1 14-14z" fill="#FFD8EB"/>
+    <path d="M378 252h102a14 14 0 0 1 14 14v18a14 14 0 0 1-14 14h-10v14l-18-14h-74a14 14 0 0 1-14-14v-18a14 14 0 0 1 14-14z" fill="#FFFFFF"/>
+  </g>
+  <g fill="#1C1917"><circle cx="318" cy="223" r="5"/><circle cx="338" cy="223" r="5"/><circle cx="358" cy="223" r="5"/></g>
+  <path d="M396 275H470" stroke="#D6D3D1" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="122" cy="120" r="26" fill="#F9A8D4" stroke="#1C1917" stroke-width="2"/>
+  <rect x="610" y="320" width="54" height="54" rx="10" fill="#FEF9C3" stroke="#1C1917" stroke-width="2" transform="rotate(12 637 347)"/>
+  <path d="M640 96c9 0 16-7 16-16 0 9 7 16 16 16-9 0-16 7-16 16 0-9-7-16-16-16z" fill="#1C1917"/>
+  <g transform="rotate(-8 138 392)"><rect x="66" y="374" width="150" height="40" rx="20" fill="#1C1917"/><rect x="66" y="370" width="150" height="40" rx="20" fill="#FFD8EB" stroke="#1C1917" stroke-width="2"/><text x="141" y="396" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#1C1917">✦ CÔNG NGHỆ</text></g>
+</svg>

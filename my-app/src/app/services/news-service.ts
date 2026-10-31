@@ -10,6 +10,8 @@ export interface NewsQuery {
   search?: string;
   limit?: number;
   skip?: number;
+  /** popular: nhiều lượt xem trước */
+  sort?: 'popular';
 }
 
 /** Bài viết đã đăng — GET /api/news, GET /api/news/:id (chỉ đọc) */
@@ -24,6 +26,7 @@ export class NewsService {
     if (query.search) params = params.set('search', query.search);
     if (query.limit) params = params.set('limit', query.limit);
     if (query.skip) params = params.set('skip', query.skip);
+    if (query.sort) params = params.set('sort', query.sort);
     return this.http.get<NewsPage>(this.baseUrl, { params });
   }
 

@@ -1,1 +1,79 @@
-<p>news-detail works!</p>
+<!-- Figma: news-detail · Bài viết – Review sách — https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=879-7435 -->
+<!-- Figma: news-detail · Bài viết – Gợi ý đọc (biến thể) — https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=880-7637 -->
+@switch (status()) {
+  @case ('loading') {
+    <div class="container nd-status"><app-status-card tone="loading" title="Đang tải bài viết…" /></div>
+  }
+  @case ('error') {
+    <div class="container nd-status">
+      <app-status-card tone="error" title="Không tải được bài viết" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <button type="button" class="btn btn-pill" (click)="reload()">Thử lại</button>
+      </app-status-card>
+    </div>
+  }
+  @case ('missing') {
+    <div class="container nd-status">
+      <app-status-card title="Không tìm thấy bài viết" message="Bài viết không tồn tại hoặc chưa được đăng.">
+        <a class="btn btn-pill" routerLink="/news">Xem tất cả bài viết</a>
+      </app-status-card>
+    </div>
+  }
+  @default {
+    @let a = article()!;
+    <article class="container nd">
+      <app-breadcrumb [items]="crumbs()" />
+
+      @if (isPicks()) {
+        <app-article-picks [article]="a" [books]="books()" [chips]="chips()" />
+      } @else {
+        <header class="nd-head">
+          <p class="nd-meta">
+            @if (category()) {
+              <span class="nd-badge">{{ category() }}</span>
+            }
+            {{ a.readMinutes }} phút đọc
+          </p>
+          <h1 class="display-page-title nd-title">{{ a.title }}</h1>
+          @if (a.desc) {
+            <p class="nd-dek">{{ a.desc }}</p>
+          }
+          <div class="nd-byline">
+            @if (a.author?.name) {
+              <span class="nd-avatar" aria-hidden="true">{{ authorInitials() }}</span>
+            }
+            <span class="nd-byline-text">
+              @if (a.author?.name) {
+                <strong>{{ a.author!.name }}</strong>
+              }
+              <small>
+                @if (a.author?.role) { {{ a.author!.role }} · }
+                @if (date()) { Đăng ngày {{ date() }} }
+              </small>
+            </span>
+          </div>
+          <app-article-share [articleId]="a._id" />
+        </header>
+
+        <figure class="nd-cover">
+          <img [src]="cover()" [alt]="a.title" (error)="onCoverError()" />
+          @if (a.imageCredit) {
+            <figcaption>{{ a.imageCredit }}</figcaption>
+          }
+        </figure>
+
+        <app-article-body [article]="a" [books]="books()" [chips]="chips()" />
+      }
+    </article>
+
+    @if (related().length) {
+      <section class="container nd-related">
+        <app-section-head tag="✦ Lightbook News" title="Bài viết liên quan" accent="keep reading" linkText="Xem tất cả bài viết" link="/news" />
+        <div class="nd-related-grid">
+          @for (item of related(); track item._id) {
+            <app-article-card [article]="item" />
+          }
+        </div>
+      </section>
+    }
+  }
+}

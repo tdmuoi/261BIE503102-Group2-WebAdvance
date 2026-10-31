@@ -5,8 +5,6 @@ import { Homepage } from './Pages/homepage/homepage';
 import { BrowseBook } from './Pages/browse-book/browse-book';
 import { Cart } from './Pages/cart/cart';
 import { Checkout } from './Pages/checkout/checkout';
-import { NewsList } from './Pages/news/news-list/news-list';
-import { NewsDetail } from './Pages/news/news-detail/news-detail';
 import { AboutUs } from './Pages/about-us/about-us';
 import { Login } from './Pages/auth/login/login';
 import { Register } from './Pages/auth/register/register';
@@ -50,8 +48,13 @@ const routes: Routes = [
     path: 'book-buyback',
     loadChildren: () => import('./Pages/book-buyback/book-buyback-module').then((m) => m.BookBuybackModule),
   },
-  { path: 'news-list', component: NewsList },
-  { path: 'news-detail/:id', component: NewsDetail },
+  // Lightbook News tải riêng (lazy): /news, /news/:id
+  {
+    path: 'news',
+    loadChildren: () => import('./Pages/news/news-module').then((m) => m.NewsModule),
+  },
+  { path: 'news-list', redirectTo: 'news' },   // link cũ
+  { path: 'news-detail/:id', redirectTo: 'news/:id' },
   { path: 'about-us', component: AboutUs },
   { path: 'login', component: Login },
   { path: 'register', component: Register },

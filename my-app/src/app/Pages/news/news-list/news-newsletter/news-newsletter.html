@@ -1,0 +1,34 @@
+@let error = errorText();
+<div class="nn-box">
+  <div class="nn-text">
+    <span class="nn-tag">✦ Newsletter</span>
+    <h2 class="nn-title"><span class="h1">Thư từ Lightbook</span> <span class="accent-h1">every Thursday.</span></h2>
+    <p>Sách mới, review indie và lịch Author Talk gửi thẳng vào hộp thư mỗi thứ Năm. Không spam, huỷ bất cứ lúc nào.</p>
+  </div>
+
+  <form class="nn-form" (ngSubmit)="submit()" novalidate>
+    <label class="nn-field">
+      <span>Email của bạn</span>
+      <span class="nn-input" [class.is-error]="error">
+        <img src="images/icons/mail.svg" alt="" width="20" height="20" />
+        <input type="email" placeholder="email@vidu.com" autocomplete="email" [formControl]="email"
+          [attr.aria-invalid]="!!error" aria-describedby="nn-msg" />
+      </span>
+    </label>
+    <p id="nn-msg" class="nn-msg" role="status">
+      @if (error) {
+        <span class="text-error">{{ error }}</span>
+      } @else if (state() === 'done') {
+        <span class="text-success">Cảm ơn bạn! Thư từ Lightbook sẽ đến hộp thư của bạn vào thứ Năm.</span>
+      } @else if (state() === 'unavailable') {
+        Chức năng đăng ký bản tin đang được hoàn thiện, bạn vui lòng quay lại sau nhé.
+      } @else if (state() === 'error') {
+        <span class="text-error">Không đăng ký được lúc này, vui lòng thử lại.</span>
+      }
+    </p>
+    <button type="submit" class="btn btn-primary nn-btn" [disabled]="state() === 'sending'">
+      {{ state() === 'sending' ? 'Đang gửi…' : 'Đăng ký nhận bản tin' }}
+      <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
+    </button>
+  </form>
+</div>

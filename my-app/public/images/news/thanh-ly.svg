@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="480" viewBox="0 0 768 480" fill="none">
+  <!-- Lightbook News · Thanh lý: thẻ giá + đồng xu -->
+  <defs><pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse" x="24" y="24"><path d="M56 0H0V56" stroke="#F5E7A1" stroke-width="1.5"/></pattern></defs>
+  <rect width="768" height="480" fill="#FEF9C3"/><rect width="768" height="480" fill="url(#g)"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round" transform="rotate(-12 380 240)">
+    <path d="M250 150H460L530 240L460 330H250Z" fill="#1C1917" transform="translate(0 6)"/>
+    <path d="M250 150H460L530 240L460 330H250Z" fill="#FFD8EB"/>
+    <circle cx="470" cy="240" r="16" fill="#FEF9C3"/>
+    <rect x="282" y="188" width="140" height="28" rx="6" fill="#FFFFFF"/>
+    <rect x="282" y="232" width="100" height="56" rx="8" fill="#FFFFFF"/>
+  </g>
+  <text x="330" y="282" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="34" font-weight="800" fill="#C72B2B" transform="rotate(-12 380 240)">-%</text>
+  <path d="M486 236c40-30 80-40 120-20" stroke="#1C1917" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <g stroke="#1C1917" stroke-width="2">
+    <ellipse cx="190" cy="356" rx="42" ry="14" fill="#FDE047"/>
+    <path d="M148 340v16M232 340v16" />
+    <ellipse cx="190" cy="340" rx="42" ry="14" fill="#FDE047"/>
+    <ellipse cx="190" cy="324" rx="42" ry="14" fill="#FDE047"/>
+    <circle cx="610" cy="360" r="30" fill="#D8F0ED"/>
+  </g>
+  <path d="M130 110c9 0 16-7 16-16 0 9 7 16 16 16-9 0-16 7-16 16 0-9-7-16-16-16z" fill="#1C1917"/>
+  <g transform="rotate(8 604 112)"><rect x="534" y="96" width="140" height="40" rx="20" fill="#1C1917"/><rect x="534" y="92" width="140" height="40" rx="20" fill="#D8F0ED" stroke="#1C1917" stroke-width="2"/><text x="604" y="118" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#1C1917">✦ THANH LÝ</text></g>
+</svg>

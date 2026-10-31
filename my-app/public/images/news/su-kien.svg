@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="480" viewBox="0 0 768 480" fill="none">
+  <!-- Lightbook News · Sự kiện: lịch + micro + giấy màu -->
+  <defs><pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse" x="24" y="24"><path d="M56 0H0V56" stroke="#FCDDEC" stroke-width="1.5"/></pattern></defs>
+  <rect width="768" height="480" fill="#FDF2F8"/><rect width="768" height="480" fill="url(#g)"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <rect x="226" y="120" width="230" height="230" rx="18" fill="#1C1917" transform="translate(0 6)"/>
+    <rect x="226" y="120" width="230" height="230" rx="18" fill="#FFFFFF"/>
+    <path d="M226 138a18 18 0 0 1 18-18h194a18 18 0 0 1 18 18v42H226Z" fill="#F9A8D4"/>
+    <rect x="266" y="100" width="14" height="40" rx="7" fill="#FFFFFF"/>
+    <rect x="402" y="100" width="14" height="40" rx="7" fill="#FFFFFF"/>
+    <rect x="300" y="208" width="82" height="82" rx="14" fill="#FEF9C3"/>
+  </g>
+  <text x="341" y="266" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="44" font-weight="800" fill="#1C1917">15</text>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <rect x="510" y="172" width="64" height="104" rx="32" fill="#D8F0ED"/>
+    <path d="M494 236a48 48 0 0 0 96 0" fill="none" stroke-width="4" stroke-linecap="round"/>
+    <path d="M542 284v48M512 334h60" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <g stroke="#1C1917" stroke-width="2">
+    <rect x="140" y="110" width="18" height="18" fill="#FDE047" transform="rotate(20 149 119)"/>
+    <rect x="620" y="110" width="16" height="16" fill="#F9A8D4" transform="rotate(-25 628 118)"/>
+    <circle cx="170" cy="340" r="12" fill="#D8F0ED"/>
+    <circle cx="640" cy="360" r="10" fill="#FDE047"/>
+  </g>
+  <path d="M110 230c9 0 16-7 16-16 0 9 7 16 16 16-9 0-16 7-16 16 0-9-7-16-16-16z" fill="#1C1917"/>
+  <g transform="rotate(-8 330 412)"><rect x="262" y="396" width="136" height="40" rx="20" fill="#1C1917"/><rect x="262" y="392" width="136" height="40" rx="20" fill="#FEF9C3" stroke="#1C1917" stroke-width="2"/><text x="330" y="418" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#1C1917">✦ SỰ KIỆN</text></g>
+</svg>

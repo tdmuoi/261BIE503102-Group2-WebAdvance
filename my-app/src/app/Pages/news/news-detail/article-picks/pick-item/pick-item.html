@@ -1,0 +1,26 @@
+@let b = book();
+<span class="pi-no">{{ number() }}</span>
+<a class="pi-cover" [routerLink]="link()" [attr.aria-label]="b.title">
+  <img [appTrimCover]="b.image" [alt]="b.title" loading="lazy" />
+</a>
+<div class="pi-body">
+  <a class="h3 pi-title" [routerLink]="link()">{{ b.title }}</a>
+  @if (b.authorId) {
+    <a class="pi-author" [routerLink]="['/authors', b.authorId]">{{ b.authorName }}</a>
+  }
+  @if (b.description) {
+    <p class="pi-why">{{ b.description }}</p>
+  }
+  <div class="pi-buy">
+    <span class="pi-price">
+      <span class="price">{{ b.price | vnd }}</span>
+      @if (b.originalPrice > b.price) {
+        <span class="price-old">{{ b.originalPrice | vnd }}</span>
+      }
+    </span>
+    <button type="button" class="pi-add" [disabled]="b.stock <= 0" (click)="add.emit(b)">
+      <img src="images/icons/shopping-bag.svg" alt="" width="20" height="20" />
+      {{ b.stock > 0 ? 'Thêm vào giỏ' : 'Hết hàng' }}
+    </button>
+  </div>
+</div>

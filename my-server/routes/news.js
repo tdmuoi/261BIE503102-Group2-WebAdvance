@@ -6,6 +6,7 @@
 //       ?category=Ebook              lọc theo chuyên mục (đúng tên trong DB)
 //       ?search=sách cũ              tìm trong tiêu đề, mô tả, nội dung (không phân biệt hoa thường)
 //       ?limit=9&skip=0              phân trang cho nút "Xem thêm" (limit mặc định 9, tối đa 50)
+//       ?sort=popular                nhiều lượt xem trước (mặc định: mới nhất trước)
 //     → { items, total, categories }  items không kèm content; categories = chuyên mục của mọi bài đã đăng
 //   GET /api/news/:id                một bài (tìm theo _id hoặc field id), bài chưa đăng trả 404
 //
@@ -16,6 +17,7 @@ const { ObjectId } = require('mongodb');
 
 const PUBLISHED = { status: 'published' };
 const SORT = { publishedAt: -1, createdAt: -1 };
+const POPULAR_SORT = { views: -1, ...SORT };
 const WORDS_PER_MINUTE = 200;
 
 function escapeRegex(text) {
@@ -49,7 +51,7 @@ module.exports = function newsRoutes(getDb) {
       }
 
       const [items, total, categories] = await Promise.all([
-        news().find(filter).sort(SORT).skip(skip).limit(limit).toArray(),
+        news().find(filter).sort(req.query.sort === 'popular' ? POPULAR_SORT : SORT).skip(skip).limit(limit).toArray(),
         news().countDocuments(filter),
         news().distinct('category', PUBLISHED),
       ]);

@@ -29,7 +29,7 @@ export class PageHeader {
     { label: 'Browse book', path: '/books', menu: true },
     { label: 'Book buyback', path: '/book-buyback' },
     { label: 'Authors', path: '/authors' },
-    { label: 'Lightbook news', path: '/news-list' },
+    { label: 'Lightbook news', path: '/news' },
   ];
 
   protected readonly cartCount = inject(CartService).count;

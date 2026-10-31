@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="480" viewBox="0 0 768 480" fill="none">
+  <!-- Lightbook News · Gợi ý sách: chồng sách (gáy trơn, không bìa) + ngôi sao -->
+  <defs><pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse" x="24" y="24"><path d="M56 0H0V56" stroke="#FCDDEC" stroke-width="1.5"/></pattern></defs>
+  <rect width="768" height="480" fill="#FDF2F8"/><rect width="768" height="480" fill="url(#g)"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <rect x="248" y="318" width="272" height="56" rx="8" fill="#1C1917" transform="translate(0 6)"/>
+    <rect x="248" y="318" width="272" height="56" rx="8" fill="#D8F0ED"/>
+    <rect x="272" y="262" width="236" height="56" rx="8" fill="#FDE047"/>
+    <rect x="238" y="206" width="252" height="56" rx="8" fill="#FFD8EB"/>
+    <rect x="286" y="150" width="210" height="56" rx="8" fill="#FFFFFF"/>
+  </g>
+  <g stroke="#1C1917" stroke-width="2"><path d="M276 318v56M304 262v56M266 206v56M314 150v56"/></g>
+  <g stroke="#1C1917" stroke-width="4" stroke-linecap="round" opacity=".25"><path d="M330 346H470M350 290H460M300 234H440M346 178H450"/></g>
+  <path d="M560 90l16 34 36 5-26 25 7 36-33-18-33 18 7-36-26-25 36-5z" fill="#FDE047" stroke="#1C1917" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="140" cy="140" r="24" fill="#D8F0ED" stroke="#1C1917" stroke-width="2"/>
+  <circle cx="650" cy="350" r="14" fill="#F9A8D4" stroke="#1C1917" stroke-width="2"/>
+  <path d="M150 330c9 0 16-7 16-16 0 9 7 16 16 16-9 0-16 7-16 16 0-9-7-16-16-16z" fill="#1C1917"/>
+  <g transform="rotate(-8 164 236)"><rect x="80" y="220" width="168" height="40" rx="20" fill="#1C1917"/><rect x="80" y="216" width="168" height="40" rx="20" fill="#FEF9C3" stroke="#1C1917" stroke-width="2"/><text x="164" y="242" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#1C1917">✦ GỢI Ý SÁCH</text></g>
+</svg>

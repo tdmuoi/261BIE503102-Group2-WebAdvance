@@ -1,0 +1,63 @@
+:host {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-24);
+  padding: var(--space-24) 28px var(--space-24) var(--space-24);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-22);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.pi-no { font: italic 400 64px/64px var(--font-serif); color: var(--color-text-serif); }
+
+.pi-cover {
+  flex-shrink: 0;
+  width: 120px;
+  height: 176px;
+  overflow: hidden;
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-8);
+}
+
+/* Phóng nhẹ để khung che mép lề trắng còn sót của ảnh bìa */
+.pi-cover img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.08); }
+
+.pi-body { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: var(--space-8); min-width: 0; }
+.pi-title:hover,
+.pi-author:hover { text-decoration: underline; }
+.pi-author { font: 400 12px/20px var(--font-sans); color: var(--color-text-secondary); }
+
+.pi-why {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  font: 400 14px/1.55 var(--font-sans);
+  color: var(--color-text-body);
+}
+
+.pi-buy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-10); width: 100%; padding-top: var(--space-6); }
+.pi-price { display: flex; align-items: baseline; gap: var(--space-8); }
+
+.pi-add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: 6px 14px;
+  background: var(--color-tint-pink);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-offset-sm);
+  font: 700 12px/1.3 var(--font-sans);
+}
+
+.pi-add:active { transform: translateY(2px); box-shadow: none; }
+.pi-add:disabled { background: var(--color-bg-disabled); color: var(--color-text-muted); box-shadow: none; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  :host { flex-wrap: wrap; padding: var(--space-16); }
+  .pi-no { font-size: 40px; line-height: 1; }
+  .pi-cover { width: 90px; height: 132px; }
+}

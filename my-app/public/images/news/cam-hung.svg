@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="480" viewBox="0 0 768 480" fill="none">
+  <!-- Lightbook News · Cảm hứng: mặt trời buổi sáng + tách trà -->
+  <defs><pattern id="g" width="56" height="56" patternUnits="userSpaceOnUse" x="24" y="24"><path d="M56 0H0V56" stroke="#F5E7A1" stroke-width="1.5"/></pattern></defs>
+  <rect width="768" height="480" fill="#FEF9C3"/><rect width="768" height="480" fill="url(#g)"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linecap="round">
+    <path d="M384 70V100M300 104l18 22M468 104l-18 22M260 176h28M480 176h28"/>
+  </g>
+  <circle cx="384" cy="196" r="74" fill="#FDE047" stroke="#1C1917" stroke-width="2"/>
+  <g stroke="#1C1917" stroke-width="2" stroke-linejoin="round">
+    <path d="M286 262H482V318A58 58 0 0 1 424 376H344A58 58 0 0 1 286 318Z" fill="#1C1917" transform="translate(0 6)"/>
+    <path d="M286 262H482V318A58 58 0 0 1 424 376H344A58 58 0 0 1 286 318Z" fill="#FFFFFF"/>
+    <path d="M482 284h22a26 26 0 0 1 0 52h-30" fill="none"/>
+    <rect x="250" y="384" width="268" height="16" rx="8" fill="#D8F0ED"/>
+  </g>
+  <path d="M352 236c-8-12 8-18 0-30M384 236c-8-12 8-18 0-30M416 236c-8-12 8-18 0-30" stroke="#1C1917" stroke-width="2" stroke-linecap="round"/>
+  <path d="M330 300c20 22 88 22 108 0" stroke="#F9A8D4" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="132" cy="350" r="30" fill="#FFD8EB" stroke="#1C1917" stroke-width="2"/>
+  <path d="M630 300l12 24 26 4-19 18 5 26-24-13-24 13 5-26-19-18 26-4z" fill="#D8F0ED" stroke="#1C1917" stroke-width="2" stroke-linejoin="round"/>
+  <g transform="rotate(8 610 96)"><rect x="530" y="80" width="164" height="40" rx="20" fill="#1C1917"/><rect x="530" y="76" width="164" height="40" rx="20" fill="#D8F0ED" stroke="#1C1917" stroke-width="2"/><text x="612" y="102" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="15" font-weight="700" fill="#1C1917">✦ CẢM HỨNG</text></g>
+</svg>

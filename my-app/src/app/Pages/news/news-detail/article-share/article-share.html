@@ -1,0 +1,12 @@
+@if (showLabel()) {
+  <span class="as-label">Chia sẻ:</span>
+}
+<button type="button" class="as-btn" aria-label="Chia sẻ lên Facebook" (click)="shareFacebook()">
+  <img src="images/icons/facebook.svg" alt="" width="20" height="20" />
+</button>
+<button type="button" class="as-btn" aria-label="Sao chép liên kết" (click)="copyLink()">
+  <img src="images/icons/link.svg" alt="" width="20" height="20" />
+</button>
+<button type="button" class="as-btn" [class.is-on]="saved()" [attr.aria-pressed]="saved()" aria-label="Lưu bài" (click)="toggleSave()">
+  <img src="images/icons/bookmark.svg" alt="" width="20" height="20" />
+</button>

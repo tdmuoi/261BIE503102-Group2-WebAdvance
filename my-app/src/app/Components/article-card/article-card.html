@@ -3,8 +3,8 @@
     <img [src]="cover()" [alt]="article().title" loading="lazy" (error)="onCoverError()" />
   </span>
   <span class="ac-meta">
-    @if (article().category) {
-      <span class="ac-badge">{{ article().category }}</span>
+    @if (category()) {
+      <span class="ac-badge">{{ category() }}</span>
     }
     <span>{{ article().readMinutes }} phút đọc</span>
   </span>
@@ -12,7 +12,11 @@
   @if (article().desc) {
     <span class="ac-excerpt">{{ article().desc }}</span>
   }
-  @if (date()) {
-    <span class="ac-date">{{ date() }}</span>
-  }
+  <span class="ac-byline">
+    @if (article().author?.name; as name) {
+      <strong>{{ name }}</strong>
+      @if (date()) { · }
+    }
+    {{ date() }}
+  </span>
 </a>

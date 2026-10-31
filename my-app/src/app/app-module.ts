@@ -15,8 +15,6 @@ import { AboutUs } from './Pages/about-us/about-us';
 import { BrowseBook } from './Pages/browse-book/browse-book';
 import { Cart } from './Pages/cart/cart';
 import { Checkout } from './Pages/checkout/checkout';
-import { NewsList } from './Pages/news/news-list/news-list';
-import { NewsDetail } from './Pages/news/news-detail/news-detail';
 import { Login } from './Pages/auth/login/login';
 import { Register } from './Pages/auth/register/register';
 import { ForgotPassword } from './Pages/auth/forgot-password/forgot-password';
@@ -60,8 +58,6 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     BrowseBook,
     Cart,
     Checkout,
-    NewsList,
-    NewsDetail,
     Login,
     Register,
     ForgotPassword,
