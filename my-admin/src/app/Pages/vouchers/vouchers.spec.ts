@@ -174,6 +174,27 @@ describe('Vouchers with authenticated HttpClient', () => {
     request.flush({ ...row, description: 'Edited' });
     flushList();
   });
+  it('keeps paused state and sends the loaded revision when editing', async () => {
+    await ready();
+    const paused = {
+      ...row,
+      paused: true,
+      state: 'paused' as const,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const component = fixture.componentInstance;
+    component.openForm(paused);
+    http.expectOne(base + '/' + row._id).flush(paused);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    component.draft.description = 'Keep paused';
+    component.save(fixture.debugElement.query(By.directive(NgForm)).injector.get(NgForm));
+    const request = http.expectOne(base + '/' + row._id);
+    expect(request.request.body.paused).toBe(true);
+    expect(request.request.body.revision).toBe(paused.updatedAt);
+    request.flush({ ...paused, description: 'Keep paused' });
+    flushList();
+  });
   it('cancels detail loading without saving', async () => {
     await ready();
     const component = fixture.componentInstance;

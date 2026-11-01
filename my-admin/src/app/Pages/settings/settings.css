@@ -1,0 +1,335 @@
+﻿:host {
+  display: block;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.settings-nav {
+  padding: 8px;
+  position: sticky;
+  top: 84px;
+}
+.settings-nav > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 10px;
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-body);
+  font-size: 14px;
+}
+.settings-nav > button.active {
+  background: var(--admin-subtle);
+  color: var(--admin-ink);
+  font-weight: 700;
+}
+.settings-nav > button:hover {
+  background: var(--admin-bg);
+}
+svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.last-saved {
+  border-top: 1px solid var(--admin-border);
+  margin: 8px 0 0;
+  padding: 12px 10px;
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+.last-saved p {
+  margin: 4px 0;
+  color: var(--admin-body);
+}
+.settings-content {
+  min-width: 0;
+}
+.settings-content fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.section {
+  margin-bottom: 22px;
+  padding: 24px;
+  scroll-margin-top: 90px;
+}
+.section h2 {
+  font-size: 18px;
+  letter-spacing: -0.3px;
+  margin: 0 0 4px;
+}
+.section-subtitle {
+  margin: 0 0 24px;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.store-info {
+  display: grid;
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: 22px;
+}
+.logo-column {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+}
+.logo-preview {
+  height: 96px;
+  width: 96px;
+  background: var(--admin-ink);
+  color: var(--admin-surface);
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 11px;
+  text-align: center;
+  padding: 10px;
+}
+.logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.three-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-ink);
+}
+label > .input,
+label > .select {
+  margin-top: 7px;
+}
+label > .input.ng-invalid.ng-touched {
+  border-color: var(--admin-red);
+}
+.store-fields > label {
+  margin-top: 16px;
+}
+.hint {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 400;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+}
+.payment-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--admin-border);
+}
+.payment-row:last-of-type {
+  border-bottom: 0;
+}
+.method-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--admin-subtle);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.method-description {
+  flex: 1;
+  min-width: 0;
+}
+h3 {
+  font-size: 14px;
+  margin: 0 0 3px;
+  font-weight: 600;
+}
+.method-description p,
+.option-row p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+.switch {
+  appearance: none;
+  width: 36px;
+  height: 21px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--admin-border);
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+}
+.switch:before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--admin-surface);
+}
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+.chips button {
+  padding: 6px 11px;
+  border: 1px solid var(--admin-border);
+  border-radius: 24px;
+  background: var(--admin-surface);
+  font-weight: 600;
+  font-size: 12px;
+}
+.chips button.selected {
+  background: var(--admin-ink);
+  color: var(--admin-surface);
+  border-color: var(--admin-ink);
+}
+.three-columns + label {
+  margin-top: 20px;
+}
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 22px;
+}
+.three-columns + .option-row {
+  border-top: 1px solid var(--admin-border);
+  margin-top: 22px;
+}
+.storage-note,
+.feedback {
+  padding: 12px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-surface);
+  margin: 0 0 16px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.storage-note {
+  color: var(--admin-muted);
+}
+.error,
+.field-error {
+  color: var(--admin-red);
+}
+.field-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+}
+.success {
+  color: var(--status-ok-fg);
+}
+#settings-security .btn {
+  margin: 10px 8px 0 0;
+}
+:host button:focus-visible,
+:host a:focus-visible {
+  outline: 2px solid var(--admin-ink);
+  outline-offset: 3px;
+}
+@media (max-width: 1100px) {
+  .settings-grid {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .store-info {
+    grid-template-columns: 1fr;
+  }
+  .logo-column {
+    align-items: start;
+    flex-direction: row;
+  }
+  .payment-row {
+    flex-wrap: wrap;
+  }
+  .method-description {
+    flex-basis: 55%;
+  }
+  .three-columns {
+    grid-template-columns: 1fr;
+  }
+  .section {
+    padding: 20px;
+  }
+}
+@media (max-width: 750px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-nav {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .settings-nav > button {
+    width: auto;
+    font-size: 12px;
+    flex: 1 0 40%;
+  }
+  .last-saved {
+    width: 100%;
+  }
+  .two-columns {
+    grid-template-columns: 1fr;
+  }
+  .section-heading {
+    flex-wrap: wrap;
+  }
+  .payment-row .btn {
+    margin-left: auto;
+  }
+  .section {
+    padding: 16px;
+  }
+}

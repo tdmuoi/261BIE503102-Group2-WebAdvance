@@ -40,6 +40,7 @@ export class Accounts {
     id: string;
     name: string;
     action: 'lock' | 'unlock';
+    revision?: string | null;
   } | null>(null);
 
   readonly tab = signal<AccountTab>('customers');
@@ -220,7 +221,7 @@ export class Accounts {
     this.editEmail.set(admin?.email ?? '');
     this.editRole.set(
       admin?.roleId ??
-        this.admins()?.roles.roles.find((role) => role.code !== 'superadmin')?._id ??
+        this.admins()?.roles.roles.find((role) => role.code !== 'SUPER_ADMIN')?._id ??
         '',
     );
     this.editStatus.set(admin?.status ?? this.admins()?.statuses[0]?.value ?? '');
@@ -250,6 +251,7 @@ export class Accounts {
     }
     this.saving.set(true);
     const current = this.selectedAdmin();
+    if (current) body.revision = current.revision ?? null;
     const request = current
       ? this.accountsService.updateAdmin(current._id, body)
       : this.accountsService.createAdmin(body);
@@ -279,6 +281,7 @@ export class Accounts {
       id: admin._id,
       name: admin.fullName,
       action: admin.status === 'locked' ? 'unlock' : 'lock',
+      revision: admin.revision ?? null,
     });
   }
 
@@ -534,6 +537,7 @@ export class Accounts {
         : this.accountsService
             .updateAdmin(pending.id, {
               status: pending.action === 'lock' ? 'locked' : 'active',
+              revision: pending.revision ?? null,
             })
             .pipe(map(() => undefined));
     this.requests.add(

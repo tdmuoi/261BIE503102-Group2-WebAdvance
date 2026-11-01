@@ -10,6 +10,24 @@ const createAdminAuth = require("../middleware/admin-auth");
 const TYPES = ["percent", "amount", "shipping"];
 const STATES = ["active", "paused", "scheduled", "expired"];
 const DAY_MS = 86400000;
+// Same single-process scope as the existing in-memory Admin sessions.
+// Cross-process uniqueness still requires a group-approved MongoDB unique index.
+const codeLocks = new Map();
+async function withCodeLock(code, work) {
+  const previous = codeLocks.get(code) || Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => {
+    release = resolve;
+  });
+  codeLocks.set(code, current);
+  await previous;
+  try {
+    return await work();
+  } finally {
+    release();
+    if (codeLocks.get(code) === current) codeLocks.delete(code);
+  }
+}
 const text = (value) => (typeof value === "string" ? value.trim() : "");
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -303,7 +321,7 @@ module.exports = function adminVouchersRoutes(getDb, options) {
       const q = text(req.query.q);
       const base = q
         ? {
-            $or: ["code", "description"].map((key) => ({
+            $or: ["code", "name", "description"].map((key) => ({
               [key]: { $regex: escapeRegex(q), $options: "i" },
             })),
           }
@@ -396,20 +414,22 @@ module.exports = function adminVouchersRoutes(getDb, options) {
   router.post("/vouchers", async (req, res) => {
     try {
       const data = parseVoucher(req.body);
-      if (await duplicate(data.code))
-        return res.status(409).json({
-          message: "Mã voucher đã tồn tại.",
-          errors: { code: "Vui lòng chọn mã khác." },
-        });
-      const now = new Date();
-      const doc = {
-        ...storage(data),
-        usedCount: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
-      const result = await vouchers().insertOne(doc);
-      res.status(201).json(present({ ...doc, _id: result.insertedId }, now));
+      return await withCodeLock(data.code, async () => {
+        if (await duplicate(data.code))
+          return res.status(409).json({
+            message: "Mã voucher đã tồn tại.",
+            errors: { code: "Vui lòng chọn mã khác." },
+          });
+        const now = new Date();
+        const doc = {
+          ...storage(data),
+          usedCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        };
+        const result = await vouchers().insertOne(doc);
+        res.status(201).json(present({ ...doc, _id: result.insertedId }, now));
+      });
     } catch (error) {
       handleError(res, error);
     }
@@ -420,27 +440,44 @@ module.exports = function adminVouchersRoutes(getDb, options) {
       const existing = await findVoucher(req.params.id);
       if (!existing)
         return res.status(404).json({ message: "Không tìm thấy voucher." });
+      const revision = existing.updatedAt
+        ? new Date(existing.updatedAt).toISOString()
+        : null;
+      if (
+        !Object.hasOwn(req.body || {}, "revision") ||
+        req.body.revision !== revision
+      )
+        return res
+          .status(409)
+          .json({
+            message: "Voucher đã thay đổi. Tải lại bản mới trước khi lưu.",
+          });
       const data = parseVoucher(req.body, existing.usedCount ?? 0);
-      if (await duplicate(data.code, existing._id))
-        return res.status(409).json({
-          message: "Mã voucher đã tồn tại.",
-          errors: { code: "Vui lòng chọn mã khác." },
-        });
-      const result = await vouchers().updateOne(
-        {
-          _id: existing._id,
-          $expr: { $lte: [{ $ifNull: ["$usedCount", 0] }, data.limit] },
-        },
-        { $set: { ...storage(data, existing), updatedAt: new Date() } },
-      );
-      if (!result.matchedCount)
-        return res.status(409).json({
-          message: "Voucher đã thay đổi. Vui lòng tải lại trước khi sửa.",
-        });
-      const updated = await findVoucher(req.params.id);
-      if (!updated)
-        return res.status(404).json({ message: "Không tìm thấy voucher." });
-      res.json(present(updated));
+      return await withCodeLock(data.code, async () => {
+        if (await duplicate(data.code, existing._id))
+          return res.status(409).json({
+            message: "Mã voucher đã tồn tại.",
+            errors: { code: "Vui lòng chọn mã khác." },
+          });
+        const result = await vouchers().updateOne(
+          {
+            _id: existing._id,
+            updatedAt: Object.hasOwn(existing, "updatedAt")
+              ? existing.updatedAt
+              : { $exists: false },
+            $expr: { $lte: [{ $ifNull: ["$usedCount", 0] }, data.limit] },
+          },
+          { $set: { ...storage(data, existing), updatedAt: new Date() } },
+        );
+        if (!result.matchedCount)
+          return res.status(409).json({
+            message: "Voucher đã thay đổi. Vui lòng tải lại trước khi sửa.",
+          });
+        const updated = await findVoucher(req.params.id);
+        if (!updated)
+          return res.status(404).json({ message: "Không tìm thấy voucher." });
+        res.json(present(updated));
+      });
     } catch (error) {
       handleError(res, error);
     }

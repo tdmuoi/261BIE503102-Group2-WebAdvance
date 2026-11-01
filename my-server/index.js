@@ -13,6 +13,8 @@ const createAdminAuth = require('./middleware/admin-auth');
 const adminAuthRoutes = require('./routes/admin-auth');
 const adminVouchersRoutes = require('./routes/admin-vouchers');
 const adminAccountsRoutes = require('./routes/admin-accounts');
+const adminSettingsRoutes = require('./routes/admin-settings');
+const adminBuybackRoutes = require('./routes/admin-buybacks');
 
 const app = express();
 const port = Number(process.env.PORT) || 3002;
@@ -21,7 +23,7 @@ const mongoUri = process.env.MONGODB_URI;
 
 // Cookie/CSRF preflight must run before the existing CORS middleware.
 const adminAuth = createAdminAuth(() => database);
-app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts'], adminAuth.cors);
+app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/settings', '/api/admin/buybacks'], adminAuth.cors);
 
 app.use(cors({
   origin: ['http://localhost:4200', 'http://localhost:4201']
@@ -35,6 +37,8 @@ let client;
 app.use('/api/admin/auth', adminAuthRoutes(() => database));
 app.use('/api/admin', adminVouchersRoutes(() => database));
 app.use('/api/admin/accounts', adminAccountsRoutes(() => database));
+app.use('/api/admin/settings', adminSettingsRoutes(() => database));
+app.use('/api/admin/buybacks', adminBuybackRoutes(() => database));
 
 // API kiểm tra Web Server
 app.get('/', (req, res) => {

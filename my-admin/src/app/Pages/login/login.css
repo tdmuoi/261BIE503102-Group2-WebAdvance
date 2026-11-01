@@ -37,7 +37,8 @@ h1 em { display: block; color: #f4bfd1; }
 .book-row { display: flex; align-items: flex-end; gap: 10px; margin-top: 6px; }
 .book-cover { position: relative; display: flex; flex-direction: column; justify-content: flex-end; width: 72px; height: 102px; overflow: hidden; border-radius: 8px 8px 6px 6px; background: linear-gradient(180deg, #b24d7a, #9f305d); box-shadow: 0 12px 18px #00000047; }
 .book-cover::before { position: absolute; inset: 0; background: linear-gradient(180deg, #ffffff14, #00000029); content: ""; }
-.book-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.book-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #171514; }
+.book-cover img:not([hidden]) + .book-overlay { visibility: hidden; }
 .book-overlay { position: relative; z-index: 1; display: flex; flex: 1; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 8px 8px 6px; }
 .book-cover small, .book-cover strong, .book-cover b, .book-cover span { position: relative; z-index: 1; color: #fffc; }
 .book-cover small, .book-cover span { font-size: 7px; line-height: 1.4; }

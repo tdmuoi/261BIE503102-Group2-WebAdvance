@@ -1,1 +1,214 @@
-<p>inventory works!</p>
+﻿<app-page-heading
+  title="Quản lý tồn kho"
+  subtitle="Theo dõi số lượng tồn, cảnh báo sắp hết và tình trạng kho sách."
+  [breadcrumbs]="[{ label: 'Kho sách', link: '/book-list' }, { label: 'Tồn kho' }]"
+>
+  <button
+    type="button"
+    class="btn"
+    [disabled]="!loaded() || loading() || !filtered().length"
+    (click)="exportCsv()"
+  >
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5" /></svg
+    >Xuất báo cáo
+  </button>
+  <button type="button" class="btn btn-primary" (click)="stockIn()">＋ Tạo phiếu nhập kho</button>
+</app-page-heading>
+<div class="inventory-stats">
+  <app-stat-card
+    label="Tổng tồn kho"
+    [value]="loaded() ? summary().total : null"
+    unit="cuốn"
+    [note]="loaded() ? summary().titles + ' đầu sách vật lý' : 'Đang chờ dữ liệu'"
+  />
+  <app-stat-card
+    label="Giá trị tồn kho"
+    [value]="null"
+    note="Chưa có giá nhập để tính giá trị kho"
+  />
+  <app-stat-card
+    label="Sắp hết hàng"
+    [value]="loaded() ? summary().low : null"
+    tone="warn"
+    note="Tồn > 0 và ≤ ngưỡng cảnh báo"
+  />
+  <app-stat-card
+    label="Hết hàng"
+    [value]="loaded() ? summary().out : null"
+    tone="bad"
+    note="Tồn bằng 0 · Cần nhập thêm"
+  />
+</div>
+<div *ngIf="loaded() && (summary().low || summary().out)" class="inventory-alert" role="status">
+  <svg class="icon alert-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="m12 3 10 18H2L12 3Zm0 6v5m0 3h.01" />
+  </svg>
+  <p>
+    <strong>{{ summary().low }}</strong> sản phẩm sắp hết và
+    <strong>{{ summary().out }}</strong> sản phẩm đã hết hàng.
+  </p>
+  <button type="button" class="btn" (click)="bulkStockIn()">Nhập hàng loạt</button>
+</div>
+<div *ngIf="error()" class="inventory-error" role="alert">
+  {{ error() }} <button type="button" class="btn btn-sm" (click)="load()">Thử lại</button>
+</div>
+<section class="card inventory-table-card" [attr.aria-busy]="loading()">
+  <div class="inventory-toolbar">
+    <div class="inventory-tabs" role="group" aria-label="Lọc tình trạng tồn kho">
+      <button
+        type="button"
+        *ngFor="let tab of tabs"
+        [class.active]="filter() === tab.id"
+        [attr.aria-pressed]="filter() === tab.id"
+        (click)="setFilter(tab.id)"
+      >
+        {{ tab.label }} <small *ngIf="loaded()">{{ count(tab.id) }}</small>
+      </button>
+    </div>
+    <div class="inventory-filters">
+      <label class="inventory-search"
+        ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 5 5" /></svg
+        ><input
+          class="input"
+          type="search"
+          placeholder="Tìm sách, SKU, ISBN…"
+          aria-label="Tìm sách trong kho"
+          [ngModel]="query()"
+          (ngModelChange)="search($event)"
+          maxlength="200" /></label
+      ><select
+        class="select warehouse-filter"
+        disabled
+        aria-label="Lọc kho chưa được hỗ trợ"
+        title="Chưa có dữ liệu phân kho"
+      >
+        <option>Kho: Chưa phân kho</option>
+      </select>
+    </div>
+  </div>
+  <p *ngIf="loading()" class="inventory-loading" role="status">Đang tải toàn bộ dữ liệu tồn kho…</p>
+  <div class="inventory-table-scroll">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Sản phẩm</th>
+          <th>SKU</th>
+          <th>Vị trí</th>
+          <th class="num">Tồn</th>
+          <th class="num">Ngưỡng</th>
+          <th>Trạng thái</th>
+          <th>Cập nhật</th>
+          <th class="inventory-actions" aria-label="Thao tác"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visible()">
+          <td>
+            <a class="inventory-book" [routerLink]="['/book-form', row._id]"
+              ><span class="inventory-cover"
+                ><img
+                  *ngIf="row.image"
+                  [src]="row.image"
+                  alt=""
+                  (error)="$any($event.target).hidden = true"
+                /><span *ngIf="!row.image" aria-hidden="true">▤</span></span
+              ><span
+                ><strong>{{ row.title }}</strong
+                ><small>{{ row.authorName || 'Chưa có tác giả' }}</small></span
+              ></a
+            >
+          </td>
+          <td class="mono">{{ row.sku || 'Chưa có SKU' }}</td>
+          <td>{{ row.location || 'Chưa có' }}</td>
+          <td
+            class="num stock-value"
+            [class.stock-low]="status(row) === 'low'"
+            [class.stock-out]="status(row) === 'out'"
+          >
+            {{ stock(row) ?? '—' }}
+          </td>
+          <td class="num">{{ threshold(row) }}</td>
+          <td><app-status-badge [label]="statusLabel(row)" [tone]="statusTone(row)" /></td>
+          <td class="date">
+            {{ row.updatedAt ? (row.updatedAt | date: 'dd/MM/yyyy' : '+0700') : 'Chưa có' }}
+          </td>
+          <td class="inventory-actions">
+            <button type="button" class="btn btn-sm" (click)="stockIn(row)">＋ Nhập thêm</button>
+          </td>
+        </tr>
+        <tr *ngIf="!loading() && !visible().length">
+          <td colspan="8" class="inventory-empty">
+            {{
+              error()
+                ? 'Chưa tải được dữ liệu tồn kho.'
+                : !loaded()
+                  ? 'Chưa có dữ liệu.'
+                  : query() || filter() !== 'all'
+                    ? 'Không có sách khớp bộ lọc.'
+                    : 'Chưa có sách vật lý trong kho.'
+            }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <app-pagination
+    [page]="page()"
+    [pageSize]="pageSize"
+    [total]="filtered().length"
+    itemLabel="sản phẩm"
+    (pageChange)="goToPage($event)"
+  />
+  <div *ngIf="loaded()" class="inventory-data-note">
+    <span
+      >Đã tải {{ loadedAt() | date: 'HH:mm dd/MM/yyyy' : '+0700' }} · Loại
+      {{ excludedEbooks() }} Ebook khỏi tồn kho vật lý.</span
+    ><span>Ngưỡng riêng của sách; nếu chưa có dùng ngưỡng API {{ defaultThreshold() }}.</span
+    ><span *ngIf="summary().unknown"
+      >{{ summary().unknown }} sách chưa có số tồn hợp lệ; tổng tồn chưa xác định.</span
+    >
+  </div>
+</section>
+<section class="card inventory-history">
+  <header>
+    <h2>Lịch sử nhập / xuất kho gần đây</h2>
+    <button type="button" class="btn" (click)="showHistory()">Xem tất cả</button>
+  </header>
+  <div class="inventory-table-scroll">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Mã phiếu</th>
+          <th>Loại</th>
+          <th>Sản phẩm</th>
+          <th class="num">Số lượng</th>
+          <th>Người thực hiện</th>
+          <th>Thời gian</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="6" class="inventory-empty">
+            <svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 4h16v16H4zM8 8h8m-8 4h8m-8 4h5" /></svg
+            ><strong>Chưa có API lịch sử nhập / xuất kho</strong>
+            <p>Nhật ký sẽ hiển thị khi quy trình kho được kết nối. Không dùng lịch sử mẫu.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<app-confirm-dialog
+  [open]="dialogOpen()"
+  [title]="dialogTitle()"
+  [message]="dialogMessage()"
+  confirmText="Đã hiểu"
+  cancelText="Đóng"
+  variant="default"
+  (confirmed)="dialogOpen.set(false)"
+  (cancelled)="dialogOpen.set(false)"
+/>

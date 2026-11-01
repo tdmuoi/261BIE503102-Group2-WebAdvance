@@ -1,6 +1,6 @@
-﻿import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   Voucher,
@@ -22,48 +22,60 @@ export class VoucherService {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) params = params.set(key, String(value));
     }
-    return this.auth.withSession(() =>
-      this.http.get<VoucherListResponse>(this.baseUrl, { params, withCredentials: true }),
-    );
+    return this.auth
+      .withSession(() =>
+        this.http.get<VoucherListResponse>(this.baseUrl, { params, withCredentials: true }),
+      )
+      .pipe(timeout(15000));
   }
   getVoucher(id: string): Observable<Voucher> {
-    return this.auth.withSession(() =>
-      this.http.get<Voucher>(`${this.baseUrl}/${encodeURIComponent(id)}`, {
-        withCredentials: true,
-      }),
-    );
+    return this.auth
+      .withSession(() =>
+        this.http.get<Voucher>(`${this.baseUrl}/${encodeURIComponent(id)}`, {
+          withCredentials: true,
+        }),
+      )
+      .pipe(timeout(15000));
   }
   createVoucher(data: VoucherPayload): Observable<Voucher> {
-    return this.auth.withSession((csrfToken) =>
-      this.http.post<Voucher>(this.baseUrl, data, {
-        withCredentials: true,
-        headers: { 'X-Admin-CSRF': csrfToken },
-      }),
-    );
-  }
-  updateVoucher(id: string, data: VoucherPayload): Observable<Voucher> {
-    return this.auth.withSession((csrfToken) =>
-      this.http.put<Voucher>(`${this.baseUrl}/${encodeURIComponent(id)}`, data, {
-        withCredentials: true,
-        headers: { 'X-Admin-CSRF': csrfToken },
-      }),
-    );
-  }
-  setPaused(id: string, paused: boolean): Observable<Voucher> {
-    return this.auth.withSession((csrfToken) =>
-      this.http.patch<Voucher>(
-        `${this.baseUrl}/${encodeURIComponent(id)}/status`,
-        { paused },
-        {
+    return this.auth
+      .withSession((csrfToken) =>
+        this.http.post<Voucher>(this.baseUrl, data, {
           withCredentials: true,
           headers: { 'X-Admin-CSRF': csrfToken },
-        },
-      ),
-    );
+        }),
+      )
+      .pipe(timeout(15000));
+  }
+  updateVoucher(id: string, data: VoucherPayload): Observable<Voucher> {
+    return this.auth
+      .withSession((csrfToken) =>
+        this.http.put<Voucher>(`${this.baseUrl}/${encodeURIComponent(id)}`, data, {
+          withCredentials: true,
+          headers: { 'X-Admin-CSRF': csrfToken },
+        }),
+      )
+      .pipe(timeout(15000));
+  }
+  setPaused(id: string, paused: boolean): Observable<Voucher> {
+    return this.auth
+      .withSession((csrfToken) =>
+        this.http.patch<Voucher>(
+          `${this.baseUrl}/${encodeURIComponent(id)}/status`,
+          { paused },
+          {
+            withCredentials: true,
+            headers: { 'X-Admin-CSRF': csrfToken },
+          },
+        ),
+      )
+      .pipe(timeout(15000));
   }
   getReport(): Observable<VoucherReportResponse> {
-    return this.auth.withSession(() =>
-      this.http.get<VoucherReportResponse>(`${this.baseUrl}/report`, { withCredentials: true }),
-    );
+    return this.auth
+      .withSession(() =>
+        this.http.get<VoucherReportResponse>(`${this.baseUrl}/report`, { withCredentials: true }),
+      )
+      .pipe(timeout(15000));
   }
 }

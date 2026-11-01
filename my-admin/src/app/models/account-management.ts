@@ -90,6 +90,7 @@ export interface CustomerList extends AccountList<CustomerAccount> {
 }
 
 export interface AdminAccount {
+  revision?: string | null;
   profileId?: string | null;
   _id: string;
   fullName: string;
@@ -162,6 +163,7 @@ export interface AccountQuery {
 }
 
 export interface AdminAccountRequest {
+  revision?: string | null;
   fullName: string;
   email: string;
   roleId: string;

@@ -248,9 +248,23 @@ describe('Accounts authenticated HTTP and UI', () => {
     const request = http.expectOne(base + '/admins/a1');
     expect(request.request.method).toBe('PATCH');
     expect(request.request.body.status).toBe('locked');
+    expect(request.request.body.revision).toBeNull();
     request.flush({ ...adminList.items[0], status: 'locked' });
     http.expectOne((req) => req.url === base + '/admins').flush(adminList);
     expect(component.confirmAction()).toBe(null);
+  });
+  it('sends the loaded Admin revision and keeps a stale edit open on conflict', async () => {
+    await admins();
+    const component = fixture.componentInstance;
+    component.openAdminEditor({ ...adminList.items[0], revision: '2026-11-01T00:00:00.000Z' });
+    component.editName.set('Updated name');
+    component.saveAdmin();
+    const request = http.expectOne(base + '/admins/a1');
+    expect(request.request.body.revision).toBe('2026-11-01T00:00:00.000Z');
+    request.flush({ message: 'Tài khoản đã thay đổi' }, { status: 409, statusText: 'Conflict' });
+    expect(component.editorOpen()).toBe(true);
+    expect(component.saving()).toBe(false);
+    expect(component.editorError()).toContain('đã thay đổi');
   });
   it('retains only failed permission changes and waits for every request', async () => {
     await admins();

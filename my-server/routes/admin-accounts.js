@@ -10,6 +10,7 @@ const asDate = (value) =>
 const asNumber = (value) =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 const PUBLIC_ACCOUNT = {
+  updatedAt: 1,
   email: 1,
   roleCode: 1,
   status: 1,
@@ -111,10 +112,10 @@ function matchId(value) {
 const variants = (value) => ({ $in: [value, id(value)] });
 const totalOf = (order) => asNumber(order.total);
 const paid = (order) =>
+  order.isDemo !== true &&
   !["cancelled", "canceled", "returned", "refunded"].includes(order.status) &&
   order.paymentStatus !== "refunded" &&
-  (order.paymentStatus === "paid" ||
-    ["delivered", "completed"].includes(order.status));
+  order.paymentStatus === "paid";
 function orderView(order) {
   return {
     _id: id(order._id),
@@ -370,7 +371,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
       adminTotal: data.accounts.filter((account) =>
         ADMIN_CODES.includes(account.roleCode),
       ).length,
-      dataNote: `Đọc accounts + users.accountId. Chưa có trường hạng/điểm; ${unlinked} đơn chưa gắn userId không được tự gán vào khách hàng.`,
+      dataNote: `Đọc accounts + users.accountId; chi tiêu chỉ tính đơn paid không có isDemo. Lịch sử vẫn giữ các bản ghi isDemo. ${unlinked} đơn chưa gắn userId không được tự gán vào khách hàng.`,
     };
   }
   router.get("/customers/export", async (req, res) => {
@@ -531,7 +532,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           lock: req.admin.roleCode === "SUPER_ADMIN",
         },
         dataNote:
-          "Chỉ đếm lịch sử có userId/sellerId hoặc orderId liên kết; không gán dữ liệu khách vãng lai theo tên/email.",
+          "Lịch sử gồm cả bản ghi isDemo nếu có. Chi tiêu chỉ tính đơn paid không có isDemo; không coi giao hàng là đã trả tiền.",
       });
     } catch (error) {
       respondError(res, error);
@@ -600,6 +601,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
             roleId: role ? id(role._id) : "",
             roleName: role?.name || account.roleCode,
             status: account.status,
+            revision: asDate(account.updatedAt),
             emailVerified: null,
             twoFactorEnabled: null,
             lastLoginAt: asDate(account.lastLogin),
@@ -666,7 +668,8 @@ module.exports = function adminAccountsRoutes(getDb, options) {
       errors.status = "Trạng thái không hợp lệ.";
     if (
       Object.keys(body).some(
-        (key) => !["fullName", "email", "roleId", "status"].includes(key),
+        (key) =>
+          !["fullName", "email", "roleId", "status", "revision"].includes(key),
       )
     )
       errors.body = "Có trường không được phép sửa.";
@@ -691,7 +694,8 @@ module.exports = function adminAccountsRoutes(getDb, options) {
       superOnly(req);
       const body = req.body || {};
       validateAdmin(body, true);
-      if (!Object.keys(body).length) throw fail(400, "Chưa có thay đổi.");
+      if (!Object.keys(body).some((key) => key !== "revision"))
+        throw fail(400, "Chưa có thay đổi.");
       const source = await sources(),
         accountId = matchId(req.params.id),
         data = await directory(source),
@@ -715,6 +719,14 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           id(account._id) === req.admin._id)
       )
         throw fail(409, "Không đổi trạng thái bản thân hoặc SUPER_ADMIN.");
+      if (
+        !Object.hasOwn(body, "revision") ||
+        body.revision !== asDate(account.updatedAt)
+      )
+        throw fail(
+          409,
+          "Tài khoản đã thay đổi. Tải lại danh sách trước khi sửa hoặc đổi trạng thái.",
+        );
       const email =
         body.email === undefined ? undefined : text(body.email).toLowerCase();
       if (
@@ -734,18 +746,28 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           "Cần MongoDB transaction để cập nhật đồng bộ accounts và users.",
         );
       session = source.db.client.startSession();
+      const updatedAt = new Date(
+        Math.max(
+          Date.now(),
+          Date.parse(asDate(account.updatedAt) || "1970-01-01T00:00:00.000Z") +
+            1,
+        ),
+      );
       await session.withTransaction(async () => {
         const result = await source.db.collection("accounts").updateOne(
           {
             _id: account._id,
             roleCode: account.roleCode,
             status: account.status,
+            updatedAt: Object.hasOwn(account, "updatedAt")
+              ? account.updatedAt
+              : { $exists: false },
           },
           {
             $set: {
               ...(email === undefined ? {} : { email }),
               ...(body.status === undefined ? {} : { status: body.status }),
-              updatedAt: new Date(),
+              updatedAt,
             },
           },
           { session },
@@ -767,9 +789,10 @@ module.exports = function adminAccountsRoutes(getDb, options) {
         fullName:
           body.fullName === undefined ? profile?.fullName : text(body.fullName),
         email: email ?? account.email,
-        roleId: id(role._id),
-        roleName: role.name,
+        roleId: id(role?._id),
+        roleName: role?.name || account.roleCode,
         status: body.status ?? account.status,
+        revision: updatedAt.toISOString(),
         emailVerified: null,
         twoFactorEnabled: null,
         isSelf: id(account._id) === req.admin._id,

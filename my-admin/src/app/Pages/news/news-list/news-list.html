@@ -1,1 +1,107 @@
-<p>news-list works!</p>
+﻿<app-page-heading
+  title="Lightbook News"
+  subtitle="Quản lý bài viết, chia sẻ câu chuyện và cảm hứng đọc sách."
+  [breadcrumbs]="[{ label: 'Nội dung' }, { label: 'Lightbook News' }]"
+>
+  <a class="btn btn-primary" routerLink="/news-editor">+ Viết bài mới</a>
+</app-page-heading>
+<div class="stats">
+  <app-stat-card label="Tổng bài viết" [value]="data?.stats?.total" />
+  <app-stat-card label="Đã xuất bản" [value]="data?.stats?.published" tone="ok" />
+  <app-stat-card label="Bản nháp" [value]="data?.stats?.draft" />
+  <app-stat-card label="Lên lịch" [value]="data?.stats?.scheduled" tone="info" />
+  <app-stat-card label="Đã ẩn" [value]="data?.stats?.hidden" />
+  <app-stat-card label="Lượt xem" [value]="data?.stats?.views" />
+</div>
+<section class="card">
+  <form class="filters" (ngSubmit)="load()">
+    <input
+      class="input"
+      name="search"
+      [(ngModel)]="search"
+      placeholder="Tìm tiêu đề, mô tả bài viết…"
+      aria-label="Tìm bài viết"
+      maxlength="200"
+    />
+    <select
+      class="select"
+      name="category"
+      [(ngModel)]="category"
+      (ngModelChange)="load()"
+      aria-label="Chuyên mục"
+    >
+      <option value="">Tất cả chuyên mục</option>
+      <option *ngFor="let c of data?.categories" [value]="c">{{ c }}</option>
+    </select>
+    <select
+      class="select"
+      name="status"
+      [(ngModel)]="status"
+      (ngModelChange)="load()"
+      aria-label="Trạng thái"
+    >
+      <option value="">Tất cả trạng thái</option>
+      <option value="published">Đã xuất bản</option>
+      <option value="draft">Bản nháp</option>
+      <option value="scheduled">Lên lịch</option>
+      <option value="hidden">Đã ẩn</option>
+    </select>
+    <button class="btn" [disabled]="loading">Tìm kiếm</button>
+  </form>
+  <p *ngIf="loading" role="status">Đang tải bài viết…</p>
+  <div *ngIf="error" class="error" role="alert">
+    {{ error }} <button class="btn" (click)="load(page)">Thử lại</button>
+  </div>
+  <div class="table-wrap" *ngIf="data && !loading">
+    <table>
+      <thead>
+        <tr>
+          <th>Bài viết</th>
+          <th>Chuyên mục</th>
+          <th>Trạng thái</th>
+          <th>Lượt xem</th>
+          <th>Cập nhật</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let article of data.items">
+          <td>
+            <a class="article" [routerLink]="['/news-editor', article._id]">
+              <img
+                *ngIf="article.cover || article.img"
+                [src]="article.cover || article.img"
+                alt=""
+                (error)="$any($event.target).hidden = true"
+              />
+              <span
+                ><strong>{{ article.title }}</strong
+                ><small>{{ article.author?.name || 'Chưa có tác giả' }}</small></span
+              >
+            </a>
+          </td>
+          <td>{{ article.category || 'Chưa phân loại' }}</td>
+          <td>
+            <app-status-badge
+              [status]="article.status || 'unknown'"
+              [label]="article.status ? '' : 'Chưa đặt trạng thái'"
+            />
+          </td>
+          <td>{{ article.views || 0 | number }}</td>
+          <td>{{ article.updatedAt || article.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td><a class="btn btn-sm" [routerLink]="['/news-editor', article._id]">Chỉnh sửa</a></td>
+        </tr>
+        <tr *ngIf="!data.items.length">
+          <td colspan="6" class="empty">Không có bài viết phù hợp.</td>
+        </tr>
+      </tbody>
+    </table>
+    <app-pagination
+      [page]="page"
+      [pageSize]="pageSize"
+      [total]="data.total"
+      itemLabel="bài viết"
+      (pageChange)="load($event)"
+    />
+  </div>
+</section>

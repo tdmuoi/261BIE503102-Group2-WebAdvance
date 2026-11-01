@@ -2,6 +2,7 @@ export type VoucherStatus = 'active' | 'paused' | 'scheduled' | 'expired';
 export type DiscountType = 'percent' | 'amount' | 'shipping';
 
 export interface VoucherPayload {
+  revision?: string | null;
   name?: string;
   code: string;
   description: string;

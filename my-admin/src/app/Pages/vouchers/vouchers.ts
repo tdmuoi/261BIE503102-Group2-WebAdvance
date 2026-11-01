@@ -1,5 +1,6 @@
-﻿import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectorRef, inject } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { firstValueFrom, Subscription } from 'rxjs';
 import {
@@ -20,6 +21,8 @@ import { VoucherService } from '../../services/voucher-service';
   templateUrl: './vouchers.html',
 })
 export class Vouchers implements OnInit, OnDestroy {
+  private readonly cdr = inject(ChangeDetectorRef);
+  private editingRevision: string | null = null;
   @ViewChild('voucherForm') voucherForm?: NgForm;
   readonly categories = ['Sách mới', 'Sách cũ', 'Sách điện tử'];
   readonly filters: { key: 'all' | VoucherStatus; label: string }[] = [
@@ -130,9 +133,11 @@ export class Vouchers implements OnInit, OnDestroy {
           this.dataNote = response.dataNote ?? '';
           this.loaded = true;
           this.loading = false;
+          this.cdr.markForCheck();
         },
         error: (error: unknown) => {
           this.loading = false;
+          this.cdr.markForCheck();
           this.loaded = false;
           this.total = 0;
           this.summary = null;
@@ -205,6 +210,7 @@ export class Vouchers implements OnInit, OnDestroy {
     if (this.saving) return;
     this.detailRequest?.unsubscribe();
     this.editingId = v?._id ?? null;
+    this.editingRevision = v?.updatedAt || null;
     this.draft = v ? { ...v, categories: [...v.categories] } : this.emptyDraft();
     this.errors = [];
     this.voucherForm?.resetForm(this.draft);
@@ -214,12 +220,15 @@ export class Vouchers implements OnInit, OnDestroy {
     if (v) {
       this.detailRequest = this.service.getVoucher(v._id).subscribe({
         next: (voucher) => {
+          this.editingRevision = voucher.updatedAt || null;
           this.draft = { ...voucher, categories: [...voucher.categories] };
           this.voucherForm?.resetForm(this.draft);
           this.loadingDetail = false;
+          this.cdr.markForCheck();
         },
         error: (error: unknown) => {
           this.loadingDetail = false;
+          this.cdr.markForCheck();
           this.formOpen = false;
           this.message = this.errorMessage(error);
         },
@@ -230,6 +239,7 @@ export class Vouchers implements OnInit, OnDestroy {
     if (this.saving) return;
     this.detailRequest?.unsubscribe();
     this.loadingDetail = false;
+    this.cdr.markForCheck();
     this.formOpen = false;
     this.errors = [];
   }
@@ -296,7 +306,8 @@ export class Vouchers implements OnInit, OnDestroy {
       categories: [...v.categories],
       newOnly: v.newOnly,
       suggest: v.suggest,
-      paused: false,
+      paused: v.paused,
+      ...(this.editingId ? { revision: this.editingRevision } : {}),
     };
     this.saving = true;
     const request = this.editingId
@@ -306,6 +317,7 @@ export class Vouchers implements OnInit, OnDestroy {
       request.subscribe({
         next: (saved) => {
           this.saving = false;
+          this.cdr.markForCheck();
           this.formOpen = false;
           this.search = '';
           this.filter = 'all';
@@ -315,6 +327,7 @@ export class Vouchers implements OnInit, OnDestroy {
         },
         error: (error: unknown) => {
           this.saving = false;
+          this.cdr.markForCheck();
           this.errors = [this.errorMessage(error)];
           if (
             error instanceof HttpErrorResponse &&
@@ -341,11 +354,13 @@ export class Vouchers implements OnInit, OnDestroy {
       this.service.setPaused(v._id, !v.paused).subscribe({
         next: (saved) => {
           this.changingId = null;
+          this.cdr.markForCheck();
           this.message = `${saved.code}: ${this.statusLabel(saved)}.`;
           this.loadVouchers();
         },
         error: (error: unknown) => {
           this.changingId = null;
+          this.cdr.markForCheck();
           this.message = this.errorMessage(error);
           this.loadVouchers();
         },
@@ -362,10 +377,12 @@ export class Vouchers implements OnInit, OnDestroy {
         next: (report) => {
           this.report = report;
           this.reportLoading = false;
+          this.cdr.markForCheck();
         },
         error: (error: unknown) => {
           this.reportError = this.errorMessage(error);
           this.reportLoading = false;
+          this.cdr.markForCheck();
         },
       }),
     );
@@ -445,6 +462,7 @@ export class Vouchers implements OnInit, OnDestroy {
             : this.errorMessage(error);
     } finally {
       this.exporting = false;
+      this.cdr.markForCheck();
     }
   }
 }

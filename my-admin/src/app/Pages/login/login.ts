@@ -31,7 +31,12 @@ export class Login implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   user = new UserLogin();
   showPassword = false;
-  books: BookPreview[] = [];
+  books: BookPreview[] = [
+    { _id: 'login-bo-con-ca-gai', title: 'Bố con cá gai', image: '/images/login/cover-bo-con-ca-gai.png' },
+    { _id: 'login-kitchen', title: 'Kitchen', image: '/images/login/cover-kitchen.png' },
+    { _id: 'login-yeu', title: 'Yêu – Being in Love', image: '/images/login/cover-yeu.png' },
+    { _id: 'login-ho-so-mat', title: 'Hồ sơ mất tích', image: '/images/login/cover-ho-so-mat.png' },
+  ];
   loading = false;
   checking = true;
   error = '';

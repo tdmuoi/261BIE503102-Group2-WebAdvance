@@ -21,16 +21,25 @@ export class PageNotFound {
   private readonly router = inject(Router);
 
   readonly icons = ICONS;
-  readonly currentPath = this.router.url.split(/[?#]/)[0] || '/';
+  get currentPath() {
+    return this.router.url.split(/[?#]/)[0] || '/';
+  }
   readonly shortcuts: Shortcut[] = [
     { title: 'Đơn hàng', description: 'Theo dõi đơn', link: '/orders', icon: ICONS.order },
     { title: 'Sách', description: 'Quản lý kho sách', link: '/book-list', icon: ICONS.book },
-    { title: 'Thanh lý', description: 'Yêu cầu thanh lý', link: '/buyback-requests', icon: ICONS.buyback },
+    {
+      title: 'Thanh lý',
+      description: 'Yêu cầu thanh lý',
+      link: '/buyback-requests',
+      icon: ICONS.buyback,
+    },
     { title: 'Tài khoản', description: 'Quản lý khách hàng', link: '/accounts', icon: ICONS.users },
   ];
 
   goBack(): void {
-    this.location.back();
+    const state = this.location.getState() as { navigationId?: number };
+    if ((state?.navigationId ?? 0) > 1) this.location.back();
+    else void this.router.navigate(['/dashboard']);
   }
 
   search(keyword: string): void {

@@ -1,24 +1,10 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inject, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
+import { forkJoin, catchError, of, Subscription } from 'rxjs';
+import { BuybackService, BuybackRequest, BuybackStatus, buybackError } from './buyback-service';
 
-type BuybackStatus = 'pending' | 'reviewing' | 'paid' | 'rejected';
 type StatusFilter = '' | BuybackStatus;
 type ShippingMethod = 'branch' | 'postal';
-
-interface BuybackRequest {
-  id: string;
-  code: string;
-  title: string;
-  sender: string;
-  phone: string;
-  condition: string;
-  price: number;
-  quantity: number;
-  shipping: ShippingMethod;
-  status: BuybackStatus;
-  date: string;
-  cover: string;
-  coverText: string;
-}
 
 interface PendingAction {
   type: 'reject' | 'delete';
@@ -31,8 +17,45 @@ interface PendingAction {
   styleUrl: './buyback-requests.css',
   templateUrl: './buyback-requests.html',
 })
-export class BuybackRequests {
-  readonly statusInfo: Record<BuybackStatus, { label: string; tone: 'warn' | 'info' | 'ok' | 'bad' }> = {
+export class BuybackRequests implements OnInit, OnDestroy {
+  private service = inject(BuybackService);
+  private router = inject(Router);
+  private subscriptions = new Subscription();
+  readonly loading = signal(false);
+  readonly saving = signal(false);
+  readonly error = signal('');
+  readonly message = signal('');
+  ngOnInit() {
+    this.load();
+  }
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
+  load() {
+    if (this.loading() || this.saving()) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.subscriptions.add(
+      this.service.list().subscribe({
+        next: (r) => {
+          this.requests.set(r.items);
+          this.message.set(r.notice);
+          this.clearSelection();
+          this.clampPage();
+          this.loading.set(false);
+        },
+        error: (e) => {
+          this.requests.set([]);
+          this.error.set(buybackError(e));
+          this.loading.set(false);
+        },
+      }),
+    );
+  }
+  readonly statusInfo: Record<
+    BuybackStatus,
+    { label: string; tone: 'warn' | 'info' | 'ok' | 'bad' }
+  > = {
     pending: { label: 'Chờ duyệt', tone: 'warn' },
     reviewing: { label: 'Đang thẩm định', tone: 'info' },
     paid: { label: 'Đã thanh toán', tone: 'ok' },
@@ -47,7 +70,15 @@ export class BuybackRequests {
     { value: 'rejected', label: 'Từ chối' },
   ];
 
-  readonly conditions = ['95% Như mới', '98% Như mới', '90% Tốt', '85% Tốt', '80% Hơi cũ', '70% Cũ', '60% Cũ'];
+  get conditions() {
+    return [
+      ...new Set(
+        this.requests()
+          .map((row) => row.condition)
+          .filter(Boolean),
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'vi'));
+  }
   readonly requests = signal<BuybackRequest[]>([]);
 
   readonly query = signal('');
@@ -72,9 +103,18 @@ export class BuybackRequests {
       .filter((request) => !this.condition() || request.condition === this.condition())
       .filter((request) => !this.shipping() || request.shipping === this.shipping())
       .filter((request) => !earliestDate || new Date(request.date).getTime() >= earliestDate)
-      .filter((request) => !query || [request.code, request.title, request.sender, request.phone]
-        .some((value) => value.toLocaleLowerCase('vi').includes(query)))
-      .sort((a, b) => this.sort() === 'newest' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
+      .filter(
+        (request) =>
+          !query ||
+          [request.code, request.title, request.sender, request.phone].some((value) =>
+            value.toLocaleLowerCase('vi').includes(query),
+          ),
+      )
+      .sort((a, b) =>
+        this.sort() === 'newest'
+          ? (b.date || '').localeCompare(a.date || '')
+          : (a.date || '').localeCompare(b.date || ''),
+      );
   });
 
   readonly visibleRequests = computed(() => {
@@ -85,15 +125,27 @@ export class BuybackRequests {
     const ids = this.visibleRequests().map((request) => request.id);
     return ids.length > 0 && ids.every((id) => this.selectedIds().includes(id));
   });
-  readonly someVisibleSelected = computed(() => this.visibleRequests().some((request) => this.isSelected(request.id)) && !this.allVisibleSelected());
-  readonly confirmTitle = computed(() => this.pendingAction()?.type === 'delete' ? 'Xoá yêu cầu thanh lý?' : 'Từ chối yêu cầu thanh lý?');
-  readonly confirmMessage = computed(() => this.pendingAction()?.type === 'delete'
-    ? 'Yêu cầu đã xoá sẽ không còn trong danh sách.'
-    : 'Các yêu cầu đã chọn sẽ được chuyển sang trạng thái từ chối.');
-  readonly confirmButton = computed(() => this.pendingAction()?.type === 'delete' ? 'Xoá yêu cầu' : 'Từ chối yêu cầu');
+  readonly someVisibleSelected = computed(
+    () =>
+      this.visibleRequests().some((request) => this.isSelected(request.id)) &&
+      !this.allVisibleSelected(),
+  );
+  readonly confirmTitle = computed(() =>
+    this.pendingAction()?.type === 'delete' ? 'Xoá yêu cầu thanh lý?' : 'Từ chối yêu cầu thanh lý?',
+  );
+  readonly confirmMessage = computed(() =>
+    this.pendingAction()?.type === 'delete'
+      ? 'Yêu cầu đã xoá sẽ không còn trong danh sách.'
+      : 'Các yêu cầu đã chọn sẽ được chuyển sang trạng thái từ chối.',
+  );
+  readonly confirmButton = computed(() =>
+    this.pendingAction()?.type === 'delete' ? 'Xoá yêu cầu' : 'Từ chối yêu cầu',
+  );
 
   count(status: StatusFilter): number {
-    return status ? this.requests().filter((request) => request.status === status).length : this.requests().length;
+    return status
+      ? this.requests().filter((request) => request.status === status).length
+      : this.requests().length;
   }
 
   onSearch(value: string): void {
@@ -135,14 +187,18 @@ export class BuybackRequests {
   }
 
   toggle(id: string): void {
-    this.selectedIds.update((ids) => ids.includes(id) ? ids.filter((selected) => selected !== id) : [...ids, id]);
+    this.selectedIds.update((ids) =>
+      ids.includes(id) ? ids.filter((selected) => selected !== id) : [...ids, id],
+    );
   }
 
   toggleVisible(checked: boolean): void {
     const visibleIds = this.visibleRequests().map((request) => request.id);
-    this.selectedIds.update((selected) => checked
-      ? [...new Set([...selected, ...visibleIds])]
-      : selected.filter((id) => !visibleIds.includes(id)));
+    this.selectedIds.update((selected) =>
+      checked
+        ? [...new Set([...selected, ...visibleIds])]
+        : selected.filter((id) => !visibleIds.includes(id)),
+    );
   }
 
   clearSelection(): void {
@@ -162,42 +218,76 @@ export class BuybackRequests {
   }
 
   askDelete(ids: string[]): void {
-    this.pendingAction.set({ type: 'delete', ids });
+    this.error.set('Chưa hỗ trợ xoá yêu cầu thanh lý; không xoá lịch sử giao dịch.');
   }
 
   confirmAction(): void {
     const action = this.pendingAction();
     if (!action) return;
     if (action.type === 'delete') {
-      this.requests.update((requests) => requests.filter((request) => !action.ids.includes(request.id)));
-      this.selectedIds.update((ids) => ids.filter((id) => !action.ids.includes(id)));
-      this.clampPage();
+      this.error.set('Không hỗ trợ xoá yêu cầu.');
     } else {
-      this.updateStatus(action.ids, 'rejected');
+      const note = window.prompt('Lý do từ chối (bắt buộc):');
+      if (!note?.trim()) {
+        this.error.set('Cần lý do từ chối. Chưa thay đổi dữ liệu.');
+        return;
+      }
+      this.updateStatus(action.ids, 'rejected', note.trim());
     }
     this.pendingAction.set(null);
   }
 
   openDetails(request: BuybackRequest): void {
-    this.selectedRequest.set(request);
+    void this.router.navigate(['/buyback-detail', request.id]);
   }
 
   closeDetails(): void {
     this.selectedRequest.set(null);
   }
 
-  money(value: number): string {
-    return value.toLocaleString('vi-VN') + 'đ';
+  money(value: number | null): string {
+    return value === null ? 'Chưa định giá' : value.toLocaleString('vi-VN') + 'đ';
   }
 
   exportRequests(): void {
-    const header = ['Mã yêu cầu', 'Sách', 'Người gửi', 'Tình trạng', 'Giá đề xuất', 'Số lượng', 'Gửi qua', 'Trạng thái', 'Ngày gửi'];
+    const header = [
+      'Mã yêu cầu',
+      'Sách',
+      'Người gửi',
+      'Tình trạng',
+      'Giá đề xuất',
+      'Số lượng',
+      'Gửi qua',
+      'Trạng thái',
+      'Ngày gửi',
+    ];
     const rows = this.filteredRequests().map((request) => [
-      request.code, request.title, request.sender, request.condition, request.price,
-      request.quantity, request.shipping === 'branch' ? 'Chi nhánh' : 'Bưu điện',
-      this.statusInfo[request.status].label, request.date,
+      request.code,
+      request.title,
+      request.sender,
+      request.condition,
+      request.price,
+      request.quantity ?? '',
+      request.shipping === 'branch'
+        ? 'Chi nhánh'
+        : request.shipping === 'postal'
+          ? 'Bưu điện'
+          : 'Chưa có thông tin',
+      this.statusInfo[request.status].label,
+      request.date,
     ]);
-    const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\r\n');
+    const csv = [header, ...rows]
+      .map((row) =>
+        row
+          .map(
+            (cell) =>
+              `"${String(cell ?? '')
+                .replace(/^[\s]*[=+@-]|^[\t\r]/, (match) => "'" + match)
+                .replaceAll('"', '""')}"`,
+          )
+          .join(','),
+      )
+      .join('\r\n');
     const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
@@ -206,15 +296,48 @@ export class BuybackRequests {
     URL.revokeObjectURL(url);
   }
 
-  private updateStatus(ids: string[], status: BuybackStatus): void {
-    this.requests.update((requests) => requests.map((request) => ids.includes(request.id) ? { ...request, status } : request));
-    this.clearSelection();
-    const current = this.selectedRequest();
-    if (current && ids.includes(current.id)) this.selectedRequest.set({ ...current, status });
+  private updateStatus(ids: string[], status: BuybackStatus, note?: string): void {
+    if (this.saving() || this.loading()) return;
+    const rows = this.requests().filter((r) => ids.includes(r.id));
+    if (
+      !rows.length ||
+      rows.length > 20 ||
+      rows.some((r) =>
+        status === 'reviewing'
+          ? r.status !== 'pending'
+          : !['pending', 'reviewing'].includes(r.status),
+      )
+    ) {
+      this.error.set('Chọn tối đa 20 yêu cầu ở trạng thái cho phép.');
+      return;
+    }
+    this.saving.set(true);
+    this.error.set('');
+    this.subscriptions.add(
+      forkJoin(
+        rows.map((row) =>
+          this.service
+            .act(row, status === 'reviewing' ? 'approve' : 'reject', { note })
+            .pipe(catchError((e) => of({ error: buybackError(e) }))),
+        ),
+      ).subscribe((results) => {
+        const failures = results.filter((r) => 'error' in r);
+        const saved = results.filter((r): r is BuybackRequest => !('error' in r));
+        this.requests.update((all) => all.map((row) => saved.find((r) => r.id === row.id) || row));
+        this.clearSelection();
+        this.saving.set(false);
+        this.clampPage();
+        this.message.set(
+          `Đã lưu ${saved.length}/${rows.length} yêu cầu vào MongoDB. Chưa gửi email hoặc chuyển tiền.`,
+        );
+        this.error.set(failures.map((r) => ('error' in r ? r.error : '')).join(' '));
+      }),
+    );
   }
 
   private resetPage(): void {
     this.page.set(1);
+    this.clearSelection();
   }
 
   private clampPage(): void {

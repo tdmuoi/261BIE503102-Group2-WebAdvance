@@ -1,1 +1,265 @@
-<p>news-editor works!</p>
+﻿<app-page-heading
+  [title]="article._id ? 'Chỉnh sửa bài viết' : 'Bài viết mới'"
+  subtitle="Soạn bài, gắn chuyên mục và chia sẻ cảm hứng đọc sách."
+  [breadcrumbs]="[
+    { label: 'Nội dung' },
+    { label: 'Lightbook News', link: '/news-list' },
+    { label: article._id ? 'Chỉnh sửa' : 'Bài viết mới' },
+  ]"
+>
+  <button class="btn" type="button" (click)="back()">Danh sách</button>
+  <button class="btn" type="button" (click)="preview = !preview">
+    {{ preview ? 'Tiếp tục sửa' : '◉ Xem trước' }}
+  </button>
+  <button
+    class="btn"
+    type="button"
+    [disabled]="loading || saving || loadFailed"
+    (click)="save('draft', newsForm)"
+  >
+    {{ saving ? 'Đang lưu…' : 'Lưu nháp' }}
+  </button>
+  <button
+    class="btn btn-primary"
+    type="button"
+    [disabled]="loading || saving || loadFailed"
+    (click)="save('published', newsForm)"
+  >
+    {{ article.status === 'published' ? 'Cập nhật bài' : 'Đăng bài' }}
+  </button>
+</app-page-heading>
+<p *ngIf="loading" role="status">Đang tải bài viết…</p>
+<p *ngIf="error" class="error" role="alert">{{ error }}</p>
+<button *ngIf="loadFailed" type="button" class="btn" (click)="retryLoad()">Tải lại bài viết</button>
+<p *ngIf="message" class="success" role="status">{{ message }}</p>
+<form
+  #newsForm="ngForm"
+  (ngSubmit)="save('draft', newsForm)"
+  (input)="dirty = true"
+  [hidden]="loading"
+>
+  <fieldset [disabled]="saving || loadFailed">
+    <div class="editor-grid">
+      <section class="document">
+        <div class="cover" [class.has-cover]="article.cover">
+          <img
+            *ngIf="article.cover"
+            [src]="article.cover"
+            alt="Ảnh bìa bài viết"
+            (error)="coverError = true"
+            (load)="coverError = false"
+          />
+          <span *ngIf="!article.cover">Chọn ảnh bìa cho câu chuyện của bạn</span>
+          <button type="button" class="btn cover-button" (click)="changeCover(coverInput)">
+            ▧ Đổi ảnh bìa
+          </button>
+        </div>
+        <div class="writing" [hidden]="preview">
+          <label class="sr-only" for="news-title">Tiêu đề</label>
+          <textarea
+            id="news-title"
+            class="title-input"
+            name="title"
+            [(ngModel)]="article.title"
+            (ngModelChange)="titleChanged()"
+            required
+            maxlength="240"
+            placeholder="Tiêu đề bài viết…"
+            rows="2"
+          ></textarea>
+          <label class="sr-only" for="news-desc">Mô tả ngắn</label>
+          <textarea
+            id="news-desc"
+            class="description-input"
+            name="desc"
+            [(ngModel)]="article.desc"
+            maxlength="1000"
+            placeholder="Một câu giới thiệu câu chuyện của bạn…"
+            rows="2"
+          ></textarea>
+          <div
+            class="toolbar"
+            role="toolbar"
+            aria-label="Định dạng nội dung"
+            (mousedown)="$event.preventDefault()"
+          >
+            <button type="button" (click)="format('formatBlock', 'p')">Đoạn văn</button
+            ><button type="button" (click)="format('formatBlock', 'h2')">H2</button>
+            <button type="button" (click)="format('bold')" aria-label="In đậm"><b>B</b></button
+            ><button type="button" (click)="format('italic')" aria-label="In nghiêng">
+              <i>I</i>
+            </button>
+            <button type="button" (click)="format('underline')" aria-label="Gạch chân">
+              <u>U</u></button
+            ><button type="button" (click)="format('insertUnorderedList')" aria-label="Danh sách">
+              ☷
+            </button>
+            <button
+              type="button"
+              (click)="format('formatBlock', 'blockquote')"
+              aria-label="Trích dẫn"
+            >
+              ❞</button
+            ><button type="button" (click)="insertLink()">Liên kết</button
+            ><button type="button" (click)="insertImage()">Ảnh</button>
+          </div>
+          <div
+            #bodyEditor
+            class="body-editor"
+            [attr.contenteditable]="!saving && !loadFailed"
+            role="textbox"
+            aria-label="Nội dung bài viết"
+            aria-multiline="true"
+            [innerHTML]="initialContent"
+            (input)="contentChanged()"
+            (blur)="contentChanged()"
+          ></div>
+          <small class="text-muted"
+            >Nhập nội dung và dùng thanh công cụ để chèn tiêu đề, trích dẫn, liên kết hoặc
+            ảnh.</small
+          >
+        </div>
+        <article class="writing preview" *ngIf="preview">
+          <h1>{{ article.title || 'Chưa có tiêu đề' }}</h1>
+          <p class="lead">{{ article.desc }}</p>
+          <div [innerHTML]="article.content"></div>
+        </article>
+      </section>
+      <aside>
+        <section class="card">
+          <div class="card-heading">
+            <h2>Xuất bản</h2>
+            <app-status-badge [status]="article.status" />
+          </div>
+          <label>Hiển thị</label>
+          <p>
+            {{
+              article.status === 'published'
+                ? 'Công khai'
+                : article.status === 'hidden'
+                  ? 'Đã ẩn'
+                  : 'Bản nháp'
+            }}
+          </p>
+          <button
+            *ngIf="article._id && article.status === 'published'"
+            class="btn"
+            type="button"
+            (click)="save('hidden', newsForm)"
+          >
+            Ẩn bài viết
+          </button>
+          <label class="category"
+            ><input
+              type="checkbox"
+              name="schedule"
+              [(ngModel)]="schedule"
+              (ngModelChange)="dirty = true"
+            />Hẹn giờ đăng</label
+          >
+          <div *ngIf="schedule">
+            <label for="news-date">Ngày (giờ Việt Nam)</label
+            ><input
+              id="news-date"
+              class="input"
+              type="date"
+              name="scheduleDate"
+              [(ngModel)]="scheduleDate"
+            /><label for="news-time">Giờ</label
+            ><input
+              id="news-time"
+              class="input"
+              type="time"
+              name="scheduleTime"
+              [(ngModel)]="scheduleTime"
+            />
+          </div>
+          <label for="news-cover">Đường dẫn ảnh bìa</label
+          ><input
+            #coverInput
+            id="news-cover"
+            [hidden]="article.cover.startsWith('data:')"
+            class="input"
+            name="cover"
+            [(ngModel)]="article.cover"
+            (ngModelChange)="coverError = false"
+            [maxlength]="article.cover.startsWith('data:') ? null : 2000"
+            placeholder="https://… hoặc /images/…"
+          />
+          <small *ngIf="article.cover.startsWith('data:')" class="text-muted"
+            >Ảnh cũ được giữ trong MongoDB. Dùng Đổi ảnh bìa để thay bằng URL.</small
+          >
+          <small *ngIf="coverError" class="error"
+            >Không tải được ảnh bìa. Kiểm tra đường dẫn ảnh.</small
+          >
+        </section>
+        <section class="card">
+          <h2>Chuyên mục</h2>
+          <small *ngIf="categoryError" class="error">{{ categoryError }}</small>
+          <label class="category" *ngFor="let c of categories"
+            ><input
+              type="radio"
+              name="category"
+              [value]="c"
+              [(ngModel)]="article.category"
+              (ngModelChange)="dirty = true"
+            />{{ c }}</label
+          ><small class="text-muted">Mỗi bài thuộc một chuyên mục theo dữ liệu hiện có.</small>
+        </section>
+        <section class="card">
+          <h2>Tags</h2>
+          <div class="tags">
+            <span *ngFor="let tag of tagsPreview">{{ tag }}</span>
+          </div>
+          <label for="news-tags">Tags, phân cách bằng dấu phẩy</label
+          ><input
+            id="news-tags"
+            class="input"
+            name="tags"
+            [(ngModel)]="tagsText"
+            placeholder="sách cũ, bền vững…"
+          /><small class="text-muted">Tối đa 20 tags, 50 ký tự/tag.</small>
+        </section>
+        <section class="card">
+          <h2>Người viết</h2>
+          <div class="author">
+            <span class="avatar">{{
+              (article.author?.name || auth.user?.fullName || 'A').slice(0, 2)
+            }}</span>
+            <div>
+              <strong>{{ article.author?.name || auth.user?.fullName }}</strong
+              ><small>{{ article.author?.role || auth.user?.roleName }}</small>
+            </div>
+          </div>
+        </section>
+        <section class="card">
+          <h2>SEO &amp; chia sẻ</h2>
+          <label for="news-slug">Đường dẫn</label
+          ><input
+            id="news-slug"
+            class="input"
+            name="slug"
+            [(ngModel)]="article.slug"
+            maxlength="240"
+            pattern="[a-z0-9]+(-[a-z0-9]+)*"
+          /><small class="text-muted">Đường dẫn công khai hiện dùng ID bài viết.</small>
+          <label for="news-meta">Mô tả meta</label
+          ><textarea
+            id="news-meta"
+            class="textarea"
+            name="meta"
+            [(ngModel)]="article.metaDescription"
+            maxlength="160"
+            rows="4"
+          ></textarea
+          ><small class="text-muted">{{ article.metaDescription.length }} / 160 ký tự</small>
+          <div class="seo-preview">
+            <small>Lightbook › News › {{ article.slug }}</small>
+            <h3>{{ article.title || 'Tiêu đề bài viết' }} – Lightbook</h3>
+            <p>{{ article.metaDescription || article.desc }}</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </fieldset>
+</form>

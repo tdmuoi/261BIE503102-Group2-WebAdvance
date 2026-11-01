@@ -1,1 +1,423 @@
-<p>settings works!</p>
+<app-page-heading
+  title="Cài đặt"
+  subtitle="Thông tin cửa hàng, cổng thanh toán, vận chuyển và quy định Ebook."
+  [breadcrumbs]="[{ label: 'Hệ thống' }, { label: 'Cài đặt' }]"
+>
+  <button
+    type="button"
+    class="btn"
+    [disabled]="!dirty || saving || loading"
+    (click)="cancelOpen = true"
+  >
+    Huỷ thay đổi
+  </button>
+  <button
+    type="button"
+    class="btn btn-primary"
+    [disabled]="!values || loading || saving || !dirty"
+    (click)="save(settingsForm)"
+  >
+    {{ saving ? 'Đang lưu…' : '✓ Lưu cài đặt' }}
+  </button>
+</app-page-heading>
+<div id="settings-feedback" aria-live="polite">
+  <p *ngIf="loading" role="status">Đang tải cấu hình từ MongoDB…</p>
+  <div *ngIf="error" class="feedback error" role="alert">
+    {{ error }}
+    <button
+      type="button"
+      class="btn btn-sm"
+      [disabled]="loading || saving"
+      (click)="requestReload()"
+    >
+      Tải lại
+    </button>
+  </div>
+  <p *ngIf="message" class="feedback success" role="status">{{ message }}</p>
+</div>
+<form #settingsForm="ngForm" (ngSubmit)="save(settingsForm)">
+  <div class="settings-grid">
+    <nav class="settings-nav card" aria-label="Nhóm cài đặt">
+      <button
+        *ngFor="let tab of tabs"
+        type="button"
+        [class.active]="active === tab.id"
+        [attr.aria-current]="active === tab.id ? 'location' : null"
+        (click)="selectTab(tab.id)"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons[tab.icon]" /></svg
+        >{{ tab.label }}
+      </button>
+      <div class="last-saved">
+        <span>LƯU LẦN CUỐI</span>
+        <p>
+          {{
+            data?.revision
+              ? (data?.revision | date: 'dd/MM/yyyy HH:mm' : '+0700')
+              : 'Chưa có thông tin'
+          }}<br />{{ data?.updatedBy || 'Chưa có thông tin người lưu' }}
+        </p>
+      </div>
+    </nav>
+    <main class="settings-content">
+      <p *ngIf="data?.notice" class="storage-note">{{ data?.notice }}</p>
+      <fieldset [disabled]="loading || saving" *ngIf="values as v">
+        <section class="card section" id="settings-general" aria-labelledby="general-title">
+          <h2 id="general-title">Thông tin cửa hàng</h2>
+          <p class="section-subtitle">Tên, hình ảnh và thông tin liên hệ của cửa hàng</p>
+          <div class="store-info">
+            <div class="logo-column">
+              <div class="logo-preview">
+                <img
+                  *ngIf="v.logoUrl && !logoError"
+                  [src]="v.logoUrl"
+                  alt="Logo cửa hàng"
+                  (error)="logoError = true"
+                /><span *ngIf="!v.logoUrl || logoError">{{
+                  logoError ? 'Ảnh không tải được' : 'Chưa có logo'
+                }}</span>
+              </div>
+              <button type="button" class="btn" (click)="logoUrl.focus()">↥ Đổi logo</button>
+            </div>
+            <div class="store-fields">
+              <div class="two-columns">
+                <label
+                  >Tên cửa hàng<input
+                    class="input"
+                    name="storeName"
+                    [(ngModel)]="v.storeName"
+                    maxlength="120"
+                    #storeName="ngModel"
+                    [required]="!!v.storeName || !!storeName.dirty"
+                    placeholder="Tên cửa hàng"
+                  /><small *ngIf="storeName.invalid && storeName.touched" class="field-error"
+                    >Tên cửa hàng không được để trống.</small
+                  ></label
+                >
+                <label
+                  >Slogan<input
+                    class="input"
+                    name="slogan"
+                    [(ngModel)]="v.slogan"
+                    maxlength="240"
+                    placeholder="Thông điệp của cửa hàng"
+                /></label>
+                <label
+                  >Email hỗ trợ<input
+                    class="input"
+                    type="email"
+                    email
+                    name="supportEmail"
+                    [(ngModel)]="v.supportEmail"
+                    maxlength="254"
+                    #email="ngModel"
+                    placeholder="support@…"
+                  /><small *ngIf="email.invalid && email.touched" class="field-error"
+                    >Email không hợp lệ.</small
+                  ></label
+                >
+                <label
+                  >Hotline<input
+                    class="input"
+                    name="hotline"
+                    [(ngModel)]="v.hotline"
+                    maxlength="30"
+                    pattern="[+()0-9 .\-]{6,30}"
+                    #hotline="ngModel"
+                    placeholder="Số điện thoại hỗ trợ"
+                  /><small *ngIf="hotline.invalid && hotline.touched" class="field-error"
+                    >Số điện thoại từ 6–30 ký tự.</small
+                  ></label
+                >
+              </div>
+              <label
+                >Đường dẫn logo<input
+                  #logoUrl
+                  class="input"
+                  name="logoUrl"
+                  [(ngModel)]="v.logoUrl"
+                  (ngModelChange)="logoError = false"
+                  maxlength="2000"
+                  pattern="(https?://[^\s]+|/(?!/)[^\s]*)"
+                  #logo="ngModel"
+                  placeholder="https://… hoặc /images/…"
+                /><small *ngIf="logo.invalid && logo.touched" class="field-error"
+                  >Dùng URL HTTP(S) hoặc đường dẫn bắt đầu bằng /.</small
+                ></label
+              >
+              <small class="hint">Đổi logo bằng URL. Backend chưa hỗ trợ tải file logo lên.</small>
+              <div class="three-columns">
+                <label
+                  >Ngôn ngữ mặc định<select class="select" name="language" [(ngModel)]="v.language">
+                    <option value="">Chưa cấu hình</option>
+                    <option value="Vietnamese">Tiếng Việt</option>
+                    <option value="English">English</option>
+                  </select></label
+                >
+                <label
+                  >Tiền tệ<select class="select" name="currency" [(ngModel)]="v.currency">
+                    <option value="">Chưa cấu hình</option>
+                    <option value="VND">VND (đ)</option>
+                  </select></label
+                >
+                <label
+                  >Múi giờ<select class="select" name="timezone" [(ngModel)]="v.timezone">
+                    <option value="">Chưa cấu hình</option>
+                    <option value="Asia/Ho_Chi_Minh">GMT+7 (Hà Nội)</option>
+                  </select></label
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="card section" id="settings-payments" aria-labelledby="payments-title">
+          <div class="section-heading">
+            <div>
+              <h2 id="payments-title">Phương thức thanh toán</h2>
+              <p class="section-subtitle">
+                Khách chọn ở bước Thanh toán · thứ tự hiển thị theo danh sách
+              </p>
+            </div>
+            <app-status-badge label="Chưa xác minh kết nối trực tiếp" tone="mute" />
+          </div>
+          <div class="payment-row" *ngFor="let method of data?.paymentMethods">
+            <span class="method-icon"
+              ><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons['card']" /></svg
+            ></span>
+            <div class="method-description">
+              <h3>{{ method.name }}</h3>
+              <p>{{ method.description }}</p>
+            </div>
+            <app-status-badge
+              [label]="
+                method.configured === true
+                  ? 'Đã cấu hình'
+                  : method.configured === false
+                    ? 'Chưa cấu hình'
+                    : 'Chưa có dữ liệu'
+              "
+              [tone]="method.configured === true ? 'ok' : 'mute'"
+            />
+            <button type="button" class="btn" (click)="unsupported('Cấu hình ' + method.name)">
+              Cấu hình
+            </button>
+            <input
+              class="switch"
+              type="checkbox"
+              disabled
+              [checked]="false"
+              [attr.aria-label]="'Bật/tắt ' + method.name + ' chưa được hỗ trợ'"
+              title="Chưa có API bật/tắt phương thức thanh toán"
+            />
+          </div>
+          <p class="hint">
+            Trạng thái cấu hình lấy từ MongoDB; chưa có dữ liệu bật/tắt. API chưa hỗ trợ thay đổi
+            cổng thanh toán hoặc kiểm tra kết nối nhà cung cấp.
+          </p>
+        </section>
+        <section class="card section" id="settings-shipping" aria-labelledby="shipping-title">
+          <h2 id="shipping-title">Vận chuyển</h2>
+          <p class="section-subtitle">Phí giao hàng và đơn vị vận chuyển mặc định</p>
+          <div class="three-columns">
+            <label
+              >Phí ship tiêu chuẩn (đ)<input
+                class="input"
+                type="number"
+                name="shippingFee"
+                [(ngModel)]="v.shippingFee"
+                min="0"
+                max="10000000"
+                step="1"
+                pattern="[0-9]+"
+                #shippingFee="ngModel"
+                placeholder="Chưa cấu hình"
+              /><small *ngIf="shippingFee.invalid && shippingFee.touched" class="field-error"
+                >Nhập số nguyên từ 0 đến 10.000.000đ.</small
+              ></label
+            >
+            <label
+              >Miễn phí ship cho đơn từ (đ)<input
+                class="input"
+                type="number"
+                name="freeShippingThreshold"
+                [(ngModel)]="v.freeShippingThreshold"
+                min="0"
+                max="1000000000"
+                step="1"
+                pattern="[0-9]+"
+                #threshold="ngModel"
+                placeholder="Chưa cấu hình"
+              /><small *ngIf="threshold.invalid && threshold.touched" class="field-error"
+                >Nhập số nguyên không âm, tối đa 1 tỷ đồng.</small
+              ></label
+            >
+            <label
+              >Thời gian xử lý đơn<select
+                class="select"
+                name="processingDays"
+                [(ngModel)]="v.processingDays"
+              >
+                <option value="">Chưa cấu hình</option>
+                <option value="1-2">1–2 ngày làm việc</option>
+                <option value="2-3">2–3 ngày làm việc</option>
+                <option value="3-5">3–5 ngày làm việc</option>
+              </select></label
+            >
+          </div>
+          <label>Đơn vị vận chuyển</label>
+          <div class="chips">
+            <button
+              type="button"
+              *ngFor="let carrier of carriers"
+              [class.selected]="v.carriers.includes(carrier.id)"
+              [attr.aria-pressed]="v.carriers.includes(carrier.id)"
+              (click)="toggle('carriers', carrier.id)"
+            >
+              {{ v.carriers.includes(carrier.id) ? '✓ ' : '' }}{{ carrier.name }}
+            </button>
+          </div>
+          <p class="hint">
+            Lưu cấu hình vận chuyển; chưa thay đổi cách tính phí hay tạo vận đơn của Checkout.
+          </p>
+        </section>
+        <section class="card section" id="settings-ebook" aria-labelledby="ebook-title">
+          <h2 id="ebook-title">Cài đặt Ebook</h2>
+          <p class="section-subtitle">
+            Áp dụng cấu hình cho loại sách điện tử khi trình đọc được tích hợp
+          </p>
+          <label>Định dạng cho phép</label>
+          <div class="chips">
+            <button
+              type="button"
+              *ngFor="let format of formats"
+              [class.selected]="v.formats.includes(format)"
+              [attr.aria-pressed]="v.formats.includes(format)"
+              (click)="toggle('formats', format)"
+            >
+              {{ v.formats.includes(format) ? '✓ ' : '' }}{{ format }}
+            </button>
+          </div>
+          <div class="three-columns">
+            <label
+              >Số trang đọc thử tối đa<input
+                class="input"
+                type="number"
+                name="freePreviewLimit"
+                [(ngModel)]="v.freePreviewLimit"
+                min="0"
+                max="1000"
+                step="1"
+                pattern="[0-9]+"
+                #previewLimit="ngModel"
+                placeholder="Chưa cấu hình"
+              /><small *ngIf="previewLimit.invalid && previewLimit.touched" class="field-error"
+                >Nhập số nguyên từ 0 đến 1000.</small
+              ></label
+            >
+            <label
+              >Số thiết bị / tài khoản<input
+                class="input"
+                type="number"
+                name="deviceLimit"
+                [(ngModel)]="v.deviceLimit"
+                min="1"
+                max="100"
+                step="1"
+                pattern="[0-9]+"
+                #devices="ngModel"
+                placeholder="Chưa cấu hình"
+              /><small *ngIf="devices.invalid && devices.touched" class="field-error"
+                >Nhập số nguyên từ 1 đến 100.</small
+              ></label
+            >
+            <label
+              >Số Ebook tối đa / đơn<input
+                class="input"
+                type="number"
+                name="maxEbooksPerOrder"
+                [(ngModel)]="v.maxEbooksPerOrder"
+                min="1"
+                max="1000"
+                step="1"
+                pattern="[0-9]+"
+                #maxBooks="ngModel"
+                placeholder="Chưa cấu hình"
+              /><small *ngIf="maxBooks.invalid && maxBooks.touched" class="field-error"
+                >Nhập số nguyên từ 1 đến 1000.</small
+              ><small class="hint"
+                >Ebook bỏ qua địa chỉ & phí vận chuyển khi Checkout hỗ trợ.</small
+              ></label
+            >
+          </div>
+          <div class="option-row">
+            <div>
+              <h3>Chặn tải xuống file gốc</h3>
+              <p>Khách chỉ đọc trực tuyến trong Tủ sách cá nhân</p>
+            </div>
+            <input
+              class="switch"
+              type="checkbox"
+              disabled
+              aria-label="Chặn tải file chưa được hỗ trợ"
+            />
+          </div>
+          <div class="option-row">
+            <div>
+              <h3>Đóng dấu email người mua (watermark)</h3>
+              <p>Hạn chế chia sẻ file trái phép</p>
+            </div>
+            <input
+              class="switch"
+              type="checkbox"
+              disabled
+              aria-label="Watermark chưa được hỗ trợ"
+            />
+          </div>
+          <div class="option-row">
+            <div>
+              <h3>Tự thêm vào Tủ sách sau khi thanh toán</h3>
+              <p>Gửi email cho khách sau khi sách được thêm</p>
+            </div>
+            <input
+              class="switch"
+              type="checkbox"
+              disabled
+              aria-label="Tự thêm tủ sách chưa được hỗ trợ"
+            />
+          </div>
+          <p class="hint">
+            Các công tắc đang khoá vì chưa có Backend thực thi. Chỉ lưu thông số Ebook; không giả
+            lập DRM, watermark hay gửi email.
+          </p>
+        </section>
+        <section class="card section" id="settings-email" aria-labelledby="email-title">
+          <h2 id="email-title">Email & thông báo</h2>
+          <p class="section-subtitle">Email giao dịch và thông báo cho khách hàng</p>
+          <p>Chưa có API cấu hình dịch vụ gửi email, template hoặc gửi thử.</p>
+          <button type="button" class="btn" (click)="unsupported('Gửi email thử')">
+            Gửi email thử
+          </button>
+        </section>
+        <section class="card section" id="settings-security" aria-labelledby="security-title">
+          <h2 id="security-title">Bảo mật</h2>
+          <p class="section-subtitle">Phiên quản trị được bảo vệ bằng cookie HttpOnly và CSRF.</p>
+          <p>Chưa có API thay đổi chính sách bảo mật, bật 2FA hoặc thu hồi phiên từ Settings.</p>
+          <a class="btn" routerLink="/accounts">Quản lý tài khoản & phân quyền</a
+          ><button type="button" class="btn" (click)="unsupported('Thay đổi chính sách bảo mật')">
+            Cấu hình bảo mật
+          </button>
+        </section>
+      </fieldset>
+    </main>
+  </div>
+</form>
+<app-confirm-dialog
+  [open]="cancelOpen"
+  title="Huỷ các thay đổi chưa lưu?"
+  message="Biểu mẫu sẽ trở về cấu hình đã tải gần nhất. Không thay đổi dữ liệu trên server."
+  confirmText="Huỷ thay đổi"
+  cancelText="Tiếp tục chỉnh sửa"
+  variant="default"
+  (confirmed)="cancel(settingsForm)"
+  (cancelled)="dismissCancel()"
+/>

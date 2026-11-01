@@ -37,7 +37,7 @@ export class AdminAuthService {
     return session.pipe(
       switchMap((value) => request(value.csrfToken)),
       catchError((error: unknown) => {
-        if (error instanceof HttpErrorResponse && [401, 403].includes(error.status)) this.clear();
+        if (error instanceof HttpErrorResponse && error.status === 401) this.clear();
         return throwError(() => error);
       }),
     );
