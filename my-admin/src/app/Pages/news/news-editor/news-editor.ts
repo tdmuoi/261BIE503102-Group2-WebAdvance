@@ -12,7 +12,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgForm } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Subscription, distinctUntilChanged, map } from 'rxjs';
 import { AdminAuthService } from '../../../services/admin-auth-service';
 import { NewsArticle, NewsService, newsError, newsPayload } from '../news-service';
 @Component({
@@ -56,6 +56,9 @@ export class NewsEditor implements OnInit, OnDestroy {
   scheduleDate = '';
   scheduleTime = '08:00';
   private subscriptions = new Subscription();
+  private articleRequest?: Subscription;
+  private saveRequest?: Subscription;
+  private confirmedExit = false;
   private originalCover = '';
   get tagsPreview() {
     return this.tagsText
@@ -67,7 +70,7 @@ export class NewsEditor implements OnInit, OnDestroy {
     if (this.loading) return;
     this.loadFailed = false;
     this.error = '';
-    this.ngOnInit();
+    this.loadArticle(this.route.snapshot.paramMap.get('id'));
   }
   changeCover(input: HTMLInputElement) {
     if (this.article.cover.startsWith('data:')) this.article.cover = '';
@@ -88,11 +91,33 @@ export class NewsEditor implements OnInit, OnDestroy {
         },
       }),
     );
-    const id = this.route.snapshot.paramMap.get('id');
+    this.subscriptions.add(this.route.paramMap.pipe(
+      map((params) => params.get('id')),
+      distinctUntilChanged(),
+    ).subscribe((id) => this.loadArticle(id)));
+  }
+  private loadArticle(id: string | null) {
+    this.articleRequest?.unsubscribe();
+    this.saveRequest?.unsubscribe();
+    this.saving = false;
+    this.loading = false;
+    this.loadFailed = false;
+    this.error = '';
+    this.message = '';
+    this.dirty = false;
+    this.coverError = false;
+    this.preview = false;
+    this.schedule = false;
+    this.scheduleDate = '';
+    this.scheduleTime = '08:00';
+    this.article = {
+      title: '', desc: '', content: '', category: '', cover: '',
+      slug: '', metaDescription: '', tags: [], status: 'draft',
+    };
+    this.assign(this.article);
     if (id) {
       this.loading = true;
-      this.subscriptions.add(
-        this.service.get(id).subscribe({
+      this.articleRequest = this.service.get(id).subscribe({
           next: (article) => {
             this.assign(article);
             this.loading = false;
@@ -104,15 +129,24 @@ export class NewsEditor implements OnInit, OnDestroy {
             this.loading = false;
             this.cdr.markForCheck();
           },
-        }),
-      );
+        });
     }
+    this.cdr.markForCheck();
   }
   ngOnDestroy() {
     this.subscriptions.unsubscribe();
+    this.articleRequest?.unsubscribe();
+    this.saveRequest?.unsubscribe();
+  }
+  canDeactivate(): boolean {
+    return this.confirmedExit || (!this.dirty && !this.saving) || window.confirm(
+      this.saving
+        ? 'Yêu cầu lưu đang xử lý; rời trang không hủy thay đổi trên server. Rời trang?'
+        : 'Bạn có thay đổi chưa lưu. Rời trang?',
+    );
   }
   @HostListener('window:beforeunload', ['$event']) beforeUnload(event: BeforeUnloadEvent) {
-    if (this.dirty) event.preventDefault();
+    if (this.dirty || this.saving) event.preventDefault();
   }
   assign(article: NewsArticle) {
     this.article = {
@@ -261,8 +295,7 @@ export class NewsEditor implements OnInit, OnDestroy {
       return;
     }
     this.saving = true;
-    this.subscriptions.add(
-      this.service.save(body).subscribe({
+    this.saveRequest = this.service.save(body).subscribe({
         next: (article) => {
           this.assign(article);
           this.saving = false;
@@ -284,11 +317,15 @@ export class NewsEditor implements OnInit, OnDestroy {
           this.saving = false;
           this.cdr.markForCheck();
         },
-      }),
-    );
+      });
   }
   back() {
-    if (!this.dirty || window.confirm('Bạn có thay đổi chưa lưu. Rời trang?'))
-      void this.router.navigate(['/news-list']);
+    if (this.canDeactivate()) {
+      // The route guard, once approved, must not prompt twice for this same click.
+      this.confirmedExit = true;
+      void this.router.navigate(['/news-list'])
+        .catch(() => false)
+        .finally(() => { this.confirmedExit = false; });
+    }
   }
 }

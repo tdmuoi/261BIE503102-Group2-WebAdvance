@@ -163,6 +163,10 @@ describe('Login API and template-driven form', () => {
     result.next(session);
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/dashboard']);
     expect(fixture.componentInstance.user.password).toBe('');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(form().touched).toBe(false);
+    expect(fixture.nativeElement.textContent).not.toContain('Vui lòng nhập mật khẩu.');
   });
   for (const [status, message] of [
     [401, 'không hợp lệ'],

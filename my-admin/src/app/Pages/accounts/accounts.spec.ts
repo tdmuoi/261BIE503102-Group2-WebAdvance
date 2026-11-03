@@ -218,6 +218,8 @@ describe('Accounts authenticated HTTP and UI', () => {
   it('validates modal and preserves backend failure', async () => {
     await admins();
     const component = fixture.componentInstance;
+    // Exercise validation/error handling with an API that advertises invitation support.
+    component.admins.set({ ...adminList, capabilities: { ...adminList.capabilities, invite: true } });
     component.openAdminEditor();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -293,6 +295,14 @@ describe('Accounts authenticated HTTP and UI', () => {
     fixture.componentInstance.updateSecurity('requireTwoFactor', true);
     http.expectNone(base + '/security');
     expect(fixture.componentInstance.error()).toContain('Không lưu');
+  });
+  it('does not open an invitation or call a known unsupported API', async () => {
+    await admins();
+    const page = fixture.componentInstance;
+    page.inviteAdmin();
+    expect(page.editorOpen()).toBe(false);
+    expect(page.error()).toContain('Chưa có quy trình');
+    http.expectNone((req) => req.method === 'POST');
   });
   it('renders native module/actions without inventing full access', async () => {
     await ready();

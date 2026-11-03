@@ -52,6 +52,7 @@ export class Vouchers implements OnInit, OnDestroy {
   menuId: string | null = null;
   reportOpen = false;
   loading = false;
+  accessDenied = false;
   loaded = false;
   loadingDetail = false;
   saving = false;
@@ -98,8 +99,10 @@ export class Vouchers implements OnInit, OnDestroy {
 
   private errorMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
-      if ([401, 403].includes(error.status))
-        return 'Phiên hết hạn hoặc không có quyền quản trị. Vui lòng đăng nhập lại tại trang Login.';
+      if (error.status === 401)
+        return 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại tại trang Login.';
+      if (error.status === 403)
+        return 'Không được phép truy cập Voucher hoặc yêu cầu bị từ chối. Nếu vai trò chưa được cấp quyền vouchers, hãy liên hệ Super Admin; đăng nhập lại không tự cấp thêm quyền.';
       if (error.status === 0)
         return 'Không kết nối được Backend. Kiểm tra server và mạng rồi thử lại.';
       if (error.status === 404)
@@ -132,6 +135,7 @@ export class Vouchers implements OnInit, OnDestroy {
           this.summary = response.summary;
           this.dataNote = response.dataNote ?? '';
           this.loaded = true;
+          this.accessDenied = false;
           this.loading = false;
           this.cdr.markForCheck();
         },
@@ -139,6 +143,8 @@ export class Vouchers implements OnInit, OnDestroy {
           this.loading = false;
           this.cdr.markForCheck();
           this.loaded = false;
+          this.accessDenied = error instanceof HttpErrorResponse && error.status === 403;
+          if (this.accessDenied) this.formOpen = false;
           this.total = 0;
           this.summary = null;
           this.apiError = this.errorMessage(error);
@@ -207,7 +213,7 @@ export class Vouchers implements OnInit, OnDestroy {
   }
 
   openForm(v?: Voucher): void {
-    if (this.saving) return;
+    if (this.saving || this.accessDenied) return;
     this.detailRequest?.unsubscribe();
     this.editingId = v?._id ?? null;
     this.editingRevision = v?.updatedAt || null;
@@ -250,7 +256,7 @@ export class Vouchers implements OnInit, OnDestroy {
     this.message = 'Schema MongoDB hiện chưa hỗ trợ giới hạn theo nhóm sách.';
   }
   save(form: NgForm): void {
-    if (this.saving || this.loadingDetail) return;
+    if (this.saving || this.loadingDetail || this.accessDenied) return;
     form.control.markAllAsTouched();
     const v = this.draft;
     const code = v.code.trim().toUpperCase();
@@ -343,7 +349,7 @@ export class Vouchers implements OnInit, OnDestroy {
     );
   }
   toggleStatus(v: Voucher): void {
-    if (this.changingId || this.saving) return;
+    if (this.changingId || this.saving || this.accessDenied) return;
     this.menuId = null;
     if (v.state === 'expired') {
       this.message = 'Mã đã hết hạn hoặc hết lượt. Hãy sửa thời gian / giới hạn để kích hoạt lại.';
@@ -368,6 +374,7 @@ export class Vouchers implements OnInit, OnDestroy {
     );
   }
   openReport(): void {
+    if (this.accessDenied) return;
     this.reportOpen = true;
     this.reportLoading = true;
     this.reportError = '';
@@ -396,7 +403,7 @@ export class Vouchers implements OnInit, OnDestroy {
     }
   }
   async exportCsv(): Promise<void> {
-    if (this.exporting) return;
+    if (this.exporting || this.accessDenied) return;
     this.exporting = true;
     const query = { q: this.search.trim(), status: this.filter, limit: 100 };
     try {

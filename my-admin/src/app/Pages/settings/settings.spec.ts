@@ -61,6 +61,21 @@ describe('Settings', () => {
       invalid,
       resetForm: vi.fn(),
     }) as unknown as NgForm;
+  afterEach(() => { fixture.destroy(); vi.restoreAllMocks(); });
+  it('confirms leaving dirty forms or pending saves but allows a clean saved form', () => {
+    const page = fixture.componentInstance;
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    expect(page.canDeactivate()).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+    page.values!.slogan = 'Unsaved';
+    expect(page.canDeactivate()).toBe(false);
+    confirm.mockReturnValue(true);
+    expect(page.canDeactivate()).toBe(true);
+    page.assign(structuredClone(stored));
+    page.saving = true;
+    confirm.mockReturnValue(false);
+    expect(page.canDeactivate()).toBe(false);
+  });
   it('rejects a new logo that failed to load without making a request', () => {
     const page = fixture.componentInstance;
     page.values!.logoUrl = 'https://example.test/missing.png';

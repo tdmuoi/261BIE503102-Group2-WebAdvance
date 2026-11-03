@@ -427,6 +427,27 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       );
     },
   );
+  await t.test('account-only edits stay atomic without a transaction client; profile edits fail closed', async () => {
+    const client = db.client;
+    db.client = undefined;
+    try {
+      const url = '/api/admin/accounts/admins/' + otherAdminId;
+      const target = (await (await request('/api/admin/accounts/admins')).json()).items
+        .find((row) => row._id === String(otherAdminId));
+      const lockedResponse = await request(url, 'PATCH', { status: 'locked', revision: target.revision });
+      assert.equal(lockedResponse.status, 200);
+      const locked = await lockedResponse.json();
+      const before = writes;
+      assert.equal((await request(url, 'PATCH', { fullName: 'Changed profile', revision: locked.revision })).status, 501);
+      assert.equal(writes, before);
+      assert.equal((await request(url, 'PATCH', { status: 'active', revision: target.revision })).status, 409);
+      assert.equal((await request(url, 'PATCH', {
+        fullName: 'Other Admin', status: 'active', revision: locked.revision,
+      })).status, 200);
+    } finally {
+      db.client = client;
+    }
+  });
   await t.test(
     "demo payments are not counted as real customer spend",
     async () => {
@@ -448,6 +469,24 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       }
     },
   );
+  await t.test('profile and email edits use the transaction path and preserve account identity/role', async () => {
+    const url = '/api/admin/accounts/admins/' + otherAdminId;
+    const target = (await (await request('/api/admin/accounts/admins')).json()).items
+      .find((row) => row._id === String(otherAdminId));
+    const response = await request(url, 'PATCH', {
+      fullName: 'Updated Admin', email: 'updated@example.test', revision: target.revision,
+    });
+    assert.equal(response.status, 200);
+    const saved = await response.json();
+    assert.equal(saved.fullName, 'Updated Admin');
+    assert.equal(saved.email, 'updated@example.test');
+    assert.equal(records.accounts[2].roleCode, 'CONTENT_MANAGER');
+    assert.equal(records.users.find((row) => same(row.accountId, otherAdminId)).fullName, 'Updated Admin');
+    const reloaded = (await (await request('/api/admin/accounts/admins')).json()).items
+      .find((row) => row._id === String(otherAdminId));
+    assert.equal(reloaded.revision, saved.revision);
+    assert.equal(reloaded.fullName, saved.fullName);
+  });
   const payload = {
     name: "Audit offer",
     code: "AUDIT25",
@@ -639,6 +678,11 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       admin.roleCode = "CONTENT_MANAGER";
       assert.equal((await request("/api/admin/buybacks")).status, 403);
       assert.equal((await request("/api/admin/accounts/admins")).status, 403);
+      const beforeDenied = writes;
+      assert.equal((await request('/api/admin/vouchers')).status, 403);
+      assert.equal((await request('/api/admin/vouchers', 'POST', { code: 'DENIED' })).status, 403);
+      assert.equal(writes, beforeDenied);
+      assert.equal((await request('/api/admin/auth/session')).status, 200);
       admin.roleCode = "SUPER_ADMIN";
       admin.status = "locked";
       assert.equal((await request("/api/admin/auth/session")).status, 403);

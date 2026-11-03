@@ -79,6 +79,28 @@ describe('Vouchers with authenticated HttpClient', () => {
     await fixture.whenStable();
     fixture.detectChanges();
   }
+  it('keeps the session and blocks editing when the role has no voucher access', async () => {
+    allowSession();
+    http.expectOne((req) => req.url === base)
+      .flush({ message: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    expect(page.accessDenied).toBe(true);
+    expect(page.apiError).toContain('quyền vouchers');
+    expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeNull();
+    expect(page.formOpen).toBe(false);
+    page.openForm();
+    page.toggleStatus(row);
+    page.openReport();
+    expect(page.formOpen).toBe(false);
+    http.expectNone((req) => req.method !== 'GET');
+    page.loadVouchers();
+    flushList();
+    expect(page.accessDenied).toBe(false);
+    // No second session check: resource-level 403 did not clear authentication.
+    http.expectNone(authBase + '/session');
+  });
   it('requires a server session before requesting vouchers', async () => {
     http.expectNone((request) => request.url === base);
     allowSession();

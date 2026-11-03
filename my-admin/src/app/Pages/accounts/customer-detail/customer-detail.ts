@@ -17,6 +17,7 @@ export class CustomerDetail {
   private readonly service = inject(AccountManagementService);
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
   private mutation?: Subscription;
+  private currentCustomerId: string | null = null;
   readonly customer = signal<CustomerAccountDetail | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -30,13 +31,17 @@ export class CustomerDetail {
     combineLatest([this.route.paramMap, this.refresh$])
       .pipe(
         switchMap(([params]) => {
+          const id = params.get('id');
+          if (id !== this.currentCustomerId) this.message.set('');
+          this.currentCustomerId = id;
+          this.mutation?.unsubscribe();
+          this.saving.set(false);
           this.confirming.set(false);
           this.transactionTab.set('orders');
           this.customer.set(null);
           this.page.set(1);
           this.loading.set(true);
           this.error.set('');
-          const id = params.get('id');
           if (!id) {
             this.error.set('Thiếu ID khách hàng trên đường dẫn.');
             return of(null);
@@ -122,7 +127,8 @@ export class CustomerDetail {
   }
   confirmLock(): void {
     const customer = this.customer();
-    if (!customer || this.saving()) return;
+    if (!customer || !customer.capabilities.lock || !this.confirming() || this.saving()) return;
+    this.message.set('');
     this.saving.set(true);
     this.mutation = this.service
       .customerAction(customer._id, this.locked ? 'unlock' : 'lock')

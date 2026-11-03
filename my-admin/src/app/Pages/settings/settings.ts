@@ -75,8 +75,15 @@ export class Settings implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.requests.unsubscribe();
   }
+  canDeactivate(): boolean {
+    return (!this.dirty && !this.saving) || window.confirm(
+      this.saving
+        ? 'Yêu cầu lưu đang xử lý; rời trang không hủy thay đổi trên server. Rời trang?'
+        : 'Bạn có thay đổi chưa lưu. Rời trang?',
+    );
+  }
   @HostListener('window:beforeunload', ['$event']) beforeUnload(event: BeforeUnloadEvent) {
-    if (this.dirty) event.preventDefault();
+    if (this.dirty || this.saving) event.preventDefault();
   }
   load() {
     if (this.saving) return;

@@ -30,7 +30,8 @@
     <button
       class="btn btn-primary"
       type="button"
-      [disabled]="saving() || auth.user?.role !== 'superadmin'"
+      [disabled]="saving() || !admins()?.capabilities?.invite || auth.user?.role !== 'superadmin'"
+      title="Chỉ khả dụng khi Backend hỗ trợ quy trình mời và đặt mật khẩu an toàn"
       (click)="inviteAdmin()"
     >
       ＋ Mời quản trị viên

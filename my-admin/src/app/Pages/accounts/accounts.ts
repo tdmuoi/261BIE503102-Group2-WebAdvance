@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, Input, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, Subscription, debounceTime, forkJoin, catchError, map, of } from 'rxjs';
 import { NgForm } from '@angular/forms';
@@ -23,7 +23,8 @@ import { AdminAuthService } from '../../services/admin-auth-service';
   styleUrl: './accounts.css',
   templateUrl: './accounts.html',
 })
-export class Accounts {
+export class Accounts implements OnInit {
+  @Input() initialTab: AccountTab = 'customers';
   readonly auth = inject(AdminAuthService);
   private readonly accountsService = inject(AccountManagementService);
   private readonly search$ = new Subject<{ value: string; version: number }>();
@@ -84,6 +85,10 @@ export class Accounts {
       this.page.set(1);
       this.load();
     });
+  }
+
+  ngOnInit(): void {
+    this.tab.set(this.initialTab);
     this.load();
   }
 
@@ -105,6 +110,10 @@ export class Accounts {
   }
 
   inviteAdmin(): void {
+    if (!this.admins()?.capabilities.invite) {
+      this.error.set('Chưa có quy trình mời và đặt mật khẩu an toàn. Chưa tạo tài khoản.');
+      return;
+    }
     if (this.admins()) {
       this.setTab('admins');
       this.openAdminEditor();
@@ -230,6 +239,10 @@ export class Accounts {
 
   saveAdmin(form?: NgForm): void {
     if (this.saving()) return;
+    if (!this.selectedAdmin() && !this.admins()?.capabilities.invite) {
+      this.editorError.set('Chưa hỗ trợ mời quản trị viên. Chưa tạo tài khoản.');
+      return;
+    }
     form?.control.markAllAsTouched();
     this.editorError.set('');
     const body: AdminAccountRequest = {

@@ -138,7 +138,9 @@
                 ? 'Công khai'
                 : article.status === 'hidden'
                   ? 'Đã ẩn'
-                  : 'Bản nháp'
+                  : article.status === 'scheduled'
+                    ? 'Đã lên lịch, chưa công khai'
+                    : 'Bản nháp'
             }}
           </p>
           <button

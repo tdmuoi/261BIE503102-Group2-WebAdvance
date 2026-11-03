@@ -740,12 +740,16 @@ module.exports = function adminAccountsRoutes(getDb, options) {
         throw fail(409, "Email đã tồn tại.");
       if (body.fullName !== undefined && !profile)
         throw fail(409, "Chưa có hồ sơ users liên kết với Admin.");
-      if (!source.db.client?.startSession)
+      const changesProfile =
+        body.fullName !== undefined && text(body.fullName) !== profile?.fullName;
+      // Account-only changes are one atomic update. A profile change still needs
+      // a transaction so accounts/users cannot be partially updated.
+      if (changesProfile && !source.db.client?.startSession)
         throw fail(
           501,
           "Cần MongoDB transaction để cập nhật đồng bộ accounts và users.",
         );
-      session = source.db.client.startSession();
+      if (changesProfile) session = source.db.client.startSession();
       const updatedAt = new Date(
         Math.max(
           Date.now(),
@@ -753,7 +757,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
             1,
         ),
       );
-      await session.withTransaction(async () => {
+      const update = async () => {
         const result = await source.db.collection("accounts").updateOne(
           {
             _id: account._id,
@@ -773,7 +777,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           { session },
         );
         if (!result.matchedCount) throw fail(409, "Tài khoản đã thay đổi.");
-        if (body.fullName !== undefined) {
+        if (changesProfile) {
           const result = await source.db.collection("users").updateOne(
             { _id: profile._id, accountId: account._id },
             {
@@ -783,7 +787,9 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           );
           if (!result.matchedCount) throw fail(409, "Hồ sơ đã thay đổi.");
         }
-      });
+      };
+      if (session) await session.withTransaction(update);
+      else await update();
       res.json({
         _id: id(account._id),
         fullName:

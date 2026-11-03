@@ -11,7 +11,7 @@
           <path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5" />
         </svg>
         {{ exporting ? 'Đang xuất...' : 'Xuất CSV' }}</button
-      ><button class="btn btn-primary" (click)="openForm()" [disabled]="saving">
+      ><button class="btn btn-primary" (click)="openForm()" [disabled]="saving || accessDenied">
         ＋ Tạo mã giảm giá
       </button>
     </div>
@@ -24,7 +24,7 @@
   </div>
   <p class="demo" *ngIf="dataNote">{{ dataNote }}</p>
   <div class="notice" role="alert" *ngIf="apiError">
-    {{ apiError }} <a class="btn" routerLink="/login">Đăng nhập</a>
+    {{ apiError }} <a *ngIf="!accessDenied" class="btn" routerLink="/login">Đăng nhập</a>
     <button type="button" class="btn" (click)="loadVouchers()">Thử lại</button>
   </div>
   <div class="stats">
@@ -181,7 +181,7 @@
             <h2>Hiệu quả theo mã · Tích luỹ</h2>
             <p>Doanh thu từ đơn có áp dụng mã</p>
           </div>
-          <button class="btn" (click)="openReport()" [disabled]="reportLoading">Xem báo cáo</button>
+          <button class="btn" (click)="openReport()" [disabled]="reportLoading || accessDenied">Xem báo cáo</button>
         </div>
         <p class="empty" *ngIf="!report?.dataAvailable">
           Chưa có dữ liệu hiệu quả voucher. Chức năng ghi nhận sử dụng khi đặt hàng chưa được tích
@@ -210,7 +210,7 @@
       </div>
       <form #voucherForm="ngForm" (ngSubmit)="save(voucherForm)" novalidate>
         <p role="status" *ngIf="loadingDetail">Đang tải chi tiết voucher...</p>
-        <fieldset class="voucher-fields" [disabled]="saving || loadingDetail">
+        <fieldset class="voucher-fields" [disabled]="saving || loadingDetail || accessDenied">
           <label for="code">Mã giảm giá</label>
           <div class="code-field">
             <input

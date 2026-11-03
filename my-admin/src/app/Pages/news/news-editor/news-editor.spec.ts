@@ -1,10 +1,10 @@
 ﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule, NgForm } from '@angular/forms';
-import { Router, RouterModule, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { ActivatedRoute, Router, RouterModule, convertToParamMap, provideRouter } from '@angular/router';
+import { BehaviorSubject, Subject, of } from 'rxjs';
 import { vi } from 'vitest';
 import { NewsEditor } from './news-editor';
-import { NewsService, newsPayload } from '../news-service';
+import { NewsArticle, NewsService, newsPayload } from '../news-service';
 import { AdminAuthService } from '../../../services/admin-auth-service';
 import { PageHeading } from '../../../Components/page-heading/page-heading';
 import { StatusBadge } from '../../../Components/status-badge/status-badge';
@@ -16,14 +16,20 @@ const blankPage = {
 };
 describe('NewsEditor', () => {
   let fixture: ComponentFixture<NewsEditor>;
-  const service = { list: vi.fn(() => of(blankPage)), save: vi.fn() };
+  const params = new BehaviorSubject(convertToParamMap({}));
+  const service = { list: vi.fn(() => of(blankPage)), save: vi.fn(), get: vi.fn() };
   beforeEach(async () => {
+    params.next(convertToParamMap({}));
     service.save.mockReset();
+    service.get.mockReset();
     await TestBed.configureTestingModule({
       declarations: [NewsEditor, PageHeading, StatusBadge],
       imports: [FormsModule, RouterModule],
       providers: [
         provideRouter([]),
+        { provide: ActivatedRoute, useValue: {
+          paramMap: params.asObservable(), snapshot: { paramMap: convertToParamMap({}) },
+        } },
         { provide: NewsService, useValue: service },
         { provide: AdminAuthService, useValue: { user: { fullName: 'Editor' } } },
       ],
@@ -34,6 +40,49 @@ describe('NewsEditor', () => {
     await fixture.whenStable();
   });
   const form = () => ({ form: { markAllAsTouched() {} }, invalid: false }) as unknown as NgForm;
+  afterEach(() => { fixture.destroy(); vi.restoreAllMocks(); });
+  it('cancels stale article loads when the route ID changes and clears state for new articles', () => {
+    const first = new Subject<NewsArticle>();
+    const second = new Subject<NewsArticle>();
+    service.get.mockReturnValueOnce(first).mockReturnValueOnce(second);
+    params.next(convertToParamMap({ id: 'one' }));
+    params.next(convertToParamMap({ id: 'two' }));
+    second.next({ ...fixture.componentInstance.article, _id: 'two', title: 'Latest' });
+    first.next({ ...fixture.componentInstance.article, _id: 'one', title: 'Stale' });
+    expect(fixture.componentInstance.article._id).toBe('two');
+    params.next(convertToParamMap({}));
+    expect(fixture.componentInstance.article._id).toBeUndefined();
+    expect(fixture.componentInstance.article.title).toBe('');
+  });
+  it('allows clean navigation but confirms dirty or pending saves and cancels the back button', () => {
+    const editor = fixture.componentInstance;
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    expect(editor.canDeactivate()).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+    editor.dirty = true;
+    expect(editor.canDeactivate()).toBe(false);
+    editor.back();
+    expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
+    editor.dirty = false;
+    editor.saving = true;
+    expect(editor.canDeactivate()).toBe(false);
+    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('đang xử lý'));
+  });
+  it('clears dirty only after a successful save, leaving the route without a prompt', () => {
+    const editor = fixture.componentInstance;
+    const response = new Subject<NewsArticle>();
+    editor.article.title = 'Draft';
+    editor.dirty = true;
+    service.save.mockReturnValue(response);
+    editor.save('draft', form());
+    expect(editor.dirty).toBe(true);
+    response.next({ ...editor.article, _id: 'saved' });
+    expect(editor.dirty).toBe(false);
+    expect(editor.saving).toBe(false);
+    const confirm = vi.spyOn(window, 'confirm');
+    expect(editor.canDeactivate()).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+  });
   it('preserves paragraphs and literal markup in persisted plain-text content', () => {
     const editor = fixture.componentInstance;
     editor.assign({

@@ -22,6 +22,7 @@ import { BuybackDetail } from './Pages/buyback-requests/buyback-detail/buyback-d
 import { UsersRoles } from './Pages/settings/users-roles/users-roles';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { adminAuthGuard, adminAuthChildGuard } from './services/admin-auth-service';
+import { pendingChangesGuard } from './Pages/settings/pending-changes-guard';
 
 const routes: Routes = [
   { path: 'login', component: Login },              // đăng nhập: không có sidebar
@@ -37,8 +38,8 @@ const routes: Routes = [
       { path: 'book-form/:id', component: BookForm },      // sửa sách
       { path: 'banners', component: Banners },
       { path: 'news-list', component: NewsList },
-      { path: 'news-editor', component: NewsEditor },      // viết bài mới
-      { path: 'news-editor/:id', component: NewsEditor },  // sửa bài
+      { path: 'news-editor', component: NewsEditor, canDeactivate: [pendingChangesGuard] },      // viết bài mới
+      { path: 'news-editor/:id', component: NewsEditor, canDeactivate: [pendingChangesGuard] },  // sửa bài
       { path: 'accounts', component: Accounts },
       { path: 'customer-detail/:id', component: CustomerDetail },
       { path: 'orders', component: Orders },
@@ -46,7 +47,7 @@ const routes: Routes = [
       { path: 'Pages/buyback-requests', redirectTo: 'buyback-requests' },
       { path: 'vouchers', component: Vouchers },
       { path: 'refunds', component: Refunds },
-      { path: 'settings', component: Settings },
+      { path: 'settings', component: Settings, canDeactivate: [pendingChangesGuard] },
       { path: 'inventory', component: Inventory },
       { path: 'order-detail/:id', component: OrderDetail },
       { path: 'buyback-detail', component: BuybackDetail },

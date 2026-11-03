@@ -107,6 +107,7 @@ export class Login implements OnInit, OnDestroy {
         .subscribe({
           next: () => {
             this.user.password = '';
+            form.resetForm({ ...this.user });
             this.loading = false;
             this.changeDetector.markForCheck();
             void this.router.navigate(['/dashboard']);

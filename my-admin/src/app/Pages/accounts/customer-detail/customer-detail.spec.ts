@@ -138,13 +138,24 @@ describe('CustomerDetail route and API', () => {
     expect(request.request.body).toEqual({ action: 'lock' });
     expect(request.request.headers.get('X-Admin-CSRF')).toBe('csrf');
     request.flush({});
+    expect(component.message()).toBe('Đã cập nhật trạng thái khách hàng.');
     http.expectOne(base + '/c1').flush({ ...customer, status: 'locked' });
     expect(component.customer()?.status).toBe('locked');
     expect(component.confirming()).toBe(false);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Đã cập nhật trạng thái khách hàng.');
+    component.reload();
+    http.expectOne(base + '/c1').flush({ ...customer, status: 'locked' });
+    expect(component.message()).toBe('Đã cập nhật trạng thái khách hàng.');
+    params.next(convertToParamMap({ id: 'c2' }));
+    expect(component.message()).toBe('');
+    http.expectOne(base + '/c2').flush({ ...customer, _id: 'c2' });
   });
   it('does not report success after failed action', async () => {
     await ready();
     const component = fixture.componentInstance;
+    component.message.set('Previous success');
     component.requestLock();
     component.confirmLock();
     http
@@ -159,5 +170,18 @@ describe('CustomerDetail route and API', () => {
     params.next(convertToParamMap({ id: 'c2' }));
     expect(fixture.componentInstance.confirming()).toBe(false);
     http.expectOne(base + '/c2').flush({ ...customer, _id: 'c2' });
+  });
+  it('cancels the old mutation view when navigating to another customer', async () => {
+    await ready();
+    const page = fixture.componentInstance;
+    page.requestLock();
+    page.confirmLock();
+    const old = http.expectOne(base + '/c1/actions');
+    params.next(convertToParamMap({ id: 'c2' }));
+    expect(old.cancelled).toBe(true);
+    http.expectOne(base + '/c2').flush({ ...customer, _id: 'c2' });
+    expect(page.saving()).toBe(false);
+    expect(page.message()).toBe('');
+    expect(page.customer()?._id).toBe('c2');
   });
 });
