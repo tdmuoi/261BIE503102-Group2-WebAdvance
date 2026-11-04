@@ -1,0 +1,37 @@
+/* Bước quét mã thanh toán online (MoMo / VNPay / Chuyển khoản) */
+.pay-overlay {
+  position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: var(--space-24);
+  background: color-mix(in srgb, var(--neutral-ink) 45%, transparent); overflow-y: auto;
+}
+.pay-modal {
+  display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 640px; padding: 26px 28px var(--space-24);
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: 24px; box-shadow: 0 8px 0 0 var(--neutral-ink);
+}
+.pay-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.pay-head h2 { margin: 0; font: 800 22px/normal var(--font-display); letter-spacing: -0.22px; }
+.pay-timer {
+  padding: var(--space-4) var(--space-12); background: var(--color-tint-yellow); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full); font: 700 13px/normal var(--font-sans); font-variant-numeric: tabular-nums;
+}
+.pay-timer.is-low { background: var(--color-feedback-error-bg); color: var(--color-feedback-error); }
+.pay-body { display: flex; gap: var(--space-24); align-items: flex-start; }
+.qr { display: flex; flex: none; flex-direction: column; align-items: center; gap: var(--space-8); margin: 0; }
+.qr svg { padding: var(--space-8); background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-14); box-shadow: var(--shadow-offset-sm); }
+.qr rect { fill: var(--color-bg-surface); }
+.qr path { fill: var(--color-text-primary); }
+.qr figcaption { max-width: 200px; text-align: center; font: 400 11px/1.3 var(--font-sans); color: var(--color-text-muted); }
+.pay-info { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: var(--space-16); }
+.pay-rows { display: flex; flex-direction: column; gap: var(--space-8); margin: 0; padding: var(--space-14); background: var(--green-50); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-14); }
+.pay-rows div { display: flex; justify-content: space-between; gap: var(--space-12); font: 400 13px/1.4 var(--font-sans); }
+.pay-rows dt { color: var(--color-text-secondary); }
+.pay-rows dd { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-weight: 800; text-align: right; }
+.pay-amount { color: var(--color-text-price); font-size: 16px; }
+.copy { padding: 2px var(--space-8); cursor: pointer; background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full); font: 700 11px/normal var(--font-sans); }
+.pay-steps { margin: 0; padding-left: var(--space-20); font: 400 13px/1.6 var(--font-sans); color: var(--color-text-body); }
+.pay-foot { display: flex; justify-content: flex-end; gap: var(--space-10); }
+.pay-foot .btn { padding: var(--space-10) var(--space-20); }
+
+@media (max-width: 640px) {
+  .pay-body { flex-direction: column; align-items: center; }
+  .pay-foot { flex-direction: column-reverse; }
+}

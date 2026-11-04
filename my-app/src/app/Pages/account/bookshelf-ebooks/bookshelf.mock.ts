@@ -1,6 +1,7 @@
 import { Observable, delay, map } from 'rxjs';
 
 import { Order } from '../../../models/account';
+import { savedProgress } from '../../ebook-reader/ebook-reader.mock';
 import { mockGetOrders } from '../orders/orders.mock';
 
 // TODO: thay bằng API — my-server chưa có GET /api/account/ebooks (thư viện ebook + tiến độ đọc).
@@ -42,9 +43,18 @@ const LIBRARY: LibraryEbook[] = [
 /** Thư viện mẫu + ebook trong các đơn mock (vd. vừa đặt ở trang Thanh toán) chưa có trong thư viện */
 export function mockGetEbooks(): Observable<LibraryEbook[]> {
   return mockGetOrders().pipe(
-    map((orders) => [...fromOrders(orders).filter((e) => !LIBRARY.some((l) => l.bookId === e.bookId)), ...LIBRARY.map((e) => ({ ...e }))]),
+    map((orders) => [...fromOrders(orders).filter((e) => !LIBRARY.some((l) => l.bookId === e.bookId)), ...LIBRARY.map((e) => ({ ...e }))].map(withReaderProgress)),
     delay(0),
   );
+}
+
+/** Tiến độ lưu từ trình đọc (trang Đọc ebook) đè lên số liệu mẫu */
+function withReaderProgress(e: LibraryEbook): LibraryEbook {
+  const saved = savedProgress(e.bookId);
+  if (!saved) return e;
+  const totalPages = e.totalPages || 140;
+  const page = Math.min(saved.page, totalPages);
+  return { ...e, totalPages, page, progress: Math.round((page / totalPages) * 100), lastReadAt: saved.lastReadAt ?? e.lastReadAt };
 }
 
 function fromOrders(orders: Order[]): LibraryEbook[] {
@@ -55,7 +65,7 @@ function fromOrders(orders: Order[]): LibraryEbook[] {
         .filter((i) => i.format === 'ebook')
         .map((i) => ({
           bookId: i.bookId, title: i.title, author: i.author ?? '', image: i.image ?? '', format: 'EPUB' as const,
-          progress: 0, page: 0, totalPages: 0, lastReadAt: null, purchasedAt: o.createdAt, sizes: { EPUB: 2, PDF: 8 },
+          progress: 0, page: 0, totalPages: 140, lastReadAt: null, purchasedAt: o.createdAt, sizes: { EPUB: 2, PDF: 8 },
         })),
     );
 }

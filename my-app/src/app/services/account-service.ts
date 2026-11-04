@@ -124,6 +124,11 @@ export class AccountService {
     return this.http.post<Order>(`${environment.apiUrl}/orders`, body, { headers: this.headers() });
   }
 
+  /** Hỏi lại trạng thái đơn — dùng sau khi người dùng quét mã thanh toán online */
+  getOrder(id: string): Observable<Order> {
+    return this.http.get<Order>(`${environment.apiUrl}/orders/${id}`, { headers: this.headers() });
+  }
+
   cancelOrder(id: string): Observable<Order> {
     return this.http.put<Order>(`${this.baseUrl}/orders/${id}/cancel`, {}, { headers: this.headers() });
   }

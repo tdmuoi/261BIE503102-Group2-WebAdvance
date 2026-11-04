@@ -47,6 +47,7 @@ import { BrowseFilters } from './Pages/browse-book/sections/browse-filters/brows
 import { BrowseEmpty } from './Pages/browse-book/sections/browse-empty/browse-empty';
 import { BrowsePrice } from './Pages/browse-book/sections/browse-price/browse-price';
 import { BrowseMenu } from './Components/browse-menu/browse-menu';
+import { FooterLegal } from './Components/footer-legal/footer-legal';
 
 @NgModule({
   declarations: [
@@ -92,6 +93,7 @@ import { BrowseMenu } from './Components/browse-menu/browse-menu';
     BrowseMenu,
     AuthArt,
     SuggestedBooks,
+    FooterLegal,
   ],
   imports: [BrowserModule, AppRoutingModule, SharedModule, ReactiveFormsModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch())],

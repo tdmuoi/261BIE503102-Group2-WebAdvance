@@ -5,10 +5,12 @@ import { Address, CreateOrderRequest, Order, OrderItem, PaymentMethod, ShippingM
 import { AccountService } from '../../services/account-service';
 import { USE_MOCK_ADDRESS, mockGetAddresses } from '../account/address/address.mock';
 import { formatPhone, fullAddress } from '../account/address/address';
-import { USE_MOCK_ORDERS, mockCreateOrder } from '../account/orders/orders.mock';
+import { USE_MOCK_ORDERS, mockCancelOrder, mockCreateOrder, mockPayOrder } from '../account/orders/orders.mock';
 import { CartFacade, CartLine } from '../cart/cart-facade';
 import { SHIPPING_FEES, computeTotals } from '../cart/pricing';
 import { VoucherState } from '../cart/voucher-state';
+import { ToastService } from '../../services/toast-service';
+import { BANK_INFO, PAYMENT_GUIDE, PAYMENT_TTL, demoQrPath, formatCountdown, transferNote } from './payment';
 
 interface Option<T> {
   value: T;
@@ -35,13 +37,14 @@ export const PAYMENT_OPTIONS: Option<PaymentMethod>[] = [
 @Component({
   selector: 'app-checkout',
   standalone: false,
-  styleUrls: ['../cart/shop.css', './checkout.css'],
+  styleUrls: ['../cart/shop.css', './checkout.css', './payment.css'],
   templateUrl: './checkout.html',
 })
 export class Checkout implements OnInit {
   private readonly facade = inject(CartFacade);
   private readonly account = inject(AccountService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
 
   readonly shippingOptions = SHIPPING_OPTIONS;
   readonly shippingFees = SHIPPING_FEES;
@@ -87,6 +90,7 @@ export class Checkout implements OnInit {
   readonly placed = signal<Order | null>(null);
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.stopTimer());
     // Đổi giỏ (vd. ebook-only) mà đang chọn COD thì chuyển về MoMo
     effect(() => {
       if (this.codDisabled() && this.payment() === 'cod') this.payment.set('momo');
@@ -158,15 +162,100 @@ export class Checkout implements OnInit {
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (order) => {
         this.placing.set(false);
-        this.placed.set(order);
-        this.facade.completeOrder(lines.map((l) => l.bookId));
-        window.scrollTo?.({ top: 0 });
+        // COD: xong luôn. MoMo / VNPay / chuyển khoản: mở bước quét mã thanh toán
+        if (order.paymentMethod === 'cod') this.finish(order);
+        else this.openPayment(order);
       },
       error: (err: { error?: { message?: string } }) => {
         this.placing.set(false);
         this.submitError.set(err?.error?.message ?? 'Không đặt được hàng, vui lòng thử lại.');
       },
     });
+  }
+
+  // ---------------- Thanh toán online (quét mã / chuyển khoản) ----------------
+  readonly paying = signal<Order | null>(null);
+  readonly secondsLeft = signal(PAYMENT_TTL);
+  readonly paymentBusy = signal<'confirm' | 'cancel' | null>(null);
+  readonly paymentError = signal<string | null>(null);
+  readonly bankInfo = BANK_INFO;
+  readonly countdown = computed(() => formatCountdown(this.secondsLeft()));
+  readonly guide = computed(() => {
+    const m = this.paying()?.paymentMethod;
+    return m && m !== 'cod' ? PAYMENT_GUIDE[m] : null;
+  });
+  readonly qrPath = computed(() => demoQrPath(this.paying()?.orderCode ?? ''));
+  readonly transferNote = computed(() => transferNote(this.paying()?.orderCode ?? ''));
+  private timer: ReturnType<typeof setInterval> | null = null;
+
+  private openPayment(order: Order): void {
+    this.paying.set(order);
+    this.paymentError.set(null);
+    this.secondsLeft.set(PAYMENT_TTL);
+    this.stopTimer();
+    this.timer = setInterval(() => {
+      this.secondsLeft.update((s) => s - 1);
+      if (this.secondsLeft() <= 0) this.cancelPayment(true);
+    }, 1000);
+  }
+
+  private stopTimer(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  private finish(order: Order): void {
+    this.stopTimer();
+    this.paying.set(null);
+    this.placed.set(order);
+    this.facade.completeOrder(order.items.map((i) => i.bookId));
+    window.scrollTo?.({ top: 0 });
+  }
+
+  /** "Tôi đã thanh toán" */
+  confirmPaid(): void {
+    const order = this.paying();
+    if (!order || this.paymentBusy()) return;
+    this.paymentBusy.set('confirm');
+    this.paymentError.set(null);
+    // TODO: thay bằng API — backend nhận kết quả từ MoMo/VNPay (IPN) hoặc đối soát chuyển khoản; trang hỏi lại GET /api/orders/:id
+    (USE_MOCK_ORDERS ? mockPayOrder(order._id) : this.account.getOrder(order._id)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (updated) => {
+        this.paymentBusy.set(null);
+        if (updated.paymentStatus === 'paid') this.finish(updated);
+        else this.paymentError.set('Lightbook chưa nhận được thanh toán. Bạn đợi ít phút rồi bấm lại nhé.');
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.paymentBusy.set(null);
+        this.paymentError.set(err?.error?.message ?? 'Chưa kiểm tra được thanh toán, vui lòng thử lại.');
+      },
+    });
+  }
+
+  /** Huỷ thanh toán (hoặc hết giờ): huỷ đơn chờ, giữ nguyên giỏ để chọn cách khác */
+  cancelPayment(expired = false): void {
+    const order = this.paying();
+    if (!order || this.paymentBusy()) return;
+    this.stopTimer();
+    this.paymentBusy.set('cancel');
+    // TODO: thay bằng API — PUT /api/account/orders/:id/cancel
+    (USE_MOCK_ORDERS ? mockCancelOrder(order._id) : this.account.cancelOrder(order._id)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => this.closePayment(expired),
+      error: () => this.closePayment(expired),
+    });
+  }
+
+  private closePayment(expired: boolean): void {
+    this.paymentBusy.set(null);
+    this.paying.set(null);
+    this.toast.show(expired ? 'Mã thanh toán đã hết hạn nên đơn đã được huỷ. Bạn đặt lại nhé.' : 'Đã huỷ thanh toán. Sách vẫn còn trong giỏ.');
+  }
+
+  copyText(text: string): void {
+    navigator.clipboard?.writeText(text).then(
+      () => this.toast.show('Đã sao chép'),
+      () => this.toast.show('Trình duyệt không cho sao chép'),
+    );
   }
 
   /** "Đơn sẽ đến trong 3–5 ngày" theo cách giao đã chọn */

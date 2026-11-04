@@ -1,0 +1,30 @@
+<ul class="footer-legal">
+  <li><button type="button" (click)="open.set('privacy')">Privacy Policy</button></li>
+  <li><button type="button" (click)="open.set('terms')">Terms of Service</button></li>
+  <li><a [href]="social.instagram || '#'" target="_blank" rel="noopener" (click)="!social.instagram && $event.preventDefault()">Instagram</a></li>
+  <li><a [href]="social.facebook || '#'" target="_blank" rel="noopener" (click)="!social.facebook && $event.preventDefault()">Facebook</a></li>
+</ul>
+
+@if (open(); as key) {
+  @let doc = docs[key];
+  <div class="overlay" (click)="open.set(null)">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="legal-title" (click)="$event.stopPropagation()">
+      <header class="head">
+        <div>
+          <h2 id="legal-title">{{ doc.title }}</h2>
+          <p class="updated">{{ doc.updated }}</p>
+        </div>
+        <button type="button" class="close" (click)="open.set(null)" aria-label="Đóng">×</button>
+      </header>
+      <div class="content">
+        @for (s of doc.sections; track s.heading) {
+          <h3>{{ s.heading }}</h3>
+          <p>{{ s.body }}</p>
+        }
+      </div>
+      <footer class="foot">
+        <button type="button" class="ok" (click)="open.set(null)">Đã hiểu</button>
+      </footer>
+    </section>
+  </div>
+}

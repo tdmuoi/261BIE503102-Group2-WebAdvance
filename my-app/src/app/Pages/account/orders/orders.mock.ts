@@ -104,7 +104,6 @@ export function mockCreateOrder(body: CreateOrderRequest, ctx: MockOrderContext)
   const orders = read();
   const nextCode = Math.max(24214, ...orders.map((o) => Number(o.orderCode.replace(/\D/g, '')) || 0)) + 1;
   const now = new Date().toISOString();
-  const ebookOnly = ctx.items.every((i) => i.format === 'ebook');
   const order: Order = {
     _id: `o-${nextCode}`,
     orderCode: `LB-${nextCode}`,
@@ -116,17 +115,37 @@ export function mockCreateOrder(body: CreateOrderRequest, ctx: MockOrderContext)
     total: ctx.total,
     shippingMethod: body.shippingMethod,
     paymentMethod: body.paymentMethod,
-    // Chưa nối cổng thanh toán thật: MoMo / VNPay / chuyển khoản coi như đã trả, COD trả khi nhận
-    paymentStatus: body.paymentMethod === 'cod' ? 'unpaid' : 'paid',
-    // Đơn chỉ có ebook: giao ngay vào tủ sách
-    status: ebookOnly ? 'delivered' : 'pending',
-    statusHistory: ebookOnly ? history([['pending', now], ['delivered', now]]) : history([['pending', now]]),
+    // MoMo / VNPay / chuyển khoản: chờ người dùng quét mã rồi bấm "Tôi đã thanh toán" (mockPayOrder). COD trả khi nhận.
+    paymentStatus: 'unpaid',
+    status: 'pending',
+    statusHistory: history([['pending', now]]),
     shippingAddress: ctx.address,
     note: body.note,
     createdAt: now,
   };
   write([order, ...orders]);
   return of(structuredClone(order)).pipe(delay(700));
+}
+
+/**
+ * Xác nhận đã thanh toán online (mock). Khi có cổng thật, backend nhận kết quả từ MoMo/VNPay (IPN/webhook)
+ * hoặc đối soát chuyển khoản, trang chỉ cần hỏi lại GET /api/orders/:id.
+ * Đơn chỉ có ebook: trả tiền xong là giao ngay vào tủ sách.
+ */
+export function mockPayOrder(id: string): Observable<Order> {
+  const orders = read();
+  const order = orders.find((o) => o._id === id);
+  if (!order || order.status === 'cancelled') {
+    return timer(400).pipe(switchMap(() => throwError(() => new HttpErrorResponse({ status: 409, error: { message: 'Đơn đã bị huỷ hoặc không tồn tại' } }))));
+  }
+  const now = new Date().toISOString();
+  order.paymentStatus = 'paid';
+  if (order.items.every((i) => i.format === 'ebook')) {
+    order.status = 'delivered';
+    order.statusHistory.push({ status: 'delivered', at: now, note: null });
+  }
+  write(orders);
+  return of(structuredClone(order)).pipe(delay(800));
 }
 
 export function mockCancelOrder(id: string): Observable<Order> {

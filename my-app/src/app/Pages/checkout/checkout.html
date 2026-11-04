@@ -201,4 +201,58 @@
   </section>
 }
 
+<!-- Bước quét mã / chuyển khoản cho MoMo, VNPay, Chuyển khoản (Figma chưa có màn này) -->
+@if (paying(); as o) {
+  <div class="pay-overlay">
+    <section class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+      <header class="pay-head">
+        <h2 id="pay-title">{{ guide()?.title }}</h2>
+        <span class="pay-timer" [class.is-low]="secondsLeft() < 60" aria-live="polite">Còn {{ countdown() }}</span>
+      </header>
+
+      <div class="pay-body">
+        <figure class="qr">
+          <svg viewBox="-2 -2 29 29" width="184" height="184" role="img" aria-label="Mã QR minh hoạ">
+            <rect x="-2" y="-2" width="29" height="29" />
+            <path [attr.d]="qrPath()" fill-rule="evenodd" />
+          </svg>
+          <figcaption>Mã QR minh hoạ — chưa nối cổng thanh toán</figcaption>
+        </figure>
+
+        <div class="pay-info">
+          <dl class="pay-rows">
+            <div><dt>Mã đơn</dt><dd>#{{ o.orderCode }}</dd></div>
+            <div><dt>Số tiền</dt><dd class="pay-amount">{{ o.total | vnd }}</dd></div>
+            @if (o.paymentMethod === 'bank_transfer') {
+              <div><dt>Ngân hàng</dt><dd>{{ bankInfo.bank }}</dd></div>
+              <div><dt>Số tài khoản</dt><dd>{{ bankInfo.account }}</dd></div>
+              <div><dt>Chủ tài khoản</dt><dd>{{ bankInfo.holder }}</dd></div>
+            }
+            <div>
+              <dt>Nội dung CK</dt>
+              <dd>{{ transferNote() }} <button type="button" class="copy" (click)="copyText(transferNote())">Sao chép</button></dd>
+            </div>
+          </dl>
+          <ol class="pay-steps">
+            @for (step of guide()?.steps ?? []; track $index) { <li>{{ step }}</li> }
+          </ol>
+        </div>
+      </div>
+
+      @if (paymentError(); as err) {
+        <p class="voucher-help is-error" role="alert"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+      }
+
+      <footer class="pay-foot">
+        <button type="button" class="btn btn-secondary" (click)="cancelPayment()" [disabled]="!!paymentBusy()">
+          {{ paymentBusy() === 'cancel' ? 'Đang huỷ…' : 'Huỷ, chọn cách khác' }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="confirmPaid()" [disabled]="!!paymentBusy()">
+          {{ paymentBusy() === 'confirm' ? 'Đang kiểm tra…' : 'Tôi đã thanh toán' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+
 <app-marquee [items]="marquee" />

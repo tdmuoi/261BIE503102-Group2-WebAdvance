@@ -1,0 +1,78 @@
+/* Trình đọc ebook (Figma "Đọc ebook"). Màu nền đọc riêng của trình đọc — chưa có token chung nên khai báo tại đây */
+.reader {
+  --reader-bg: #f6f2ea; --reader-page: #fffdf8; --reader-text: var(--color-text-serif);
+  --reader-swatch-dark: #262321;
+  display: flex; flex-direction: column; background: var(--reader-bg); border-top: var(--border-default) solid var(--color-border-strong);
+}
+.reader[data-theme='white'] { --reader-bg: var(--color-bg-page); --reader-page: var(--color-bg-surface); }
+.reader[data-theme='dark'] { --reader-bg: #1c1917; --reader-page: var(--reader-swatch-dark); --reader-text: #e7e5e4; }
+.state { padding-block: var(--space-40) var(--space-80); }
+.btn-pill, .pill {
+  display: inline-flex; align-items: center; gap: var(--space-6); padding: var(--space-8) var(--space-14); cursor: pointer; white-space: nowrap;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  font: 700 13px/normal var(--font-sans); color: var(--color-text-primary);
+}
+.pill-mint { background: var(--green-50); box-shadow: var(--shadow-offset-xs); }
+.pill:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* Thanh trên / dưới */
+.topbar, .bottombar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-20); padding: var(--space-12) var(--space-32); background: var(--color-bg-surface); }
+.topbar { border-bottom: var(--border-default) solid var(--color-border-strong); }
+.bottombar { position: sticky; bottom: 0; z-index: 5; padding-block: var(--space-14); border-top: var(--border-default) solid var(--color-border-strong); }
+.top-left { display: flex; align-items: center; gap: var(--space-16); min-width: 0; }
+.book-title { min-width: 0; }
+.book-title h1 { margin: 0; font: 800 15px/normal var(--font-sans); }
+.book-title p { margin: 1px 0 0; font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+.tools { display: flex; gap: var(--space-8); }
+.tool {
+  display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; cursor: pointer;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: 19px;
+}
+.tool.is-active { background: var(--color-border-subtle); box-shadow: var(--shadow-offset-xs); }
+.tool-text { font: 700 14px/normal var(--font-sans); color: var(--color-text-primary); }
+
+/* Thân */
+.body { display: flex; align-items: flex-start; gap: 28px; padding: 28px var(--space-32); }
+/* Trang sách */
+.pages { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: center; gap: var(--space-24); --reader-size: 17px; --reader-line: 1.85; }
+.page {
+  position: relative; display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 640px; min-height: 510px; padding: 56px 64px;
+  background: var(--reader-page); color: var(--reader-text); border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-16); box-shadow: var(--shadow-offset-4);
+}
+.kicker { margin: 0; font: 700 11px/normal var(--font-sans); letter-spacing: 1px; text-transform: uppercase; color: var(--color-text-muted); }
+.chapter { margin: 0; font: 800 26px/normal var(--font-display); color: inherit; }
+.para { margin: 0; font-family: var(--font-sans); font-size: var(--reader-size); line-height: var(--reader-line); }
+.pages[data-font='serif'] .para { font-family: Georgia, 'Times New Roman', serif; }
+.hl { font-weight: 700; text-decoration: underline; color: var(--color-text-accent); }
+.reader[data-theme='dark'] .hl { color: var(--color-tint-mint); }
+.reader[data-theme='dark'] .page { border-color: var(--stone-600); box-shadow: none; }
+.page-no { align-self: center; margin: 0; font: 400 11px/normal var(--font-sans); color: var(--color-text-muted); }
+.selection-bar {
+  position: absolute; z-index: 3; display: flex; align-items: center; gap: var(--space-4); padding: var(--space-6) var(--space-8);
+  background: var(--color-text-primary); border-radius: var(--radius-12); box-shadow: var(--shadow-offset-sm);
+}
+.selection-bar button { padding: var(--space-4) var(--space-8); cursor: pointer; background: none; border: 0; font: 700 12px/normal var(--font-sans); color: var(--color-text-inverse); }
+.selection-bar span { width: 1px; height: 14px; background: color-mix(in srgb, var(--color-text-inverse) 30%, transparent); }
+.note-pop {
+  position: absolute; z-index: 3; display: flex; flex-direction: column; gap: var(--space-8); width: 300px; padding: var(--space-12);
+  background: var(--color-bg-surface); color: var(--color-text-primary); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-14); box-shadow: var(--shadow-offset-sm);
+}
+.note-quote { margin: 0; font: italic 400 12px/1.4 var(--font-sans); color: var(--color-text-secondary); }
+.note-pop textarea { height: 72px; padding: var(--space-8); resize: none; border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-10); font: 400 13px/1.5 var(--font-sans); }
+.note-actions { display: flex; justify-content: flex-end; gap: var(--space-8); }
+
+.progress { display: flex; flex: 1; flex-direction: column; gap: var(--space-6); }
+.progress-labels { display: flex; justify-content: space-between; gap: var(--space-12); font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
+.progress-labels b { color: var(--color-text-primary); }
+
+@media (max-width: 1200px) {
+  .body { flex-wrap: wrap; }
+  .pages { flex-basis: 100%; order: 1; }
+}
+@media (max-width: 640px) {
+  .topbar, .bottombar, .body { padding-inline: var(--space-16); }
+  .topbar { flex-wrap: wrap; }
+  .page { padding: var(--space-32) var(--space-20); }
+  .progress-labels span { display: none; }
+}

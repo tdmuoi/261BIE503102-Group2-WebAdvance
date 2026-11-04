@@ -1,1 +1,215 @@
-<p>ebook-reader works!</p>
+@switch (status()) {
+  @case ('login') {
+    <section class="state container">
+      <app-status-card title="Đăng nhập để đọc ebook" message="Ebook bạn đã mua nằm trong tủ sách của tài khoản.">
+        <a class="btn-pill" [routerLink]="loginLink().path" [queryParams]="loginLink().params">Đăng nhập</a>
+      </app-status-card>
+    </section>
+  }
+  @case ('loading') {
+    <section class="state container"><app-status-card tone="loading" message="Đang mở sách…" /></section>
+  }
+  @case ('error') {
+    <section class="state container">
+      <app-status-card tone="error" title="Chưa mở được sách" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+        <a class="btn-pill" routerLink="/account/bookshelf-ebooks">Về tủ sách</a>
+      </app-status-card>
+    </section>
+  }
+  @case ('notfound') {
+    <section class="state container">
+      <app-status-card title="Không tìm thấy ebook trong tủ sách" message="Có thể bạn chưa mua cuốn này hoặc đường dẫn không đúng.">
+        <a class="btn-pill" routerLink="/account/bookshelf-ebooks">Về tủ sách</a>
+      </app-status-card>
+    </section>
+  }
+  @default {
+    @if (ebook(); as e) {
+      <div class="reader" [attr.data-theme]="settings().theme">
+        <!-- Thanh trên -->
+        <header class="topbar">
+          <div class="top-left">
+            <a class="pill" routerLink="/account/bookshelf-ebooks"><img src="images/reader/back.svg" alt="" width="14" height="14" />Tủ sách</a>
+            <div class="book-title">
+              <h1>{{ e.title }}</h1>
+              <p>{{ e.author }} · {{ current().chapter.title }} / {{ chapters().length }}</p>
+            </div>
+          </div>
+          <div class="tools" role="toolbar" aria-label="Công cụ đọc">
+            <button type="button" class="tool" [class.is-active]="leftPanel() === 'toc'" [attr.aria-pressed]="leftPanel() === 'toc'" (click)="togglePanel('toc')" title="Mục lục">
+              <img src="images/reader/list.svg" alt="Mục lục" width="18" height="18" />
+            </button>
+            <button type="button" class="tool" [class.is-active]="leftPanel() === 'search'" [attr.aria-pressed]="leftPanel() === 'search'" (click)="togglePanel('search')" title="Tìm trong sách">
+              <img src="images/account/search.svg" alt="Tìm trong sách" width="18" height="18" />
+            </button>
+            <button type="button" class="tool" [class.is-active]="bookmarked()" [attr.aria-pressed]="bookmarked()" (click)="toggleBookmark()" [title]="bookmarked() ? 'Bỏ đánh dấu trang' : 'Đánh dấu trang'">
+              <img [src]="bookmarked() ? 'images/reader/bookmark-fill.svg' : 'images/reader/bookmark.svg'" alt="Đánh dấu trang" width="18" height="18" />
+            </button>
+            <button type="button" class="tool tool-text" [class.is-active]="settingsOpen()" [attr.aria-pressed]="settingsOpen()" (click)="settingsOpen.set(!settingsOpen())" title="Tuỳ chỉnh chữ">Aa</button>
+            <button type="button" class="tool" [class.is-active]="settings().theme === 'dark'" [attr.aria-pressed]="settings().theme === 'dark'" (click)="toggleDark()" title="Chế độ tối">
+              <img [src]="settings().theme === 'dark' ? 'images/reader/sun.svg' : 'images/reader/moon.svg'" alt="Chế độ tối" width="18" height="18" />
+            </button>
+          </div>
+        </header>
+
+        <div class="body">
+          <!-- Cột trái: Mục lục / Tìm kiếm -->
+          @if (leftPanel() === 'toc') {
+            <aside class="panel side" aria-label="Mục lục">
+              <h2 class="panel-title">Mục lục</h2>
+              <ol class="toc">
+                @for (c of chapters(); track c.index) {
+                  @let isCurrent = current().chapter.index === c.index;
+                  @let done = c.index < current().chapter.index;
+                  <li>
+                    <button type="button" class="toc-item" [class.is-current]="isCurrent" [class.is-done]="done" (click)="goTo(c.startPage)" [attr.aria-current]="isCurrent ? 'true' : null">
+                      <span>{{ done ? '✓  ' : '' }}{{ c.title }}</span><span class="toc-page">tr. {{ c.startPage }}</span>
+                    </button>
+                  </li>
+                }
+              </ol>
+              <hr class="divider" />
+              <h3 class="marks-title">Đánh dấu &amp; ghi chú</h3>
+              <ul class="marks">
+                @for (m of marks(); track m.key) {
+                  <li class="mark">
+                    <button type="button" class="mark-go" (click)="goTo(m.page)" [title]="m.note?.text || m.note?.quote || ''">
+                      <img [src]="m.kind === 'bookmark' ? 'images/reader/bookmark.svg' : 'images/reader/list.svg'" alt="" width="14" height="14" />{{ m.label }}
+                    </button>
+                    <button type="button" class="mark-x" (click)="removeMark(m)" [attr.aria-label]="'Xoá ' + m.label">×</button>
+                  </li>
+                } @empty {
+                  <li class="muted">Chưa có đánh dấu nào.</li>
+                }
+              </ul>
+            </aside>
+          } @else if (leftPanel() === 'search') {
+            <aside class="panel side" aria-label="Tìm trong sách">
+              <h2 class="panel-title">Tìm trong sách</h2>
+              <label class="search">
+                <img src="images/account/search.svg" alt="" width="16" height="16" />
+                <input type="search" [value]="query()" (input)="query.set($any($event.target).value)" placeholder="Nhập từ cần tìm…" autofocus />
+              </label>
+              @if (query().trim().length >= 2) {
+                <ul class="results">
+                  @for (r of searchResults().items; track $index) {
+                    <li><button type="button" (click)="goTo(r.page)"><b>Trang {{ r.page }}</b>{{ r.snippet }}</button></li>
+                  } @empty {
+                    <li class="muted">Không tìm thấy “{{ query() }}”.</li>
+                  }
+                </ul>
+                @if (searchResults().more) { <p class="muted">và {{ searchResults().more }} kết quả khác</p> }
+              } @else {
+                <p class="muted">Nhập ít nhất 2 ký tự.</p>
+              }
+            </aside>
+          }
+
+          <!-- Trang sách -->
+          <main class="pages" [class.is-scroll]="settings().mode === 'scroll'" (mouseup)="onTextSelect($event)"
+            [style.--reader-size.px]="settings().fontSize" [style.--reader-line]="lineRatio()" [attr.data-font]="settings().font">
+            @for (p of visiblePages(); track p.number) {
+              <article class="page" [attr.data-page]="p.number" [attr.aria-label]="'Trang ' + p.number">
+                <p class="kicker">{{ p.chapter.title }}</p>
+                <h2 class="chapter">{{ p.heading }}</h2>
+                @for (para of p.paragraphs; track $index) {
+                  <p class="para">@for (seg of segments(para, p.number); track $index) {<span [class.hl]="seg.mark">{{ seg.text }}</span>}</p>
+                }
+                @if (settings().mode === 'scroll') { <p class="page-no">{{ p.number }}</p> }
+
+                @if (selection(); as sel) {
+                  @if (sel.page === p.number) {
+                    <div class="selection-bar" role="toolbar" aria-label="Với đoạn đã chọn" [style.top.px]="sel.top" [style.left.px]="sel.left" (mousedown)="$event.preventDefault()">
+                      <button type="button" (click)="highlight()">Tô sáng</button><span></span>
+                      <button type="button" (click)="startNote()">Ghi chú</button><span></span>
+                      <button type="button" (click)="copy()">Sao chép</button><span></span>
+                      <button type="button" (click)="lookup()">Tra từ</button>
+                    </div>
+                  }
+                }
+                @if (noteDraft(); as d) {
+                  @if (d.page === p.number) {
+                    <form class="note-pop" [style.top.px]="d.top" [style.left.px]="d.left" (submit)="$event.preventDefault(); saveNote()">
+                      <p class="note-quote">“{{ d.quote }}”</p>
+                      <textarea [value]="d.text" (input)="onNoteInput($event)" maxlength="300" placeholder="Ghi chú của bạn…" aria-label="Ghi chú"></textarea>
+                      <div class="note-actions">
+                        <button type="button" class="pill" (click)="noteDraft.set(null)">Huỷ</button>
+                        <button type="submit" class="pill pill-mint">Lưu</button>
+                      </div>
+                    </form>
+                  }
+                }
+              </article>
+            }
+          </main>
+
+          <!-- Cột phải: Tuỳ chỉnh đọc -->
+          @if (settingsOpen()) {
+            <aside class="panel settings" aria-label="Tuỳ chỉnh đọc">
+              <div class="settings-head">
+                <h2 class="panel-title">Tuỳ chỉnh đọc</h2>
+                <button type="button" class="icon-x" (click)="settingsOpen.set(false)" aria-label="Đóng tuỳ chỉnh">×</button>
+              </div>
+              <div class="setting">
+                <label class="setting-label" for="reader-size">Cỡ chữ</label>
+                <div class="size-row">
+                  <span class="a-sm">A</span>
+                  <input id="reader-size" class="range" type="range" [min]="fontMin" [max]="fontMax" step="1" [value]="settings().fontSize" (input)="onFontSize($event)"
+                    [style.--fill.%]="((settings().fontSize - fontMin) / (fontMax - fontMin)) * 100" />
+                  <span class="a-lg">A</span>
+                </div>
+              </div>
+              <div class="setting">
+                <p class="setting-label">Giãn dòng</p>
+                <div class="opts">
+                  @for (o of lineOptions; track o.value) {
+                    <button type="button" class="opt" [class.is-active]="settings().lineSpacing === o.value" [attr.aria-pressed]="settings().lineSpacing === o.value" (click)="setSetting('lineSpacing', o.value)">{{ o.label }}</button>
+                  }
+                </div>
+              </div>
+              <div class="setting">
+                <p class="setting-label">Phông chữ</p>
+                <div class="opts">
+                  @for (o of fontOptions; track o.value) {
+                    <button type="button" class="opt" [class.is-active]="settings().font === o.value" [attr.aria-pressed]="settings().font === o.value" (click)="setSetting('font', o.value)">{{ o.label }}</button>
+                  }
+                </div>
+              </div>
+              <div class="setting">
+                <p class="setting-label">Màu nền</p>
+                <div class="themes">
+                  @for (o of themeOptions; track o.value) {
+                    <button type="button" class="theme" [class.is-active]="settings().theme === o.value" [attr.aria-pressed]="settings().theme === o.value" (click)="setSetting('theme', o.value)">
+                      <span class="swatch" [attr.data-swatch]="o.value"></span>{{ o.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <div class="setting">
+                <p class="setting-label">Cách đọc</p>
+                <div class="opts">
+                  @for (o of modeOptions; track o.value) {
+                    <button type="button" class="opt" [class.is-active]="settings().mode === o.value" [attr.aria-pressed]="settings().mode === o.value" (click)="setSetting('mode', o.value)">{{ o.label }}</button>
+                  }
+                </div>
+              </div>
+            </aside>
+          }
+        </div>
+
+        <!-- Thanh dưới -->
+        <footer class="bottombar">
+          <button type="button" class="pill" (click)="prev()" [disabled]="page() <= 1">‹&nbsp; {{ settings().mode === 'scroll' ? 'Chương trước' : 'Trang trước' }}</button>
+          <div class="progress">
+            <input class="range" type="range" min="1" [max]="total()" [value]="page()" (change)="onSlider($event)" aria-label="Đi tới trang" [style.--fill.%]="percent()" />
+            <div class="progress-labels">
+              <b>Trang {{ page() }} / {{ total() }} · {{ percent() }}%</b>
+              <span>{{ remaining() }}</span>
+            </div>
+          </div>
+          <button type="button" class="pill pill-mint" (click)="next()" [disabled]="page() >= total()">{{ settings().mode === 'scroll' ? 'Chương sau' : 'Trang sau' }} &nbsp;›</button>
+        </footer>
+      </div>
+    }
+  }
+}

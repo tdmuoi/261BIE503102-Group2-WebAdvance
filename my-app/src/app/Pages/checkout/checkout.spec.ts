@@ -67,13 +67,21 @@ describe('Checkout', () => {
     expect(component.payment()).toBe('momo');
   });
 
-  it('Đặt hàng: tạo đơn, xoá sách khỏi giỏ và hiện màn "Đặt hàng thành công"', async () => {
+  it('Ví MoMo: đặt hàng mở bước quét mã; bấm "Tôi đã thanh toán" thì xong, xoá sách khỏi giỏ', async () => {
     await setup([{ bookId: 'a', price: 240000, quantity: 2 }, { bookId: 'e', price: 65000, quantity: 1 }]);
     component.placeOrder();
     vi.advanceTimersByTime(800);
     fixture.detectChanges();
+    const pending = component.paying()!;
+    expect(pending.orderCode).toBe('LB-24215');
+    expect(pending.paymentStatus).toBe('unpaid');
+    expect(el.querySelector('.pay-modal')?.textContent).toContain('LB24215');
+    expect(TestBed.inject(CartService).items().length).toBe(2); // chưa trả tiền thì giỏ còn nguyên
+    component.confirmPaid();
+    vi.advanceTimersByTime(900);
+    fixture.detectChanges();
     const order = component.placed()!;
-    expect(order.orderCode).toBe('LB-24215');
+    expect(order.paymentStatus).toBe('paid');
     expect(order.total).toBe(575000); // 480.000 + 65.000 + ship 30.000 (freeship chỉ tính trên sách giấy: 480.000 < 500.000)
     expect(el.textContent).toContain('Đặt hàng thành công');
     expect(el.textContent).toContain('Sách điện tử trong đơn đã có trong tủ sách của bạn.');
@@ -82,6 +90,34 @@ describe('Checkout', () => {
     mockGetOrders().subscribe((list) => (saved = list.map((o) => o.orderCode)));
     vi.advanceTimersByTime(400);
     expect(saved[0]).toBe('LB-24215');
+  });
+
+  it('huỷ bước quét mã: đơn bị huỷ, giỏ giữ nguyên; COD thì xong luôn không cần quét mã', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 1 }]);
+    component.payment.set('bank_transfer');
+    component.placeOrder();
+    vi.advanceTimersByTime(800);
+    fixture.detectChanges();
+    expect(el.querySelector('.pay-modal')?.textContent).toContain('Số tài khoản');
+    component.cancelPayment();
+    vi.advanceTimersByTime(500);
+    expect(component.paying()).toBeNull();
+    expect(TestBed.inject(CartService).items().length).toBe(1);
+
+    component.payment.set('cod');
+    component.placeOrder();
+    vi.advanceTimersByTime(800);
+    expect(component.paying()).toBeNull();
+    expect(component.placed()?.paymentMethod).toBe('cod');
+  });
+
+  it('hết 15 phút chưa thanh toán thì tự huỷ', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 1 }]);
+    component.placeOrder();
+    vi.advanceTimersByTime(800);
+    expect(component.countdown()).toBe('15:00');
+    vi.advanceTimersByTime(15 * 60 * 1000 + 600);
+    expect(component.paying()).toBeNull();
   });
 
   it('giỏ không có sách được chọn thì báo và dẫn về giỏ hàng', async () => {
