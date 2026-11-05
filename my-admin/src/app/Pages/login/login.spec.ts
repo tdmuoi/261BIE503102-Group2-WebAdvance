@@ -9,9 +9,11 @@ import { vi } from 'vitest';
 import { Login } from './login';
 import { AdminAuthService } from '../../services/admin-auth-service';
 import { AdminSession } from '../../models/admin-auth';
+import { LoginBook, LoginBooksService } from './login-books-service';
 
 describe('Login API and template-driven form', () => {
   let fixture: ComponentFixture<Login>;
+  let booksService: { getBooks: ReturnType<typeof vi.fn> };
   let auth: {
     user: AdminSession['user'] | null;
     checkSession: ReturnType<typeof vi.fn>;
@@ -24,6 +26,7 @@ describe('Login API and template-driven form', () => {
     expiresAt: '2099-01-01T00:00:00Z',
   };
   beforeEach(async () => {
+    booksService = { getBooks: vi.fn(() => of([])) };
     auth = {
       user: null,
       checkSession: vi.fn(() => throwError(() => new HttpErrorResponse({ status: 401 }))),
@@ -33,7 +36,8 @@ describe('Login API and template-driven form', () => {
     await TestBed.configureTestingModule({
       declarations: [Login],
       imports: [FormsModule, RouterModule],
-      providers: [provideRouter([]), { provide: AdminAuthService, useValue: auth }],
+      providers: [provideRouter([]), { provide: AdminAuthService, useValue: auth },
+        { provide: LoginBooksService, useValue: booksService }],
     }).compileComponents();
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture = TestBed.createComponent(Login);
@@ -56,6 +60,67 @@ describe('Login API and template-driven form', () => {
   function form(): NgForm {
     return fixture.debugElement.query(By.directive(NgForm)).injector.get(NgForm);
   }
+  async function pendingBooks() {
+    fixture.destroy();
+    const result = new Subject<LoginBook[]>();
+    booksService.getBooks.mockReturnValue(result);
+    fixture = TestBed.createComponent(Login);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    return result;
+  }
+  const covers = Array.from({ length: 5 }, (_, index) => ({
+    _id: String(index), title: 'Book ' + index, image: 'https://example.invalid/' + index + '.jpg',
+  }));
+  it('keeps three loading slots without blocking the login form', async () => {
+    await pendingBooks();
+    expect(fixture.nativeElement.querySelectorAll('.book-cover').length).toBe(3);
+    expect(fixture.nativeElement.querySelector('.book-row').getAttribute('aria-busy')).toBe('true');
+    await fill('admin@example.invalid', 'test-password');
+    expect(fixture.nativeElement.querySelector('.submit-button').disabled).toBe(false);
+  });
+  it('renders exactly three API covers and replaces broken images with remaining candidates', async () => {
+    const result = await pendingBooks();
+    result.next(covers);
+    await fixture.whenStable();
+    let images = fixture.nativeElement.querySelectorAll('.book-cover img');
+    expect(images.length).toBe(3);
+    expect(Array.from(images as NodeListOf<HTMLImageElement>).map((img) => img.getAttribute('src')))
+      .toEqual(covers.slice(0, 3).map((book) => book.image));
+    images[0].dispatchEvent(new Event('error'));
+    await fixture.whenStable();
+    images = fixture.nativeElement.querySelectorAll('.book-cover img');
+    expect(images.length).toBe(3);
+    expect(images[2].getAttribute('src')).toBe(covers[3].image);
+    expect(images[0].getAttribute('alt')).toBe(covers[1].title);
+  });
+  it('shows neutral slots when covers are missing or all images fail', async () => {
+    const result = await pendingBooks();
+    result.next(covers.slice(0, 1));
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelectorAll('.book-cover img').length).toBe(1);
+    fixture.nativeElement.querySelector('.book-cover img').dispatchEvent(new Event('error'));
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelectorAll('.book-cover').length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('.book-cover img').length).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('Chưa đủ ba bìa sách');
+  });
+  it('keeps catalogue errors separate from authentication errors', async () => {
+    const result = await pendingBooks();
+    result.error(new HttpErrorResponse({ status: 500 }));
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).toContain('Bạn vẫn có thể đăng nhập');
+    expect(fixture.componentInstance.error).toBe('');
+    expect(fixture.componentInstance.booksLoading).toBe(false);
+    await fill('admin@example.invalid', 'test-password');
+    expect(fixture.nativeElement.querySelector('.submit-button').disabled).toBe(false);
+  });
+  it('cancels the public catalogue request when leaving Login', async () => {
+    const result = await pendingBooks();
+    expect(result.observed).toBe(true);
+    fixture.destroy();
+    expect(result.observed).toBe(false);
+  });
   it('keeps blank form invalid', () => {
     expect(form().invalid).toBe(true);
     expect(fixture.nativeElement.querySelector('.submit-button').disabled).toBe(true);
@@ -86,6 +151,30 @@ describe('Login API and template-driven form', () => {
     await fixture.whenStable();
     expect(fixture.nativeElement.textContent).not.toContain('Đang kiểm tra phiên');
     expect(fixture.nativeElement.querySelector('#email').disabled).toBe(false);
+  });
+  it('opens the dashboard when the existing server session is valid', async () => {
+    const result = await pendingSession();
+    result.next(session);
+    await fixture.whenStable();
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/dashboard']);
+    expect(auth.login).not.toHaveBeenCalled();
+  });
+  it('shows the backend bcrypt error without a misleading password validation error', async () => {
+    const message = 'Backend chưa có thư viện xác minh bcrypt.';
+    auth.login.mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 503, error: { code: 'AUTH_BCRYPT_UNAVAILABLE', message },
+    })));
+    await fill('admin@example.invalid', 'test-password');
+    fixture.componentInstance.onLogin(form());
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain(message);
+    expect(fixture.nativeElement.textContent).not.toContain('Vui lòng nhập mật khẩu.');
+    expect(fixture.componentInstance.user.password).toBe('');
+    expect(fixture.componentInstance.user.email).toBe('admin@example.invalid');
+    expect(form().invalid).toBe(true);
+    await fill('admin@example.invalid', 'retry-password');
+    expect(fixture.nativeElement.querySelector('.submit-button').disabled).toBe(false);
   });
   it('refreshes the view after an asynchronous login error without manual detection', async () => {
     const result = new Subject<AdminSession>();

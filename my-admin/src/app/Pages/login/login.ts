@@ -5,6 +5,7 @@ import { NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription, TimeoutError, timeout } from 'rxjs';
 import { AdminAuthService } from '../../services/admin-auth-service';
+import { LoginBook, LoginBooksService } from './login-books-service';
 
 export class UserLogin {
   constructor(
@@ -12,13 +13,6 @@ export class UserLogin {
     public password = '',
     public rememberMe = false,
   ) {}
-}
-interface BookPreview {
-  _id: string;
-  title: string;
-  image?: string;
-  authorName?: string;
-  categoryName?: string;
 }
 
 @Component({
@@ -31,12 +25,14 @@ export class Login implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   user = new UserLogin();
   showPassword = false;
-  books: BookPreview[] = [
-    { _id: 'login-bo-con-ca-gai', title: 'Bố con cá gai', image: '/images/login/cover-bo-con-ca-gai.png' },
-    { _id: 'login-kitchen', title: 'Kitchen', image: '/images/login/cover-kitchen.png' },
-    { _id: 'login-yeu', title: 'Yêu – Being in Love', image: '/images/login/cover-yeu.png' },
-    { _id: 'login-ho-so-mat', title: 'Hồ sơ mất tích', image: '/images/login/cover-ho-so-mat.png' },
-  ];
+  private readonly booksService = inject(LoginBooksService);
+  private bookCandidates: LoginBook[] = [];
+  books: LoginBook[] = [];
+  booksLoading = true;
+  booksError = false;
+  get coverSlots(): (LoginBook | null)[] {
+    return Array.from({ length: 3 }, (_, index) => this.books[index] ?? null);
+  }
   loading = false;
   checking = true;
   error = '';
@@ -48,11 +44,25 @@ export class Login implements OnInit, OnDestroy {
     private readonly router: Router,
   ) {}
   ngOnInit(): void {
+    this.requests.add(this.booksService.getBooks().subscribe({
+      next: (books) => {
+        this.bookCandidates = books;
+        this.books = books.slice(0, 3);
+        this.booksLoading = false;
+        this.changeDetector.markForCheck();
+      },
+      error: () => {
+        this.booksLoading = false;
+        this.booksError = true;
+        this.changeDetector.markForCheck();
+      },
+    }));
     this.requests.add(
       this.auth.checkSession().pipe(timeout(10000)).subscribe({
         next: () => {
           this.checking = false;
           this.changeDetector.markForCheck();
+          void this.router.navigate(['/dashboard']);
         },
         error: (error: unknown) => {
           this.checking = false;
@@ -67,9 +77,10 @@ export class Login implements OnInit, OnDestroy {
     this.requests.unsubscribe();
     this.user.password = '';
   }
-  onImageError(event: Event): void {
-    const image = event.target as HTMLImageElement;
-    if (image) image.hidden = true;
+  onImageError(book: LoginBook): void {
+    this.bookCandidates = this.bookCandidates.filter((candidate) => candidate._id !== book._id);
+    this.books = this.bookCandidates.slice(0, 3);
+    this.changeDetector.markForCheck();
   }
   private describe(error: unknown): string {
     if (error instanceof TimeoutError)
@@ -114,6 +125,8 @@ export class Login implements OnInit, OnDestroy {
           },
           error: (error: unknown) => {
             this.user.password = '';
+            // Clearing a submitted secret must not introduce a second validation error.
+            form.resetForm({ ...this.user });
             this.loading = false;
             this.error = this.describe(error);
             this.changeDetector.markForCheck();

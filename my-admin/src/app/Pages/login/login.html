@@ -33,50 +33,25 @@
       </ul>
 
       <!-- HINH BIA SACH -->
-      <div class="book-row" aria-label="Một số đầu sách Lightbook">
-        @if (books.length > 0) {
-          @for (book of books; track book._id; let i = $index) {
-            <div class="book-cover" [ngClass]="'cover-' + (i + 1)">
-              @if (book.image) {
-                <img [src]="book.image" [alt]="book.title" (error)="onImageError($event)" />
-              }
-
+      <div class="book-row" aria-label="Ba bìa sách Lightbook" [attr.aria-busy]="booksLoading">
+        @for (book of coverSlots; track book?._id ?? $index; let i = $index) {
+          <div class="book-cover" [ngClass]="'cover-' + (i + 1)">
+            @if (book) {
+              <img [src]="book.image" [alt]="book.title" (error)="onImageError(book)" />
+            } @else {
               <div class="book-overlay">
-                <small>{{ book.authorName || 'Lightbook' }}</small>
-                <strong>
-                  {{ book.title.length > 14 ? (book.title | slice: 0 : 14) + '…' : book.title }}
-                </strong>
-                <span>{{ book.categoryName || 'Bestseller' }}</span>
+                <small>Lightbook</small>
+                <span>{{ booksLoading ? 'Đang tải bìa…' : 'Chưa có bìa sách' }}</span>
               </div>
-            </div>
-          }
-        } @else {
-          <!-- BIA SACH MAC DINH KHI CHUA CO DU LIEU -->
-          <div class="book-cover cover-one">
-            <small>người dẫn đường</small>
-            <strong>Mang tên</strong>
-            <b>Tự do</b>
-          </div>
-
-          <div class="book-cover cover-two">
-            <small>Kitchen</small>
-            <strong>Banana</strong>
-            <span>một câu chuyện về gia đình</span>
-          </div>
-
-          <div class="book-cover cover-three">
-            <small>Yêu</small>
-            <strong>Being in Love</strong>
-            <b>OSHO</b>
-          </div>
-
-          <div class="book-cover cover-four">
-            <small>Hồ sơ</small>
-            <strong>Mất tích</strong>
-            <span>một vụ án chưa lời giải</span>
+            }
           </div>
         }
       </div>
+      @if (!booksLoading && books.length < 3) {
+        <p class="book-status" role="status">
+          {{ booksError ? 'Chưa tải được bìa sách. Bạn vẫn có thể đăng nhập.' : 'Chưa đủ ba bìa sách tải được để hiển thị.' }}
+        </p>
+      }
     </div>
 
     <footer class="story-footer">
