@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { AdminAuthService } from './admin-auth-service';
 import { environment } from '../../environments/environment';
 import { AdminBook, Author, BookListResponse, BookPayload, BookQuery, Category } from '../models/book';
 
@@ -9,6 +10,7 @@ import { AdminBook, Author, BookListResponse, BookPayload, BookQuery, Category }
 @Injectable({ providedIn: 'root' })
 export class BookService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AdminAuthService);
   private readonly baseUrl = `${environment.apiUrl}/admin/books`;
 
   getBooks(query: BookQuery = {}): Observable<BookListResponse> {
@@ -16,29 +18,29 @@ export class BookService {
     Object.entries(query).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') params = params.set(key, value);
     });
-    return this.http.get<BookListResponse>(this.baseUrl, { params });
+    return this.http.get<BookListResponse>(this.baseUrl, { params, withCredentials: true });
   }
 
   getBook(id: string): Observable<AdminBook> {
-    return this.http.get<AdminBook>(`${this.baseUrl}/${id}`);
+    return this.http.get<AdminBook>(`${this.baseUrl}/${id}`, { withCredentials: true });
   }
 
   createBook(data: BookPayload): Observable<AdminBook> {
-    return this.http.post<AdminBook>(this.baseUrl, data);
+    return this.auth.withSession((csrfToken) => this.http.post<AdminBook>(this.baseUrl, data, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
   updateBook(id: string, data: BookPayload): Observable<AdminBook> {
-    return this.http.put<AdminBook>(`${this.baseUrl}/${id}`, data);
+    return this.auth.withSession((csrfToken) => this.http.put<AdminBook>(`${this.baseUrl}/${id}`, data, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
   /** Xoá mềm: sách chuyển sang status "deleted", web khách và admin không thấy nữa */
   deleteBook(id: string): Observable<{ deleted: boolean }> {
-    return this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/${id}`);
+    return this.auth.withSession((csrfToken) => this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/${id}`, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
   /** Ẩn / hiện / xoá nhiều sách cùng lúc */
   bulk(ids: string[], action: 'hide' | 'show' | 'delete'): Observable<{ modified: number }> {
-    return this.http.patch<{ modified: number }>(`${this.baseUrl}/bulk`, { ids, action });
+    return this.auth.withSession((csrfToken) => this.http.patch<{ modified: number }>(`${this.baseUrl}/bulk`, { ids, action }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
   // Danh sách chọn trong form & bộ lọc (API dùng chung với web khách)

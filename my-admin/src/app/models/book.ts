@@ -10,6 +10,8 @@ export interface AdminBook {
   price: number;
   originalPrice: number;
   discountPercent: number;
+  bookType?: 'new' | 'used' | 'ebook';
+  condition?: string | null;
   stock: number;
   /** active: đang bán | hidden: ẩn khỏi web khách */
   status: 'active' | 'hidden' | string;
@@ -34,6 +36,7 @@ export interface BookQuery {
 }
 
 export interface BookListResponse {
+  capabilities?: { bookClassification: boolean };
   items: AdminBook[];
   total: number;
   page: number;
@@ -57,6 +60,8 @@ export interface BookPayload {
   description: string;
   price: number | null;
   originalPrice: number | null;
+  bookType: 'new' | 'used' | 'ebook';
+  condition: string | null;
   stock: number | null;
   status: 'active' | 'hidden';
 }

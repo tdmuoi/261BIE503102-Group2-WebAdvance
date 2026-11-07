@@ -1,3 +1,5 @@
+import { AdminAuthService } from '../../../services/admin-auth-service';
+import { Observable } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -20,12 +22,14 @@ describe('BookForm', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(id ? { id } : {}) } } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(BookForm);
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
+    http.expectOne((r) => r.url.endsWith('/admin/books')).flush({ items: [], capabilities: { bookClassification: true } });
     http.expectOne((r) => r.url.endsWith('/categories')).flush([{ _id: 'c1', name: 'Văn học', slug: 'fiction' }]);
     http.expectOne((r) => r.url.endsWith('/authors')).flush([{ _id: 'a1', name: 'Nguyễn Nhật Ánh' }]);
   }
@@ -91,4 +95,37 @@ describe('BookForm', () => {
     http.expectOne((r) => r.url.endsWith('/admin/books/zzz')).flush({ message: 'x' }, { status: 404, statusText: 'Not Found' });
     expect(component.notFound()).toBe(true);
   });
+
+  it('rejects non-finite prices and fractional publication years', async () => {
+    await setup(null);
+    Object.assign(component.form, { title: 'X', categoryId: 'c1', price: NaN, originalPrice: Infinity, publishYear: 2026.5 });
+    expect(component.validate()).toHaveProperty('price');
+    expect(component.validate()).toHaveProperty('originalPrice');
+    expect(component.validate()).toHaveProperty('publishYear');
+  });
+  it('does not silently create books when the backend ignores classification', async () => {
+    await setup(null);
+    component.classificationSupported.set(false);
+    Object.assign(component.form, { title: 'X', categoryId: 'c1', price: 10 });
+    component.save();
+    expect(component.serverError()).toContain('Chưa thể lưu');
+    http.expectNone(r => r.method === 'POST');
+  });
+  it('validates used condition and keeps ebook stock at zero', async () => {
+    await setup(null);
+    Object.assign(component.form, { title: 'X', categoryId: 'c1', price: 10, bookType: 'used' });
+    expect(component.validate()).toHaveProperty('condition');
+    Object.assign(component.form, { bookType: 'ebook', stock: 1 });
+    expect(component.validate()).toHaveProperty('stock');
+  });
+  it('sends classification and prevents duplicate saves', async () => {
+    await setup(null);
+    Object.assign(component.form, { title: 'X', categoryId: 'c1', price: 10, bookType: 'used', condition: 'Bìa tốt' });
+    component.save(); component.save();
+    const req = http.expectOne(r => r.method === 'POST');
+    expect(req.request.body.bookType).toBe('used');
+    expect(req.request.body.condition).toBe('Bìa tốt');
+    req.flush({}, { status: 400, statusText: 'Bad Request' });
+  });
+
 });

@@ -28,6 +28,7 @@ export interface StatusHistoryEntry {
 
 /** Đơn hàng từ API admin (my-server/routes/admin-orders.js) */
 export interface Order {
+  isDemo?: boolean;
   _id: string;
   orderCode: string;
   userId: string | null;

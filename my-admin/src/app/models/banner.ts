@@ -6,6 +6,7 @@ export type BannerState = 'live' | 'scheduled' | 'expired' | 'off';
 
 /** Banner từ GET /api/admin/banners (my-server/routes/admin-banners.js) */
 export interface Banner {
+  contractIssues?: string[];
   _id: string;
   /** Tên nội bộ để admin nhận biết, không hiện cho khách */
   name: string;

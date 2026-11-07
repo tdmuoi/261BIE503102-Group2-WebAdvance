@@ -1,3 +1,5 @@
+import { adminApiError } from '../../../services/admin-api-error';
+import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 
@@ -52,9 +54,22 @@ export class RefundDetail {
   @Output() changed = new EventEmitter<ReturnRequest>();
 
   private currentId: string | null = null;
+  private readRequest?: Subscription;
+  private writes = new Subscription();
+  ngOnDestroy(): void {
+    this.readRequest?.unsubscribe();
+    this.writes.unsubscribe();
+  }
 
   @Input() set requestId(id: string | null) {
     if (id === this.currentId) return;
+    this.readRequest?.unsubscribe();
+    this.writes.unsubscribe();
+    this.writes = new Subscription();
+    this.request.set(null);
+    this.loading.set(false);
+    this.saving.set(false);
+    this.error.set('');
     this.currentId = id;
     this.message.set('');
     this.asking.set(null);
@@ -65,7 +80,9 @@ export class RefundDetail {
   load(id: string): void {
     this.loading.set(true);
     this.error.set('');
-    this.returnService.getReturn(id).subscribe({
+    this.readRequest?.unsubscribe();
+    this.request.set(null);
+    this.readRequest = this.returnService.getReturn(id).subscribe({
       next: (r) => this.apply(r),
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
@@ -78,13 +95,14 @@ export class RefundDetail {
   // ---------- Xử lý ----------
   act(next: ReturnStatus): void {
     const r = this.request();
-    if (!r) return;
+    if (!r || this.saving() || this.loading()) return;
+    if (!this.allowWrite(r) || !r.nextStatuses.includes(next)) return;
     if (next === 'rejected' || next === 'received' || next === 'refunded') {
       this.note = '';
       this.askError.set('');
       this.refundAmount = r.itemsValue || null;
       // Sách lỗi / hư hỏng thường không bán lại được
-      this.restock = r.reason !== 'damaged';
+      this.restock = r.restockEligible === true && !r.restocked && r.reason !== 'damaged';
       this.asking.set(next);
       return;
     }
@@ -95,33 +113,35 @@ export class RefundDetail {
     const ask = this.asking();
     if (!ask) return;
     if (ask === 'rejected' && !this.note.trim()) return this.askError.set('Vui lòng nhập lý do từ chối');
-    if (ask === 'refunded' && (!this.refundAmount || this.refundAmount <= 0)) return this.askError.set('Nhập số tiền hoàn lớn hơn 0');
+    if (ask === 'refunded' && (!Number.isFinite(this.refundAmount) || !this.refundAmount || this.refundAmount <= 0 || this.refundAmount > (this.request()?.itemsValue ?? 0))) return this.askError.set('Tiền hoàn phải hữu hạn, lớn hơn 0 và không vượt giá trị sách trả');
     this.send({
       status: ask,
       note: this.note.trim() || undefined,
       refundAmount: ask === 'refunded' ? this.refundAmount ?? undefined : undefined,
-      restock: ask === 'received' ? this.restock : undefined,
+      restock: ask === 'received' ? this.restock && this.request()?.restockEligible === true && !this.request()?.restocked : undefined,
     });
   }
 
   saveNote(): void {
     const r = this.request();
-    if (!r) return;
+    if (!r || this.saving() || this.loading()) return;
+    if (!this.allowWrite(r)) return;
     this.saving.set(true);
-    this.returnService.saveNote(r._id, this.adminNote).subscribe({
+    this.writes.add(this.returnService.saveNote(r._id, this.adminNote).subscribe({
       next: (updated) => {
         this.apply({ ...updated, order: r.order });
         this.message.set('Đã lưu ghi chú');
       },
       error: (err: HttpErrorResponse) => this.fail(err),
-    });
+    }));
   }
 
   private send(body: Parameters<ReturnService['changeStatus']>[1]): void {
     const r = this.request();
-    if (!r) return;
+    if (!r || this.saving() || this.loading()) return;
+    if (!this.allowWrite(r) || !r.nextStatuses.includes(body.status)) return;
     this.saving.set(true);
-    this.returnService.changeStatus(r._id, body).subscribe({
+    this.writes.add(this.returnService.changeStatus(r._id, body).subscribe({
       next: (updated) => {
         this.asking.set(null);
         this.apply({ ...updated, order: r.order });
@@ -137,7 +157,15 @@ export class RefundDetail {
         this.asking.set(null);
         this.fail(err);
       },
-    });
+    }));
+  }
+
+  private allowWrite(r: ReturnRequest): boolean {
+    if (r.isDemo === true || !r.userId) {
+      this.error.set('Chỉ đọc: yêu cầu demo hoặc chưa xác minh chủ sở hữu. Cần nhóm thống nhất chính sách trước khi xử lý.');
+      return false;
+    }
+    return true;
   }
 
   // ---------- Hiển thị ----------
@@ -178,8 +206,6 @@ export class RefundDetail {
   }
 
   private errorText(err: HttpErrorResponse): string {
-    return err.status === 0
-      ? 'Không kết nối được my-server (http://localhost:3002). Hãy chạy "npm run dev" trong thư mục my-server.'
-      : err.error?.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+    return adminApiError(err);
   }
 }

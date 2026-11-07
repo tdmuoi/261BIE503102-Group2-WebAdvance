@@ -17,8 +17,8 @@ const COLLECTIONS = {
   books: ['books'],
   categories: ['categories'],
   orders: ['orders', 'order'],
-  users: ['users', 'accounts', 'customers'],
-  refunds: ['refunds', 'returns', 'refund_requests', 'return_requests'],
+  users: ['accounts'],
+  refunds: ['return_requests'],
 };
 
 // Trạng thái (đã bỏ dấu, viết thường, khoảng trắng -> _)
@@ -110,21 +110,23 @@ async function buildDashboard(db, days, now = new Date()) {
   const inRange = (d, from, to) => d && d >= from && d < to;
 
   // ----- Đơn hàng -----
-  const validOrders = orders.filter((o) => !CANCELLED.includes(normalize(o.status)));
+  const realOrders = orders.filter((o) => o.isDemo !== true && o.userId != null);
+  const validOrders = realOrders.filter((o) => !CANCELLED.includes(normalize(o.status)));
+  const paid = (o) => o.paymentStatus === 'paid';
   const current = validOrders.filter((o) => inRange(docDate(o), start, end));
   const previous = validOrders.filter((o) => inRange(docDate(o), prevStart, start));
-  const revenue = current.reduce((s, o) => s + orderTotal(o), 0);
-  const prevRevenue = previous.reduce((s, o) => s + orderTotal(o), 0);
+  const revenue = current.filter(paid).reduce((s, o) => s + orderTotal(o), 0);
+  const prevRevenue = previous.filter(paid).reduce((s, o) => s + orderTotal(o), 0);
 
   // ----- Khách hàng -----
-  const customers = users.filter((u) => !ADMIN_ROLES.includes(normalize(u.role)));
+  const customers = users.filter((u) => u.roleCode === 'CUSTOMER');
   const newCustomers = customers.filter((u) => inRange(docDate(u), start, end)).length;
   const prevNewCustomers = customers.filter((u) => inRange(docDate(u), prevStart, start)).length;
 
   // ----- Yêu cầu trả hàng đang chờ -----
   const pendingReturns = refunds.length
-    ? refunds.filter((r) => REFUND_PENDING.includes(normalize(r.status))).length
-    : orders.filter((o) => ORDER_RETURN_PENDING.includes(normalize(o.status))).length;
+    ? refunds.filter((r) => r.isDemo !== true && r.userId != null && REFUND_PENDING.includes(normalize(r.status))).length
+    : realOrders.filter((o) => ORDER_RETURN_PENDING.includes(normalize(o.status))).length;
 
   // ----- Biểu đồ doanh thu theo ngày -----
   const chart = [];
@@ -138,7 +140,7 @@ async function buildDashboard(db, days, now = new Date()) {
   for (const o of current) {
     const idx = chartIndex.get(dayKey(docDate(o)));
     if (idx === undefined) continue;
-    chart[idx].revenue += orderTotal(o);
+    if (paid(o)) chart[idx].revenue += orderTotal(o);
     chart[idx].orders += 1;
   }
 
@@ -146,7 +148,7 @@ async function buildDashboard(db, days, now = new Date()) {
   const categoryName = new Map(categories.map((c) => [idString(c._id), c.name]));
   const bookById = new Map(books.map((b) => [idString(b._id), b]));
   const sold = new Map();
-  for (const o of current) {
+  for (const o of current.filter(paid)) {
     for (const it of orderItems(o)) {
       const book = bookById.get(idString(it.bookId ?? it.book ?? it.productId ?? it._id));
       const catId = idString(it.categoryId ?? book?.categoryId);
@@ -172,7 +174,7 @@ async function buildDashboard(db, days, now = new Date()) {
 
   // ----- Đơn hàng gần đây -----
   const userById = new Map(users.map((u) => [idString(u._id), u]));
-  const recentOrders = [...orders]
+  const recentOrders = [...realOrders]
     .sort((a, b) => (docDate(b)?.getTime() || 0) - (docDate(a)?.getTime() || 0))
     .slice(0, 5)
     .map((o) => {
@@ -191,10 +193,11 @@ async function buildDashboard(db, days, now = new Date()) {
   // ----- Tồn kho -----
   const activeBooks = books.filter((b) => normalize(b.status) === 'active');
   const lowStock = activeBooks
-    .filter((b) => toNumber(b.stock) <= LOW_STOCK_THRESHOLD)
+    .filter((b) => ['new', 'used'].includes(b.bookType) && toNumber(b.stock) <= LOW_STOCK_THRESHOLD)
     .sort((a, b) => toNumber(a.stock) - toNumber(b.stock));
 
   return {
+    reportingPolicy: 'paid-nondemo-v1',
     period: { days, from: start, to: end },
     stats: {
       revenue: { value: revenue, change: percentChange(revenue, prevRevenue) },

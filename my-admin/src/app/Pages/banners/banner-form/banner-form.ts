@@ -8,7 +8,8 @@ import { BannerService } from '../../../services/banner-service';
 /** ISO -> 'YYYY-MM-DD' theo giờ Việt Nam (cho <input type="date">) */
 export function toDateInput(iso: string | null): string {
   if (!iso) return '';
-  return new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const time = new Date(iso).getTime();
+  return Number.isFinite(time) ? new Date(time + 7 * 3600 * 1000).toISOString().slice(0, 10) : '';
 }
 
 /**
@@ -81,6 +82,11 @@ export class BannerForm implements OnInit {
     if (!f.title.trim() && !f.image.trim()) e.title = 'Cần có tiêu đề hoặc ảnh banner';
     if (f.image.trim() && !/^(https?:\/\/|\/|images\/)/i.test(f.image.trim())) e.image = 'Link ảnh phải bắt đầu bằng http(s):// hoặc /';
     if (f.link.trim() && !/^(https?:\/\/|\/)/i.test(f.link.trim())) e.link = 'Link phải bắt đầu bằng / hoặc http(s)://';
+    for (const key of ['startDate', 'endDate'] as const) {
+      const value = f[key];
+      if (this.banner?.[key] && !Number.isFinite(Date.parse(this.banner[key]!)) && !value) e[key] = 'Ngày đã lưu không hợp lệ; cần xác minh trước khi lưu';
+      if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value)) e[key] = 'Ngày không hợp lệ';
+    }
     if (f.startDate && f.endDate && f.endDate < f.startDate) e.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
     return e;
   }
@@ -95,6 +101,7 @@ export class BannerForm implements OnInit {
   }
 
   save(): void {
+    if (this.saving()) return;
     const errors = this.validate();
     this.errors.set(errors);
     if (Object.keys(errors).length) return;

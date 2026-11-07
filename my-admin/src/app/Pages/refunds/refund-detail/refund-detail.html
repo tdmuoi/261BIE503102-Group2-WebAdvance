@@ -13,6 +13,7 @@
   @if (loading() && !request()) {
     <p class="empty">Đang tải yêu cầu...</p>
   } @else if (request(); as r) {
+    @if (r.isDemo === true || !r.userId) { <p role="status">Chỉ đọc: yêu cầu demo hoặc chưa xác minh chủ sở hữu; đang chờ thống nhất chính sách xử lý.</p> }
     <div class="panel-body" [class.is-busy]="saving() || loading()">
       <section class="block">
         <div class="row-between">
@@ -23,7 +24,7 @@
           <div class="actions">
             @for (next of r.nextStatuses; track next) {
               <button type="button" class="btn" [class.btn-primary]="actions[next].style === 'primary'"
-                      [class.btn-danger]="actions[next].style === 'danger'" [disabled]="saving()" (click)="act(next)">
+                      [class.btn-danger]="actions[next].style === 'danger'" [disabled]="saving() || !request()?.userId || request()?.isDemo === true" (click)="act(next)">
                 {{ actions[next].label }}
               </button>
             }
@@ -80,7 +81,7 @@
       <section class="block">
         <h3>Ghi chú nội bộ</h3>
         <textarea class="textarea" rows="3" [(ngModel)]="adminNote" placeholder="Chỉ admin thấy"></textarea>
-        <button type="button" class="btn btn-sm" [disabled]="saving()" (click)="saveNote()">Lưu ghi chú</button>
+        <button type="button" class="btn btn-sm" [disabled]="saving() || !request()?.userId || request()?.isDemo === true" (click)="saveNote()">Lưu ghi chú</button>
       </section>
 
       @if (r.statusHistory?.length) {
@@ -118,7 +119,7 @@
       <small class="text-muted">Tối đa {{ money(request()?.itemsValue ?? 0) }} (giá trị sách trả)</small>
     }
     @if (asking() === 'received') {
-      <label class="check"><input type="checkbox" [(ngModel)]="restock" /> Sách còn bán được — cộng lại vào tồn kho</label>
+      <label class="check"><input type="checkbox" [(ngModel)]="restock" [disabled]="request()?.restockEligible !== true || request()?.restocked === true" /> Sách còn bán được — cộng lại vào tồn kho</label>
     }
     <label class="label" for="ask-note">{{ asking() === 'rejected' ? 'Lý do từ chối *' : 'Ghi chú (không bắt buộc)' }}</label>
     <textarea id="ask-note" class="textarea" rows="2" [(ngModel)]="note" (ngModelChange)="askError.set('')"

@@ -92,7 +92,7 @@
         <div class="row">
           <div class="field" [class.has-error]="errors().stock">
             <label class="label" for="stock">Số lượng tồn kho</label>
-            <input id="stock" name="stock" class="input" type="number" min="0" step="1" [(ngModel)]="form.stock" />
+            <input id="stock" name="stock" class="input" type="number" min="0" step="1" [(ngModel)]="form.stock" [readonly]="form.bookType === 'ebook'" />
             @if (errors().stock) { <small class="error">{{ errors().stock }}</small> }
             @else { <small class="hint">Còn ≤ 5 cuốn sẽ báo "Sắp hết"</small> }
           </div>
@@ -120,6 +120,21 @@
 
       <section class="card">
         <h2 class="card-title">Phân loại</h2>
+        @if (!classificationSupported()) { <p role="status">Chưa thể thêm sách hoặc thay đổi loại sách. Vui lòng liên hệ quản trị hệ thống.</p> }
+        <div class="field" [class.has-error]="errors().bookType">
+          <label class="label" for="bookType">Loại sách *</label>
+          <select id="bookType" name="bookType" class="select" [(ngModel)]="form.bookType" [disabled]="!classificationSupported()">
+            <option value="new">Sách mới</option><option value="used">Sách cũ</option><option value="ebook">Ebook</option>
+          </select>
+          @if (errors().bookType) { <small class="error">{{ errors().bookType }}</small> }
+        </div>
+        @if (form.bookType === 'used') {
+          <div class="field" [class.has-error]="errors().condition">
+            <label class="label" for="condition">Tình trạng sách cũ *</label>
+            <input id="condition" name="condition" class="input" [(ngModel)]="form.condition" [disabled]="!classificationSupported()" />
+            @if (errors().condition) { <small class="error">{{ errors().condition }}</small> }
+          </div>
+        }
         <div class="field" [class.has-error]="errors().categoryId">
           <label class="label" for="category">Thể loại *</label>
           <select id="category" name="categoryId" class="select" [(ngModel)]="form.categoryId">

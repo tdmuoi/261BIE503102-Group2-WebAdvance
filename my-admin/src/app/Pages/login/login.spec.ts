@@ -259,8 +259,8 @@ describe('Login API and template-driven form', () => {
   });
   for (const [status, message] of [
     [401, 'không hợp lệ'],
-    [0, 'Không kết nối được Backend'],
-    [429, '15 phút'],
+      [0, 'CORS'],
+      [429, 'Quá nhiều yêu cầu'],
   ] as const) {
     it('handles login error ' + status, async () => {
       auth.login.mockReturnValue(throwError(() => new HttpErrorResponse({ status })));
@@ -282,5 +282,13 @@ describe('Login API and template-driven form', () => {
     fixture.componentInstance.logout();
     expect(fixture.componentInstance.message).toBe('');
     expect(fixture.componentInstance.error).toContain('Backend');
+  });
+
+  it('submits only once while login is pending', async () => {
+    const response = new Subject<AdminSession>(); auth.login.mockReturnValue(response);
+    await fill('admin@example.invalid', 'test-password');
+    fixture.componentInstance.onLogin(form()); fixture.componentInstance.onLogin(form());
+    expect(auth.login).toHaveBeenCalledTimes(1);
+    response.error(new HttpErrorResponse({ status: 401 }));
   });
 });

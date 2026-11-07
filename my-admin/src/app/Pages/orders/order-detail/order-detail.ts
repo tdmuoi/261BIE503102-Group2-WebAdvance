@@ -1,3 +1,5 @@
+import { adminApiError } from '../../../services/admin-api-error';
+import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -72,9 +74,22 @@ export class OrderDetail {
   @Output() changed = new EventEmitter<Order>();
 
   private currentId: string | null = null;
+  private readRequest?: Subscription;
+  private writes = new Subscription();
+  ngOnDestroy(): void {
+    this.readRequest?.unsubscribe();
+    this.writes.unsubscribe();
+  }
 
   @Input() set orderId(id: string | null) {
     if (id === this.currentId) return;
+    this.readRequest?.unsubscribe();
+    this.writes.unsubscribe();
+    this.writes = new Subscription();
+    this.order.set(null);
+    this.loading.set(false);
+    this.saving.set(false);
+    this.error.set('');
     this.currentId = id;
     this.message.set('');
     this.pending.set(null);
@@ -91,7 +106,9 @@ export class OrderDetail {
   load(id: string): void {
     this.loading.set(true);
     this.error.set('');
-    this.orderService.getOrder(id).subscribe({
+    this.readRequest?.unsubscribe();
+    this.order.set(null);
+    this.readRequest = this.orderService.getOrder(id).subscribe({
       next: (o) => this.apply(o),
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);
@@ -103,9 +120,12 @@ export class OrderDetail {
 
   // ---------- Chuyển trạng thái ----------
   act(next: OrderStatus): void {
+    const o = this.order();
+    if (!o || this.saving() || !o.nextStatuses.includes(next)) return;
+    if (!this.allowWrite(o)) return;
     if (next === 'cancelled' || next === 'returned') {
       this.reason = '';
-      this.restock = this.order()?.stockDeducted ?? true;
+      this.restock = o.stockDeducted === true && !o.restocked && !o.onlyEbooks;
       this.reasonError.set('');
       this.pending.set(next);
       return;
@@ -125,14 +145,15 @@ export class OrderDetail {
 
   private send(next: OrderStatus, note = ''): void {
     const o = this.order();
-    if (!o) return;
+    if (!o || this.saving() || this.loading()) return;
+    if (!this.allowWrite(o) || !o.nextStatuses.includes(next)) return;
     this.saving.set(true);
     this.orderService
       .changeStatus(o._id, {
         status: next,
         note: note || undefined,
         trackingCode: next === 'shipping' ? this.trackingCode.trim() || undefined : undefined,
-        restock: next === 'cancelled' ? this.restock : undefined,
+        restock: next === 'cancelled' ? this.restock && o.stockDeducted === true && !o.restocked && !o.onlyEbooks : undefined,
       })
       .subscribe({
         next: (updated) => {
@@ -151,6 +172,7 @@ export class OrderDetail {
 
   // ---------- Thông tin phụ ----------
   setPayment(status: string): void {
+    if (!this.paymentOptions.includes(status as PaymentStatus)) return;
     this.update({ paymentStatus: status as PaymentStatus }, 'Đã cập nhật thanh toán');
   }
 
@@ -160,9 +182,10 @@ export class OrderDetail {
 
   private update(body: Parameters<OrderService['update']>[1], done: string): void {
     const o = this.order();
-    if (!o) return;
+    if (!o || this.saving() || this.loading()) return;
+    if (!this.allowWrite(o)) return;
     this.saving.set(true);
-    this.orderService.update(o._id, body).subscribe({
+    this.writes.add(this.orderService.update(o._id, body).subscribe({
       next: (updated) => {
         this.apply(updated);
         this.message.set(done);
@@ -172,7 +195,15 @@ export class OrderDetail {
         this.saving.set(false);
         this.error.set(this.errorText(err));
       },
-    });
+    }));
+  }
+
+  private allowWrite(o: Order): boolean {
+    if (o.isDemo === true || !o.userId) {
+      this.error.set('Chỉ đọc: đơn demo hoặc chưa xác minh chủ sở hữu. Cần nhóm thống nhất chính sách trước khi xử lý.');
+      return false;
+    }
+    return true;
   }
 
   // ---------- Hiển thị ----------
@@ -203,8 +234,6 @@ export class OrderDetail {
   }
 
   private errorText(err: HttpErrorResponse): string {
-    return err.status === 0
-      ? 'Không kết nối được my-server (http://localhost:3002). Hãy chạy "npm run dev" trong thư mục my-server.'
-      : err.error?.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+    return adminApiError(err);
   }
 }

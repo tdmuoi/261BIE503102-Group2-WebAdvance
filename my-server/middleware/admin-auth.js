@@ -173,13 +173,14 @@ module.exports = function createAdminAuth(getDb, options = {}) {
     if (origin) {
       res.set("Access-Control-Allow-Origin", origin);
       res.set("Access-Control-Allow-Credentials", "true");
+      res.set("Access-Control-Expose-Headers", "Retry-After");
       res.vary("Origin");
     }
     if (req.method === "OPTIONS") {
       if (!originAllowed(req)) return res.sendStatus(403);
       res.set(
         "Access-Control-Allow-Methods",
-        "GET, HEAD, POST, PUT, PATCH, OPTIONS",
+        "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
       );
       res.set("Access-Control-Allow-Headers", "Content-Type, X-Admin-CSRF");
       return res.sendStatus(204);
@@ -280,12 +281,12 @@ module.exports = function createAdminAuth(getDb, options = {}) {
       `email:${digest(email)}`,
       `ip:${digest(req.ip || "unknown")}`,
     ];
-    if (
-      keys.some(
-        (key, i) => (attempts.get(key)?.count ?? 0) >= (i === 0 ? 5 : 20),
-      )
-    ) {
-      res.set("Retry-After", "900");
+    const blocked = keys.map((key, i) => {
+      const entry = attempts.get(key);
+      return entry && entry.count >= (i === 0 ? 5 : 20) ? entry.until : 0;
+    });
+    if (blocked.some(Boolean)) {
+      res.set("Retry-After", String(Math.max(1, Math.ceil((Math.max(...blocked) - now) / 1000))));
       return res.status(429).json({
         message: "Quá nhiều lần đăng nhập. Vui lòng thử lại sau 15 phút.",
       });
@@ -300,6 +301,9 @@ module.exports = function createAdminAuth(getDb, options = {}) {
       attempts.set(key, entry);
     });
     activeHashes++;
+    // Reserve attempts before hashing, then retain only authentication failures.
+    // A successful employee must not consume the shared office IP failure budget.
+    let authenticationFailed = false;
     try {
       const escaped = email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const matches = await accounts()
@@ -316,10 +320,12 @@ module.exports = function createAdminAuth(getDb, options = {}) {
       const account = matches.length === 1 ? matches[0] : null;
       const user = await principal(account);
       const correct = await verifyPassword(password, user?.passwordHash);
-      if (!correct || !user)
+      if (!correct || !user) {
+        authenticationFailed = true;
         return res.status(401).json({
           message: "Email, mật khẩu hoặc quyền quản trị không hợp lệ.",
         });
+      }
       const old = readSession(req);
       if (old) sessions.delete(old);
       const token = randomBytes(32).toString("hex");
@@ -347,6 +353,12 @@ module.exports = function createAdminAuth(getDb, options = {}) {
         message: "Không thể xác thực với cơ sở dữ liệu. Vui lòng thử lại.",
       });
     } finally {
+      if (!authenticationFailed) {
+        for (const key of keys) {
+          const entry = attempts.get(key);
+          if (entry && --entry.count <= 0) attempts.delete(key);
+        }
+      }
       activeHashes--;
     }
   }

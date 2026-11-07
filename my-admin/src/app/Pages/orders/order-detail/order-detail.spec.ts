@@ -1,3 +1,5 @@
+import { AdminAuthService } from '../../../services/admin-auth-service';
+import { Observable } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -7,7 +9,9 @@ import { ActivatedRoute, Router, RouterModule, convertToParamMap } from '@angula
 import { OrderDetail } from './order-detail';
 import { StatusBadge } from '../../../Components/status-badge/status-badge';
 import { ConfirmDialog } from '../../../Components/confirm-dialog/confirm-dialog';
-import { makeOrder } from '../../../testing/mock-orders';
+import { makeOrder as fixtureOrder } from '../../../testing/mock-orders';
+
+const makeOrder = (overrides: Parameters<typeof fixtureOrder>[0] = {}) => fixtureOrder({ userId: 'isolated-test-owner', ...overrides });
 
 describe('OrderDetail', () => {
   let fixture: ComponentFixture<OrderDetail>;
@@ -21,6 +25,7 @@ describe('OrderDetail', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(routeId ? { id: routeId } : {}) } } },
       ],
     }).compileComponents();
@@ -95,4 +100,41 @@ describe('OrderDetail', () => {
     http.expectOne(() => true).flush(makeOrder({ onlyEbooks: true, status: 'confirmed', nextStatuses: ['delivered', 'cancelled'] }));
     expect(component.steps().map((s) => s.status)).toEqual(['pending', 'confirmed', 'delivered']);
   });
+
+  it('cancels obsolete detail reads when selecting another order', async () => {
+    await setup(); create();
+    component.orderId = 'o1';
+    const old = http.expectOne(r => r.url.endsWith('/orders/o1'));
+    component.orderId = 'o2';
+    expect(old.cancelled).toBe(true);
+    expect(component.order()).toBeNull();
+    http.expectOne(r => r.url.endsWith('/orders/o2')).flush(makeOrder({ _id: 'o2' }));
+    expect(component.order()?._id).toBe('o2');
+  });
+  it('blocks duplicate status writes and unsupported transitions', async () => {
+    await setup(); create(); component.orderId = 'o1';
+    http.expectOne(() => true).flush(makeOrder());
+    component.act('delivered');
+    http.expectNone(r => r.method === 'PATCH');
+    component.act('confirmed'); component.act('confirmed');
+    http.expectOne(r => r.method === 'PATCH').flush(makeOrder({ status: 'confirmed' }));
+  });
+  it('never requests physical restock for ebook cancellation', async () => {
+    await setup(); create(); component.orderId = 'o1';
+    http.expectOne(() => true).flush(makeOrder({ onlyEbooks: true, stockDeducted: true }));
+    component.act('cancelled'); expect(component.restock).toBe(false);
+    component.restock = true; component.reason = 'Cancel'; component.confirmPending();
+    const req = http.expectOne(r => r.method === 'PATCH');
+    expect(req.request.body.restock).toBe(false);
+    req.flush(makeOrder({ status: 'cancelled' }));
+  });
+
+
+  it('keeps demo and unowned orders read only even when called directly', async () => {
+    await setup(); create(); component.orderId = 'o1';
+    http.expectOne(() => true).flush(makeOrder({ isDemo: true, userId: null }));
+    component.act('confirmed'); component.setPayment('paid'); component.saveNote();
+    expect(component.error()).toBeTruthy(); http.expectNone(r => r.method === 'PATCH');
+  });
+
 });

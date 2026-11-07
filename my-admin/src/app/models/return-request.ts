@@ -12,6 +12,9 @@ export interface ReturnItem {
 
 /** Yêu cầu đổi trả từ API admin (my-server/routes/admin-returns.js) */
 export interface ReturnRequest {
+  isDemo?: boolean;
+  /** True only when the server has verified physical stock eligibility. */
+  restockEligible?: boolean;
   _id: string;
   requestCode: string;
   orderId: string | null;

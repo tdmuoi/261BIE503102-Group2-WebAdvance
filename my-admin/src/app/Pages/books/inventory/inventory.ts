@@ -11,7 +11,7 @@ interface InventoryBook extends AdminBook {
   location?: string;
   warehouse?: string;
   stockThreshold?: number;
-  bookType?: string;
+
 }
 
 @Component({

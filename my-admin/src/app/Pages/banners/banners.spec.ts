@@ -1,3 +1,5 @@
+import { AdminAuthService } from '../../services/admin-auth-service';
+import { Observable } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -38,7 +40,7 @@ describe('Banners', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([]), FormsModule],
       declarations: [Banners, BannerForm, PageHeading, StatCard, StatusBadge, ConfirmDialog],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } }],
     }).compileComponents();
     fixture = TestBed.createComponent(Banners);
     component = fixture.componentInstance;
@@ -100,4 +102,25 @@ describe('Banners', () => {
     expect(component.deleting()).toBeNull();
     flushList([]);
   });
+
+  it('rolls back failed reordering while retaining the error message', () => {
+    flushList([banner(), banner({ _id: 'h2', order: 2 })]);
+    component.move(component.data()!.items[1], -1);
+    component.move(component.data()!.items[0], 1);
+    http.expectOne(r => r.method === 'PATCH').flush({ message: 'Conflict' }, { status: 409, statusText: 'Conflict' });
+    expect(component.groups()[0].items.map(b => b._id)).toEqual(['h1', 'h2']);
+    expect(component.error()).toBe('Conflict');
+    http.expectNone(r => r.method === 'GET');
+  });
+
+
+  it('retains unresolved banners in a read-only group without mapping to hero', () => {
+    const bad = banner({ _id: 'bad', contractIssues: ['startDate_alias_conflict'] });
+    flushList([bad, banner()]);
+    expect(component.unresolved()).toEqual([bad]);
+    expect(component.groups()[0].items.length).toBe(1);
+    component.openEdit(bad); component.toggle(bad); component.move(bad, 1);
+    expect(component.formOpen()).toBe(false); http.expectNone(r => r.method !== 'GET');
+  });
+
 });

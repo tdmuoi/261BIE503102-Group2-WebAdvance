@@ -1,3 +1,4 @@
+import { adminApiError } from '../../services/admin-api-error';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 
@@ -43,13 +44,18 @@ export class Banners {
 
   readonly positionFilter = signal<'' | BannerPosition>('');
   readonly stateFilter = signal<'' | BannerState>('');
+  readonly unresolved = computed(() => (this.data()?.items ?? []).filter((b) => this.hasContractIssue(b)));
+
+  hasContractIssue(b: Banner): boolean {
+    return !!b.contractIssues?.length || !this.positions.includes(b.position);
+  }
 
   /** Các nhóm banner theo vị trí, đã lọc theo trạng thái */
   readonly groups = computed(() => {
     const items = this.data()?.items ?? [];
     const shown = this.positionFilter() ? [this.positionFilter() as BannerPosition] : this.positions;
     return shown.map((position) => {
-      const all = items.filter((b) => b.position === position);
+      const all = items.filter((b) => b.position === position && !this.hasContractIssue(b));
       return {
         position,
         label: POSITION_LABELS[position],
@@ -112,6 +118,7 @@ export class Banners {
   }
 
   openEdit(b: Banner): void {
+    if (this.hasContractIssue(b)) return;
     this.editing.set(b);
     this.formOpen.set(true);
   }
@@ -124,6 +131,7 @@ export class Banners {
 
   // ---------- Bật/tắt, thứ tự ----------
   toggle(b: Banner): void {
+    if (this.busyId() || this.loading() || this.hasContractIssue(b)) return;
     this.busyId.set(b._id);
     this.bannerService.setActive(b._id, !b.active).subscribe({
       next: () => {
@@ -137,15 +145,17 @@ export class Banners {
 
   /** Đổi chỗ với banner đứng trước (-1) hoặc sau (+1) trong cùng vị trí */
   move(b: Banner, step: -1 | 1): void {
+    if (this.busyId() || this.loading() || this.hasContractIssue(b)) return;
+    const previous = this.data();
     const items = this.data()?.items ?? [];
-    const list = items.filter((x) => x.position === b.position);
+    const list = items.filter((x) => x.position === b.position && !this.hasContractIssue(x));
     const from = list.findIndex((x) => x._id === b._id);
     const to = from + step;
     if (from < 0 || to < 0 || to >= list.length) return;
     [list[from], list[to]] = [list[to], list[from]];
 
     // Đổi ngay trên màn hình rồi mới lưu
-    const others = items.filter((x) => x.position !== b.position);
+    const others = items.filter((x) => x.position !== b.position || this.hasContractIssue(x));
     this.data.update((d) => (d ? { ...d, items: [...others, ...list.map((x, i) => ({ ...x, order: i + 1 }))] } : d));
     this.busyId.set(b._id);
     this.bannerService.reorder(list.map((x) => x._id)).subscribe({
@@ -154,8 +164,8 @@ export class Banners {
         this.load();
       },
       error: (err: HttpErrorResponse) => {
+        this.data.set(previous);
         this.fail(err, 'Không lưu được thứ tự banner.');
-        this.load();
       },
     });
   }
@@ -163,7 +173,7 @@ export class Banners {
   // ---------- Xoá ----------
   confirmDelete(): void {
     const b = this.deleting();
-    if (!b) return;
+    if (!b || this.busyId() || this.loading() || this.hasContractIssue(b)) return;
     this.busyId.set(b._id);
     this.bannerService.deleteBanner(b._id).subscribe({
       next: () => {
@@ -192,8 +202,6 @@ export class Banners {
   }
 
   private message(err: HttpErrorResponse, fallback: string): string {
-    return err.status === 0
-      ? 'Không kết nối được my-server (http://localhost:3002). Hãy chạy "npm run dev" trong thư mục my-server.'
-      : err.error?.message || fallback;
+    return adminApiError(err, fallback);
   }
 }

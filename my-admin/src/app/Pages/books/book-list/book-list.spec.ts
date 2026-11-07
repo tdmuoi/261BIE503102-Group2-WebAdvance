@@ -1,3 +1,5 @@
+import { AdminAuthService } from '../../../services/admin-auth-service';
+import { Observable } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -35,7 +37,7 @@ describe('BookList', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([])],
       declarations: [BookList, PageHeading, StatCard, StatusBadge, Pagination, ConfirmDialog],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(BookList);

@@ -1,3 +1,4 @@
+import { adminApiError } from '../../../services/admin-api-error';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -19,6 +20,8 @@ function emptyForm(): BookPayload {
     description: '',
     price: null,
     originalPrice: null,
+    bookType: 'new',
+    condition: null,
     stock: 0,
     status: 'active',
   };
@@ -46,6 +49,7 @@ export class BookForm {
   /** Dữ liệu form (ngModel) — object thường, trạng thái tải/lưu dùng signal */
   form: BookPayload = emptyForm();
 
+  readonly classificationSupported = signal(false);
   readonly book = signal<AdminBook | null>(null);
   readonly categories = signal<Category[]>([]);
   readonly authors = signal<Author[]>([]);
@@ -67,6 +71,10 @@ export class BookForm {
   });
 
   constructor() {
+    this.bookService.getBooks({ limit: 1 }).subscribe({
+      next: (response) => this.classificationSupported.set(response.capabilities?.bookClassification === true),
+      error: () => {},
+    });
     this.bookService.getCategories().subscribe({ next: (list) => this.categories.set(list), error: () => {} });
     this.bookService.getAuthors().subscribe({
       next: (list) => this.authors.set([...list].sort((a, b) => a.name.localeCompare(b.name, 'vi'))),
@@ -90,6 +98,8 @@ export class BookForm {
             description: book.description ?? '',
             price: book.price,
             originalPrice: book.originalPrice ?? book.price,
+            bookType: book.bookType ?? 'new',
+            condition: book.condition ?? null,
             stock: book.stock ?? 0,
             status: book.status === 'hidden' ? 'hidden' : 'active',
           };
@@ -136,17 +146,22 @@ export class BookForm {
     const e: FieldErrors = {};
     if (!f.title.trim()) e.title = 'Vui lòng nhập tên sách';
     if (!f.categoryId) e.categoryId = 'Vui lòng chọn thể loại';
-    if (f.price === null || f.price < 0) e.price = 'Giá bán phải là số ≥ 0';
-    if (f.originalPrice !== null && f.price !== null && f.originalPrice < f.price) {
+    if (f.price === null || !Number.isFinite(f.price) || f.price < 0) e.price = 'Giá bán phải là số ≥ 0';
+    if (f.originalPrice !== null && f.price !== null && (!Number.isFinite(f.originalPrice) || f.originalPrice < f.price)) {
       e.originalPrice = 'Giá gốc không được nhỏ hơn giá bán';
     }
     if (f.stock === null || f.stock < 0 || !Number.isInteger(f.stock)) e.stock = 'Tồn kho phải là số nguyên ≥ 0';
-    if (f.publishYear !== null && (f.publishYear < 1000 || f.publishYear > 2100)) e.publishYear = 'Năm không hợp lệ';
+    if (f.publishYear !== null && (!Number.isInteger(f.publishYear) || f.publishYear < 1000 || f.publishYear > 2100)) e.publishYear = 'Năm không hợp lệ';
     if (f.pages !== null && (f.pages <= 0 || !Number.isInteger(f.pages))) e.pages = 'Số trang phải > 0';
+    if (!['new', 'used', 'ebook'].includes(f.bookType)) e.bookType = 'Loại sách không hợp lệ';
+    if (this.isEdit && this.book()?.bookType && f.bookType !== this.book()?.bookType) e.bookType = 'Chuyển loại sách cần thống nhất nghiệp vụ tồn kho trước';
+    if (f.bookType === 'used' && !f.condition?.trim()) e.condition = 'Nhập tình trạng sách cũ';
+    if (f.bookType === 'ebook' && f.stock !== 0) e.stock = 'Ebook không sử dụng tồn kho vật lý';
     return e;
   }
 
   save(): void {
+    if (this.saving() || this.deleting() || this.loading() || this.notFound() || (this.isEdit && !this.book())) return;
     const errors = this.validate();
     this.errors.set(errors);
     this.serverError.set('');
@@ -155,9 +170,14 @@ export class BookForm {
       return;
     }
 
+    if (!this.classificationSupported() && (!this.isEdit || this.form.bookType !== (this.book()?.bookType ?? 'new') || this.form.condition !== (this.book()?.condition ?? null))) {
+      this.serverError.set('Chưa thể lưu loại sách và tình trạng. Vui lòng liên hệ quản trị hệ thống.');
+      return;
+    }
     const author = this.findAuthor(this.form.authorName.trim());
     const payload: BookPayload = {
       ...this.form,
+      condition: this.form.bookType === 'used' ? this.form.condition?.trim() || null : null,
       authorId: author?._id ?? null,
       authorName: this.form.authorName.trim(),
       originalPrice: this.form.originalPrice ?? this.form.price,
@@ -185,7 +205,7 @@ export class BookForm {
   }
 
   deleteBook(): void {
-    if (!this.bookId) return;
+    if (!this.bookId || this.saving() || this.deleting() || this.loading() || this.notFound()) return;
     this.deleting.set(true);
     this.bookService.deleteBook(this.bookId).subscribe({
       next: () => {
@@ -208,9 +228,7 @@ export class BookForm {
   }
 
   private connectionMessage(err: HttpErrorResponse): string {
-    return err.status === 0
-      ? 'Không kết nối được my-server (http://localhost:3002). Hãy chạy "npm run dev" trong thư mục my-server.'
-      : err.error?.message || 'Có lỗi xảy ra, vui lòng thử lại.';
+    return adminApiError(err);
   }
 
   private scrollToFirstError(): void {

@@ -23,7 +23,7 @@ const mongoUri = process.env.MONGODB_URI;
 
 // Cookie/CSRF preflight must run before the existing CORS middleware.
 const adminAuth = createAdminAuth(() => database);
-app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/settings', '/api/admin/buybacks'], adminAuth.cors);
+app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/settings', '/api/admin/buybacks', '/api/admin/books', '/api/admin/orders', '/api/admin/returns', '/api/admin/dashboard', '/api/admin/banners'], adminAuth.cors);
 
 app.use(cors({
   origin: ['http://localhost:4200', 'http://localhost:4201']
@@ -33,6 +33,8 @@ app.use(morgan('combined'));
 
 let database;
 let client;
+
+app.use('/api/admin', require('./middleware/admin-qa-access')(adminAuth));
 
 app.use('/api/admin/auth', adminAuthRoutes(() => database));
 app.use('/api/admin', adminVouchersRoutes(() => database));
@@ -155,11 +157,11 @@ app.use('/api', bannersRoutes(() => database));
 
 // API Đơn hàng cho admin: /api/admin/orders (xem routes/admin-orders.js)
 const adminOrdersRoutes = require('./routes/admin-orders');
-app.use('/api/admin', adminOrdersRoutes(() => database));
+app.use('/api/admin', adminOrdersRoutes(() => database, () => client));
 
 // API Đổi trả & hoàn tiền cho admin: /api/admin/returns (xem routes/admin-returns.js)
 const adminReturnsRoutes = require('./routes/admin-returns');
-app.use('/api/admin', adminReturnsRoutes(() => database));
+app.use('/api/admin', adminReturnsRoutes(() => database, () => client));
 
 // API Lightbook News cho web khách, chỉ đọc: /api/news, /api/news/:id (xem routes/news.js)
 const newsRoutes = require('./routes/news');

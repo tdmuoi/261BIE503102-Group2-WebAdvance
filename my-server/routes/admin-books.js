@@ -105,12 +105,18 @@ module.exports = function adminBooksRoutes(getDb) {
   }
 
   /** Kiểm tra + chuẩn hoá dữ liệu gửi lên từ form */
-  async function parseBook(body, style) {
+  async function parseBook(body, style, existing = null) {
     const errors = {};
     const title = cleanText(body.title);
     const price = toNumber(body.price, NaN);
     const originalPrice = toNumber(body.originalPrice, price);
     const stock = toNumber(body.stock, 0);
+    const bookType = body.bookType ?? existing?.bookType;
+    const condition = bookType === 'used' ? cleanText(body.condition ?? existing?.condition) : null;
+    if (!['new', 'used', 'ebook'].includes(bookType)) errors.bookType = 'Invalid bookType';
+    if (bookType === 'used' && !condition) errors.condition = 'Used condition required';
+    if (existing && existing.bookType !== bookType) errors.bookType = 'Type conversion needs an approved inventory policy';
+    if (bookType === 'ebook' && stock !== 0) errors.stock = 'Ebooks have no physical stock';
     const status = EDITABLE_STATUSES.includes(body.status) ? body.status : 'active';
 
     if (!title) errors.title = 'Vui lòng nhập tên sách';
@@ -170,6 +176,8 @@ module.exports = function adminBooksRoutes(getDb) {
       price,
       originalPrice,
       discountPercent: originalPrice > 0 ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0,
+      bookType,
+      condition,
       stock,
       status,
     };
@@ -206,8 +214,8 @@ module.exports = function adminBooksRoutes(getDb) {
       const statusFilters = {
         active: { status: 'active' },
         hidden: { status: 'hidden' },
-        low: { stock: { $gt: 0, $lte: LOW_STOCK_THRESHOLD } },
-        out: { stock: { $lte: 0 } },
+        low: { bookType: { $in: ['new', 'used'] }, stock: { $gt: 0, $lte: LOW_STOCK_THRESHOLD } },
+        out: { bookType: { $in: ['new', 'used'] }, stock: { $lte: 0 } },
       };
       const statusFilter = statusFilters[req.query.status] || {};
       const listFilter = { ...filter, ...statusFilter };
@@ -230,6 +238,7 @@ module.exports = function adminBooksRoutes(getDb) {
         limit,
         counts: { all, active, hidden, low, out },
         lowStockThreshold: LOW_STOCK_THRESHOLD,
+        capabilities: { bookClassification: true },
       });
     } catch (error) {
       handleError(res, error, 'GET /api/admin/books');
@@ -292,7 +301,7 @@ module.exports = function adminBooksRoutes(getDb) {
       if (!existing) return res.status(404).json({ message: 'Không tìm thấy sách' });
 
       const style = await storageStyle();
-      const data = await parseBook(req.body || {}, style);
+      const data = await parseBook(req.body || {}, style, existing);
       await books().updateOne({ _id }, { $set: { ...data, updatedAt: now(style) } });
       const updated = await books().findOne({ _id });
       res.json((await withNames([updated]))[0]);

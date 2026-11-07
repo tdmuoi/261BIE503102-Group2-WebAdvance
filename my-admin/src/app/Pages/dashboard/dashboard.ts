@@ -1,3 +1,5 @@
+import { adminApiError } from '../../services/admin-api-error';
+import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 
@@ -54,31 +56,32 @@ export class Dashboard {
   readonly chartMax = computed(() => Math.max(0, ...(this.data()?.salesChart ?? []).map((p) => p.revenue)));
   readonly chartTotal = computed(() => (this.data()?.salesChart ?? []).reduce((s, p) => s + p.revenue, 0));
 
+  private request?: Subscription;
+  ngOnDestroy(): void { this.request?.unsubscribe(); }
+
   constructor() {
     this.load();
   }
 
   load(): void {
+    this.request?.unsubscribe();
     this.loading.set(true);
     this.error.set('');
-    this.dashboardService.getDashboard(this.days()).subscribe({
+    this.request = this.dashboardService.getDashboard(this.days()).subscribe({
       next: (res) => {
         this.data.set(res);
         this.updatedAt.set(new Date());
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.error.set(
-          err?.status === 0
-            ? 'Không kết nối được my-server (http://localhost:3002). Hãy mở terminal, vào thư mục my-server và chạy "npm run dev".'
-            : 'Server báo lỗi khi lấy số liệu (có thể MongoDB chưa kết nối). Xem terminal của my-server để biết chi tiết.',
-        );
+        this.error.set(adminApiError(err));
         this.loading.set(false);
       },
     });
   }
 
   changeDays(value: string | number): void {
+    if (!this.periodOptions.some((p) => p.days === Number(value))) return;
     this.days.set(Number(value));
     this.load();
   }
@@ -112,6 +115,7 @@ export class Dashboard {
   orderTime(value: string | null): string {
     if (!value) return '—';
     const d = new Date(value);
+    if (!Number.isFinite(d.getTime())) return '?';
     const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     const today = new Date();
     const yesterday = new Date(today.getTime() - 86400000);

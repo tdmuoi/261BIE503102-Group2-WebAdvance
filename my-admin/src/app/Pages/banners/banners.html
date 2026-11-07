@@ -14,6 +14,12 @@
 }
 
 @if (data(); as d) {
+  @if (unresolved().length) {
+    <div class="flash flash-error" role="status">
+      <p>{{ unresolved().length }} banner đang chờ thống nhất vị trí hoặc lịch hiển thị; chỉ đọc.</p>
+      @for (b of unresolved(); track b._id) { <p>{{ b.name }} · {{ b.position }} · {{ b.contractIssues?.join(', ') }}</p> }
+    </div>
+  }
   <section class="stats">
     <app-stat-card label="Đang hiển thị" [value]="d.counts.live" tone="ok" [note]="'trên tổng ' + d.counts.all + ' banner'"></app-stat-card>
     <app-stat-card label="Lên lịch" [value]="d.counts.scheduled" tone="info" note="Chưa tới ngày bắt đầu"></app-stat-card>

@@ -1,3 +1,4 @@
+import { adminApiError } from '../../services/admin-api-error';
 ﻿import { Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, inject } from '@angular/core';
@@ -86,11 +87,10 @@ export class Login implements OnInit, OnDestroy {
     if (error instanceof TimeoutError)
       return 'Backend phản hồi quá lâu. Vui lòng kiểm tra server và thử đăng nhập lại.';
     if (error instanceof HttpErrorResponse) {
-      if (error.status === 0)
-        return 'Không kết nối được Backend. Vui lòng kiểm tra server và mạng.';
+      if (error.status === 0) return adminApiError(error);
       if (error.status === 404) return 'API xác thực Admin chưa được đăng ký trên Backend.';
       if (error.status === 401) return 'Email, mật khẩu hoặc quyền quản trị không hợp lệ.';
-      if (error.status === 429) return 'Quá nhiều lần đăng nhập. Vui lòng thử lại sau 15 phút.';
+      if (error.status === 429) return adminApiError(error);
       if (typeof error.error?.message === 'string') return error.error.message;
     }
     return 'Không xử lý được yêu cầu. Vui lòng thử lại.';

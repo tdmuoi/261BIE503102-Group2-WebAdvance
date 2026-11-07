@@ -21,6 +21,9 @@
 }
 
 @if (data(); as d) {
+  @if (d.reportingPolicy !== 'paid-nondemo-v1') {
+    <p class="card alert" role="status">Chưa xác minh cách loại đơn demo, đơn chưa thanh toán và tài khoản quản trị khỏi thống kê. Chưa dùng số liệu này để đối soát doanh thu.</p>
+  }
   <!-- ===== 1. Thẻ số liệu ===== -->
   <section class="stats" [class.is-loading]="loading()">
     <app-stat-card label="Tổng doanh thu" [value]="d.stats.revenue.value" unit="đ"

@@ -1,3 +1,5 @@
+import { AdminAuthService } from '../../../services/admin-auth-service';
+import { Observable } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -15,7 +17,7 @@ describe('BannerForm', () => {
     await TestBed.configureTestingModule({
       imports: [FormsModule],
       declarations: [BannerForm],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } }],
     }).compileComponents();
     fixture = TestBed.createComponent(BannerForm);
     component = fixture.componentInstance;
@@ -69,4 +71,12 @@ describe('BannerForm', () => {
     component.save();
     http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/admin/banners/h1')).flush({ _id: 'h1', name: 'Tết' });
   });
+
+  it('rejects impossible calendar dates and tolerates invalid stored dates', () => {
+    component.form.name = 'X'; component.form.title = 'X';
+    component.form.startDate = '2027-02-30';
+    expect(component.validate()).toHaveProperty('startDate');
+    expect(toDateInput('invalid')).toBe('');
+  });
+
 });

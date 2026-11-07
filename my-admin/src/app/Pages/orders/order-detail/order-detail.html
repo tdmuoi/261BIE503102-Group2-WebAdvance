@@ -13,6 +13,7 @@
   @if (loading() && !order()) {
     <p class="empty">Đang tải đơn hàng...</p>
   } @else if (order(); as o) {
+    @if (o.isDemo === true || !o.userId) { <p role="status">Chỉ đọc: đơn demo hoặc chưa xác minh chủ sở hữu; đang chờ thống nhất chính sách xử lý.</p> }
     <div class="panel-body" [class.is-busy]="saving() || loading()">
       <!-- Trạng thái + bước -->
       <section class="block">
@@ -39,7 +40,7 @@
             @for (next of o.nextStatuses; track next) {
               <button type="button" class="btn"
                       [class.btn-primary]="actions[next].style === 'primary'" [class.btn-danger]="actions[next].style === 'danger'"
-                      [disabled]="saving()" (click)="act(next)">
+                      [disabled]="saving() || !order()?.userId || order()?.isDemo === true" (click)="act(next)">
                 {{ next === 'delivered' && o.onlyEbooks ? 'Đã gửi ebook' : actions[next].label }}
               </button>
             }
@@ -88,7 +89,7 @@
       <section class="block">
         <h3>Thanh toán</h3>
         <p>{{ paymentMethods[o.paymentMethod] ?? o.paymentMethod }}</p>
-        <select class="select" [value]="o.paymentStatus" (change)="setPayment($any($event.target).value)" aria-label="Trạng thái thanh toán">
+        <select class="select" [value]="o.paymentStatus" [disabled]="saving() || !o.userId || o.isDemo === true" (change)="setPayment($any($event.target).value)" aria-label="Trạng thái thanh toán">
           @for (p of paymentOptions; track p) { <option [value]="p">{{ paymentInfo[p].label }}</option> }
         </select>
       </section>
@@ -100,7 +101,7 @@
           <input class="input" [(ngModel)]="trackingCode" placeholder="Mã vận đơn" aria-label="Mã vận đơn" />
         }
         <textarea class="textarea" rows="3" [(ngModel)]="adminNote" placeholder="Chỉ admin thấy, VD: khách hẹn giao sau 17h"></textarea>
-        <button type="button" class="btn btn-sm" [disabled]="saving()" (click)="saveNote()">Lưu ghi chú</button>
+        <button type="button" class="btn btn-sm" [disabled]="saving() || !order()?.userId || order()?.isDemo === true" (click)="saveNote()">Lưu ghi chú</button>
       </section>
 
       <!-- Lịch sử -->
@@ -137,7 +138,7 @@
               [placeholder]="pending() === 'cancelled' ? 'VD: Khách đổi ý, hết hàng...' : 'VD: Sách bị lỗi in'"></textarea>
     @if (reasonError()) { <small class="error">{{ reasonError() }}</small> }
     @if (pending() === 'cancelled' && order()?.items?.length) {
-      <label class="check"><input type="checkbox" [(ngModel)]="restock" /> Cộng lại số lượng sách vào tồn kho</label>
+      <label class="check"><input type="checkbox" [(ngModel)]="restock" [disabled]="order()?.onlyEbooks === true || !order()?.stockDeducted || order()?.restocked === true" /> Cộng lại số lượng sách vào tồn kho</label>
     }
   </div>
 </app-confirm-dialog>

@@ -187,7 +187,7 @@ export class NewsEditor implements OnInit, OnDestroy {
     this.article.tags = article.tags || [];
     this.tagsText = this.article.tags.join(', ');
     this.schedule = article.status === 'scheduled';
-    if (this.schedule && article.publishedAt) {
+    if (this.schedule && article.publishedAt && Number.isFinite(Date.parse(article.publishedAt))) {
       const local = new Date(new Date(article.publishedAt).getTime() + 7 * 3600000).toISOString();
       this.scheduleDate = local.slice(0, 10);
       this.scheduleTime = local.slice(11, 16);
@@ -267,7 +267,7 @@ export class NewsEditor implements OnInit, OnDestroy {
     let publishedAt = this.article.publishedAt;
     if (status === 'published' && this.schedule) {
       const date = new Date(`${this.scheduleDate}T${this.scheduleTime}:00+07:00`);
-      if (!Number.isFinite(date.getTime()) || date.getTime() <= Date.now()) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(this.scheduleDate) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(this.scheduleTime) || !Number.isFinite(date.getTime()) || new Date(date.getTime() + 7 * 3600000).toISOString().slice(0, 16) !== `${this.scheduleDate}T${this.scheduleTime}` || date.getTime() <= Date.now()) {
         this.error = 'Chọn ngày và giờ đăng trong tương lai (giờ Việt Nam).';
         return;
       }

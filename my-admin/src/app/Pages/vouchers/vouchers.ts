@@ -14,6 +14,13 @@ import {
 } from '../../models/voucher';
 import { VoucherService } from '../../services/voucher-service';
 
+/** Quote CSV cells and keep user-provided names from becoming spreadsheet formulas. */
+export function voucherCsvCell(value: unknown): string {
+  let text = String(value);
+  if (/^\s*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+
 @Component({
   selector: 'app-vouchers',
   standalone: false,
@@ -444,14 +451,8 @@ export class Vouchers implements OnInit, OnDestroy {
         v.end,
         this.statusLabel(v),
       ]);
-      const escape = (x: unknown) =>
-        '"' +
-        String(x)
-          .replace(/^[=+@\-\t\r]/, "'$&")
-          .replace(/"/g, '""') +
-        '"';
       const blob = new Blob(
-        ['\uFEFF' + [fields, ...lines].map((row) => row.map(escape).join(',')).join('\r\n')],
+        ['\uFEFF' + [fields, ...lines].map((row) => row.map(voucherCsvCell).join(',')).join('\r\n')],
         { type: 'text/csv;charset=utf-8;' },
       );
       const url = URL.createObjectURL(blob);

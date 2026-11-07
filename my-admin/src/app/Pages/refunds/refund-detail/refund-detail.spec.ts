@@ -1,3 +1,5 @@
+import { AdminAuthService } from '../../../services/admin-auth-service';
+import { Observable } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -7,7 +9,9 @@ import { RouterModule } from '@angular/router';
 import { RefundDetail } from './refund-detail';
 import { StatusBadge } from '../../../Components/status-badge/status-badge';
 import { ConfirmDialog } from '../../../Components/confirm-dialog/confirm-dialog';
-import { makeReturn } from '../../../testing/mock-returns';
+import { makeReturn as fixtureReturn } from '../../../testing/mock-returns';
+
+const makeReturn = (overrides: Parameters<typeof fixtureReturn>[0] = {}) => fixtureReturn({ userId: 'isolated-test-owner', ...overrides });
 
 describe('RefundDetail', () => {
   let fixture: ComponentFixture<RefundDetail>;
@@ -18,7 +22,7 @@ describe('RefundDetail', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([]), FormsModule],
       declarations: [RefundDetail, StatusBadge, ConfirmDialog],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } }],
     }).compileComponents();
     fixture = TestBed.createComponent(RefundDetail);
     component = fixture.componentInstance;
@@ -60,7 +64,7 @@ describe('RefundDetail', () => {
   });
 
   it('nhận sách: sách hư hỏng thì mặc định không cộng kho', () => {
-    loadWith({ status: 'approved', nextStatuses: ['received', 'rejected'] });
+    loadWith({ status: 'approved', nextStatuses: ['received', 'rejected'], restockEligible: true });
     component.act('received');
     expect(component.restock).toBe(false);
     component.restock = true;
@@ -80,4 +84,41 @@ describe('RefundDetail', () => {
     expect(component.asking()).toBe('refunded');
     expect(component.askError()).toContain('Không được hoàn quá');
   });
+
+  it('cancels obsolete reads and clears the old request', () => {
+    component.requestId = 'r1'; const old = http.expectOne(() => true);
+    component.requestId = 'r2'; expect(old.cancelled).toBe(true);
+    expect(component.request()).toBeNull();
+    http.expectOne(() => true).flush(makeReturn({ _id: 'r2' }));
+    expect(component.request()?._id).toBe('r2');
+  });
+  it('rejects non-finite and excessive refunds before sending', () => {
+    loadWith({ status: 'received', nextStatuses: ['refunded'] });
+    component.act('refunded');
+    for (const amount of [Infinity, NaN, 100001]) {
+      component.refundAmount = amount; component.confirmAsk();
+      expect(component.askError()).toBeTruthy();
+    }
+    http.expectNone(r => r.method === 'PATCH');
+  });
+  it('serializes repeated approvals', () => {
+    loadWith(); component.act('approved'); component.act('approved');
+    http.expectOne(r => r.method === 'PATCH').flush(makeReturn({ status: 'approved' }));
+  });
+
+
+  it('keeps demo returns read only and disables unverified stock returns', () => {
+    loadWith({ isDemo: true, userId: null });
+    component.act('approved'); component.saveNote();
+    expect(component.error()).toBeTruthy(); http.expectNone(r => r.method === 'PATCH');
+  });
+  it('cannot force restocking when physical eligibility is unknown', () => {
+    loadWith({ status: 'approved', nextStatuses: ['received'] });
+    component.act('received'); expect(component.restock).toBe(false);
+    component.restock = true; component.confirmAsk();
+    const req = http.expectOne(r => r.method === 'PATCH');
+    expect(req.request.body.restock).toBe(false);
+    req.flush(makeReturn({ status: 'received' }));
+  });
+
 });

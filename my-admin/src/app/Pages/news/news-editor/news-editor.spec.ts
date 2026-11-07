@@ -189,4 +189,14 @@ describe('NewsEditor', () => {
       expect.objectContaining({ status: 'scheduled', publishedAt: '2099-01-01T01:00:00.000Z' }),
     );
   });
+
+  it('rejects impossible scheduled dates instead of normalizing them', () => {
+    const editor = fixture.componentInstance;
+    Object.assign(editor.article, { title: 'X', content: '<p>X</p>', category: 'Review s?ch', cover: '/images/x.jpg' });
+    editor.schedule = true; editor.scheduleDate = '2099-02-30'; editor.scheduleTime = '08:00';
+    editor.save('published', form());
+    expect(service.save).not.toHaveBeenCalled();
+    expect(editor.error).toContain('ngày');
+  });
+
 });

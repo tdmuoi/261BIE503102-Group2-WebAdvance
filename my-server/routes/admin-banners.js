@@ -40,7 +40,7 @@ function parseDay(value, endOfDay = false) {
   if (!text) return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return undefined;
   const d = new Date(`${text}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}${VN_OFFSET}`);
-  return isNaN(d.getTime()) ? undefined : d;
+  return isNaN(d.getTime()) || new Date(d.getTime() + 7 * 3600000).toISOString().slice(0, 10) !== text ? undefined : d;
 }
 
 function toDate(value) {
@@ -68,12 +68,14 @@ function present(doc, now = new Date()) {
     link: doc.link ?? doc.url ?? '',
     bgColor: doc.bgColor ?? '#1c1917',
     textColor: doc.textColor ?? '#ffffff',
-    position: POSITIONS.includes(doc.position) ? doc.position : 'hero',
+    position: doc.position ?? null,
     order: Number.isFinite(doc.order) ? doc.order : 9999, // chưa có thứ tự thì xếp cuối
     active: !!active,
     startDate,
     endDate,
     state,
+    contractIssues: [!POSITIONS.includes(doc.position) ? 'unsupported_position' : null,
+      ...[['startDate', 'startAt'], ['endDate', 'endAt']].filter(([a, b]) => doc[a] != null && doc[b] != null && +new Date(doc[a]) !== +new Date(doc[b])).map(([a]) => a + '_alias_conflict')].filter(Boolean),
     createdAt: doc.createdAt ?? null,
     updatedAt: doc.updatedAt ?? null,
   };
@@ -150,6 +152,18 @@ module.exports = function bannersRoutes(getDb) {
     }
   });
 
+  // No alias/position normalization until the shared contract is approved.
+  router.use('/admin/banners/:id', async (req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    try {
+      const ids = req.params.id === 'reorder' ? req.body?.ids : [req.params.id];
+      if (!Array.isArray(ids) || !ids.every(id => ObjectId.isValid(String(id)))) return res.status(400).json({ message: 'Invalid IDs' });
+      const docs = await banners().find({ _id: { $in: ids.map(id => new ObjectId(String(id))) } }).toArray();
+      if (docs.some(doc => present(doc).contractIssues.length)) return res.status(409).json({ message: 'Banner contract requires team approval; read only' });
+      next();
+    } catch { return res.status(503).json({ message: 'Cannot verify banner contract' }); }
+  });
+
   // ---------- Admin: danh sách ----------
   router.get('/admin/banners', async (req, res) => {
     try {
@@ -198,6 +212,14 @@ module.exports = function bannersRoutes(getDb) {
 
       const data = parseBanner(req.body || {});
       const update = { ...data, updatedAt: new Date() };
+      // Preserve the date keys already used by this document; never create a
+      // competing canonical field beside an existing legacy alias.
+      for (const [canonical, alias] of [['startDate', 'startAt'], ['endDate', 'endAt']]) {
+        if (Object.hasOwn(existing, alias)) {
+          update[alias] = data[canonical];
+          if (!Object.hasOwn(existing, canonical)) delete update[canonical];
+        }
+      }
       // Đổi sang vị trí khác thì xếp xuống cuối vị trí mới
       if (data.position !== existing.position) {
         const last = await banners().find({ position: data.position }).sort({ order: -1 }).limit(1).toArray();

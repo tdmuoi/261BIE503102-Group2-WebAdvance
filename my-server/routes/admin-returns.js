@@ -97,6 +97,7 @@ function present(doc) {
     requestCode: doc.requestCode ?? doc.code ?? 'RR-' + String(doc._id).slice(-6).toUpperCase(),
     orderId: doc.orderId ? String(doc.orderId) : null,
     orderCode: doc.orderCode ?? '',
+    isDemo: doc.isDemo === true,
     userId: doc.userId ? String(doc.userId) : null,
     customer: {
       name: doc.customer?.name ?? doc.customerName ?? 'Khách hàng',
@@ -122,7 +123,7 @@ function present(doc) {
   };
 }
 
-module.exports = function adminReturnsRoutes(getDb) {
+module.exports = function adminReturnsRoutes(getDb, getClient) {
   const router = express.Router();
   const returns = () => getDb().collection('return_requests');
   const orders = () => getDb().collection('orders');
@@ -131,6 +132,18 @@ module.exports = function adminReturnsRoutes(getDb) {
   async function findRequest(id) {
     if (!ObjectId.isValid(id)) return null;
     return returns().findOne({ _id: new ObjectId(String(id)) });
+  }
+
+  async function presentOne(doc) {
+    const result = present(doc);
+    result.restockEligible = false;
+    if (doc.isDemo === true || doc.userId == null || !ObjectId.isValid(String(doc.orderId))) return result;
+    const order = await orders().findOne({ _id: new ObjectId(String(doc.orderId)) });
+    if (!order || order.isDemo === true || String(order.userId) !== String(doc.userId) || order.stockDeducted !== true || order.restocked === true || doc.restocked === true) return result;
+    const ids = result.items.map(it => it.bookId).filter(id => ObjectId.isValid(String(id)));
+    const documents = ids.length ? await books().find({ _id: { $in: ids.map(id => new ObjectId(id)) } }).toArray() : [];
+    result.restockEligible = ids.length === result.items.length && ids.length > 0 && documents.length === new Set(ids).size && documents.every(b => ['new', 'used'].includes(b.bookType));
+    return result;
   }
 
   // ---------- Danh sách + thống kê ----------
@@ -198,7 +211,7 @@ module.exports = function adminReturnsRoutes(getDb) {
     try {
       const doc = await findRequest(req.params.id);
       if (!doc) return res.status(404).json({ message: 'Không tìm thấy yêu cầu' });
-      const result = present(doc);
+      const result = await presentOne(doc);
       // Kèm thông tin đơn gốc (nếu tìm được)
       let order = null;
       if (result.orderId && ObjectId.isValid(result.orderId)) {
@@ -218,68 +231,27 @@ module.exports = function adminReturnsRoutes(getDb) {
     }
   });
 
+  // Safety gate: no mutation of demo/unowned documents. No validator changes.
+  router.use('/returns/:id', async (req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    try {
+      const doc = await findRequest(req.params.id);
+      if (!doc) return res.status(404).json({ message: 'Not found' });
+      if (doc.isDemo === true || doc.userId == null) return res.status(409).json({ message: 'Demo/owner policy is not approved; read only' });
+      // Status transitions below require a transactional client.
+
+      return next();
+    } catch { return res.status(503).json({ message: 'Cannot verify safe ownership' }); }
+  });
+
   // ---------- Chuyển trạng thái ----------
   router.patch('/returns/:id/status', async (req, res) => {
     try {
-      const doc = await findRequest(req.params.id);
-      if (!doc) return res.status(404).json({ message: 'Không tìm thấy yêu cầu' });
-      const current = present(doc);
-      const next = req.body?.status;
-      if (!current.nextStatuses.includes(next)) {
-        return res.status(400).json({ message: `Không thể chuyển từ "${current.status}" sang "${next}"`, nextStatuses: current.nextStatuses });
-      }
-
-      const note = cleanText(req.body?.note);
-      const errors = {};
-      if (next === 'rejected' && !note) errors.note = 'Vui lòng nhập lý do từ chối';
-      let refundAmount = null;
-      if (next === 'refunded') {
-        refundAmount = toNumber(req.body?.refundAmount);
-        if (refundAmount <= 0) errors.refundAmount = 'Số tiền hoàn phải lớn hơn 0';
-        else if (current.itemsValue > 0 && refundAmount > current.itemsValue) {
-          errors.refundAmount = `Không được hoàn quá giá trị sách trả (${current.itemsValue.toLocaleString('vi-VN')}đ)`;
-        }
-      }
-      if (Object.keys(errors).length) return res.status(400).json({ message: 'Dữ liệu chưa hợp lệ', errors });
-
-      const now = new Date();
-      const set = { status: next, updatedAt: now };
-      if (refundAmount !== null) set.refundAmount = refundAmount;
-
-      // Nhận sách trả về: cộng lại kho nếu sách còn bán được
-      if (next === 'received' && req.body?.restock && !doc.restocked) {
-        await Promise.all(
-          current.items
-            .filter((it) => it.bookId && ObjectId.isValid(it.bookId))
-            .map((it) => books().updateOne({ _id: new ObjectId(it.bookId) }, { $inc: { stock: it.quantity } })),
-        );
-        set.restocked = true;
-      }
-
-      const history = [...current.statusHistory, { status: next, at: now, note: note || null }];
-      await returns().updateOne({ _id: doc._id }, { $set: { ...set, statusHistory: history } });
-
-      // Hoàn tiền xong: cập nhật đơn gốc
-      if (next === 'refunded') {
-        const orderFilter = current.orderId && ObjectId.isValid(current.orderId)
-          ? { _id: new ObjectId(current.orderId) }
-          : current.orderCode ? { orderCode: current.orderCode } : null;
-        const order = orderFilter ? await orders().findOne(orderFilter) : null;
-        if (order) {
-          const orderSet = { paymentStatus: 'refunded', updatedAt: now };
-          const orderHistory = Array.isArray(order.statusHistory) ? [...order.statusHistory] : [];
-          if (order.status === 'delivered') {
-            orderSet.status = 'returned';
-            orderHistory.push({ status: 'returned', at: now, note: `Hoàn tiền theo yêu cầu ${current.requestCode}` });
-          }
-          await orders().updateOne({ _id: order._id }, { $set: { ...orderSet, statusHistory: orderHistory } });
-        }
-      }
-
-      res.json(present(await returns().findOne({ _id: doc._id })));
+      const transition = require('../middleware/admin-safe-status');
+      const doc = await transition(getDb(), getClient?.(), 'returns', req.params.id, req.body || {});
+      res.json(await presentOne(doc));
     } catch (error) {
-      console.error('PATCH /api/admin/returns/:id/status failed:', error.message);
-      res.status(500).json({ message: 'Không cập nhật được yêu cầu' });
+      res.status(error.status || 503).json({ message: error.status ? error.message : 'Transaction failed; no partial changes committed' });
     }
   });
 
@@ -290,7 +262,7 @@ module.exports = function adminReturnsRoutes(getDb) {
       if (!doc) return res.status(404).json({ message: 'Không tìm thấy yêu cầu' });
       if (typeof req.body?.adminNote !== 'string') return res.status(400).json({ message: 'Cần gửi adminNote' });
       await returns().updateOne({ _id: doc._id }, { $set: { adminNote: req.body.adminNote.trim().slice(0, 1000), updatedAt: new Date() } });
-      res.json(present(await returns().findOne({ _id: doc._id })));
+      res.json(await presentOne(await returns().findOne({ _id: doc._id })));
     } catch (error) {
       console.error('PATCH /api/admin/returns/:id failed:', error.message);
       res.status(500).json({ message: 'Không lưu được ghi chú' });

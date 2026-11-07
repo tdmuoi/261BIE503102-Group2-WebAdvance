@@ -122,6 +122,7 @@ function present(order, user = null) {
   return {
     _id: String(order._id),
     orderCode: order.orderCode ?? order.code ?? '#' + String(order._id).slice(-6).toUpperCase(),
+    isDemo: order.isDemo === true,
     userId: order.userId ? String(order.userId) : null,
     customer,
     shippingAddress: address,
@@ -149,7 +150,7 @@ function present(order, user = null) {
   };
 }
 
-module.exports = function adminOrdersRoutes(getDb) {
+module.exports = function adminOrdersRoutes(getDb, getClient) {
   const router = express.Router();
   const orders = () => getDb().collection('orders');
   const users = () => getDb().collection('users');
@@ -242,49 +243,27 @@ module.exports = function adminOrdersRoutes(getDb) {
     }
   });
 
+  // Safety gate: no mutation of demo/unowned documents. No validator changes.
+  router.use('/orders/:id', async (req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    try {
+      const doc = await findOrder(req.params.id);
+      if (!doc) return res.status(404).json({ message: 'Not found' });
+      if (doc.isDemo === true || doc.userId == null) return res.status(409).json({ message: 'Demo/owner policy is not approved; read only' });
+      // Status transitions below require a transactional client.
+
+      return next();
+    } catch { return res.status(503).json({ message: 'Cannot verify safe ownership' }); }
+  });
+
   // ---------- Chuyển trạng thái ----------
   router.patch('/orders/:id/status', async (req, res) => {
     try {
-      const doc = await findOrder(req.params.id);
-      if (!doc) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
-
-      const current = present(doc);
-      const next = req.body?.status;
-      if (!current.nextStatuses.includes(next)) {
-        return res.status(400).json({
-          message: `Không thể chuyển đơn từ "${current.status}" sang "${next}"`,
-          nextStatuses: current.nextStatuses,
-        });
-      }
-
-      const now = new Date();
-      const note = cleanText(req.body?.note);
-      const trackingCode = cleanText(req.body?.trackingCode);
-      if (next === 'cancelled' && !note) {
-        return res.status(400).json({ message: 'Vui lòng nhập lý do huỷ đơn', errors: { note: 'Vui lòng nhập lý do huỷ đơn' } });
-      }
-
-      const set = { status: next, updatedAt: now };
-      if (trackingCode) set.trackingCode = trackingCode;
-      // Giao thành công đơn COD = đã thu tiền
-      if (next === 'delivered' && current.paymentMethod === 'cod') set.paymentStatus = 'paid';
-
-      // Huỷ đơn: cộng lại tồn kho cho sách giấy nếu lúc đặt đã trừ kho (hoặc admin chọn hoàn kho)
-      const restock = next === 'cancelled' && !doc.restocked && (req.body?.restock ?? doc.stockDeducted ?? false);
-      if (restock) {
-        const printItems = current.items.filter((it) => it.format === 'print' && it.bookId && ObjectId.isValid(it.bookId));
-        await Promise.all(
-          printItems.map((it) => books().updateOne({ _id: new ObjectId(it.bookId) }, { $inc: { stock: it.quantity } })),
-        );
-        set.restocked = true;
-      }
-
-      const history = [...current.statusHistory, { status: next, at: now, note: note || null }];
-      await orders().updateOne({ _id: doc._id }, { $set: { ...set, statusHistory: history } });
-      res.json(await presentOne(await orders().findOne({ _id: doc._id })));
+      const transition = require('../middleware/admin-safe-status');
+      const doc = await transition(getDb(), getClient?.(), 'orders', req.params.id, req.body || {});
+      res.json(await presentOne(doc));
     } catch (error) {
-      console.error('PATCH /api/admin/orders/:id/status failed:', error.message);
-      res.status(500).json({ message: 'Không cập nhật được trạng thái đơn' });
+      res.status(error.status || 503).json({ message: error.status ? error.message : 'Transaction failed; no partial changes committed' });
     }
   });
 
@@ -294,6 +273,7 @@ module.exports = function adminOrdersRoutes(getDb) {
       const doc = await findOrder(req.params.id);
       if (!doc) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
 
+      if (req.body?.paymentStatus !== undefined) return res.status(409).json({ message: 'Manual payment changes require an approved settlement workflow' });
       const set = {};
       if (typeof req.body?.adminNote === 'string') set.adminNote = req.body.adminNote.trim().slice(0, 1000);
       if (typeof req.body?.trackingCode === 'string') set.trackingCode = req.body.trackingCode.trim().slice(0, 100);

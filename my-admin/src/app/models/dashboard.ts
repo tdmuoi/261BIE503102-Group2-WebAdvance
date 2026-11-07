@@ -36,6 +36,7 @@ export interface LowStockBook {
 }
 
 export interface DashboardData {
+  reportingPolicy?: string;
   period: { days: number; from: string; to: string };
   stats: {
     revenue: DashboardStat;

@@ -1,3 +1,5 @@
+import { AdminAuthService } from '../../services/admin-auth-service';
+import { Observable } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -45,7 +47,7 @@ describe('Dashboard', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([])],
       declarations: [Dashboard, PageHeading, StatCard, StatusBadge],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Dashboard);
@@ -90,4 +92,19 @@ describe('Dashboard', () => {
     await fixture.whenStable();
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('chưa có collection');
   });
+
+  it('cancels the previous period before loading the next', () => {
+    const previous = http.expectOne(() => true);
+    component.changeDays(30); expect(previous.cancelled).toBe(true);
+    http.expectOne(r => r.params.get('days') === '30').flush(mockData());
+    component.changeDays('invalid'); http.expectNone(() => true);
+    expect(component.orderTime('invalid')).toBe('?');
+  });
+
+
+  it('warns that legacy aggregates are not verified for revenue reconciliation', async () => {
+    http.expectOne(() => true).flush(mockData()); await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeTruthy();
+  });
+
 });
