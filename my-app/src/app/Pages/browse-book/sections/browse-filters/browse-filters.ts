@@ -1,5 +1,6 @@
 import { Component, computed, input, linkedSignal, output, signal } from '@angular/core';
 
+import { BookType } from '../../../../models/book';
 import { BrowseQuery, PRICE_MAX, normalizeText } from '../../browse-query';
 
 /** Tác giả có sách trong phạm vi đang xem, kèm số đầu sách */
@@ -9,7 +10,22 @@ export interface AuthorFacet {
   count: number;
 }
 
+/** Một lựa chọn trong nhóm checkbox, kèm số đầu sách */
+export interface TypeFacet {
+  id: BookType;
+  label: string;
+  count: number;
+}
+
+export interface ConditionFacet {
+  id: string;
+  label: string;
+  count: number;
+}
+
 export interface FilterChange {
+  types: BookType[];
+  conditions: string[];
   authors: string[];
   minPrice: number | null;
   maxPrice: number | null;
@@ -32,6 +48,8 @@ const SEARCH_LIMIT = 8;
 })
 export class BrowseFilters {
   readonly query = input.required<BrowseQuery>();
+  readonly types = input.required<TypeFacet[]>();
+  readonly conditions = input.required<ConditionFacet[]>();
   readonly authors = input.required<AuthorFacet[]>();
   /** Drawer đang mở (chỉ có tác dụng trên tablet/mobile) */
   readonly open = input(false);
@@ -40,11 +58,19 @@ export class BrowseFilters {
   readonly clearAll = output<void>();
   readonly close = output<void>();
 
-  // Lựa chọn tạm, chưa áp dụng — tự đặt lại mỗi khi URL đổi
+  // Lựa chọn tạm, chưa áp dụng — tự đặt lại mỗi khi URL đổi, nên vào từ menu "Sách mới" là ô đó đã tích sẵn
+  protected readonly selectedTypes = linkedSignal(() => this.query().types);
+  protected readonly selectedConditions = linkedSignal(() => this.query().conditions);
   protected readonly selectedAuthors = linkedSignal(() => this.query().authors);
   protected readonly minPrice = linkedSignal(() => this.query().minPrice ?? 0);
   protected readonly maxPrice = linkedSignal(() => this.query().maxPrice ?? PRICE_MAX);
   protected readonly authorSearch = signal('');
+
+  /** Tình trạng chỉ có ở sách cũ: ẩn khi đang chọn các loại sách khác */
+  protected readonly showConditions = computed(() => {
+    const types = this.selectedTypes();
+    return this.conditions().length > 0 && (!types.length || types.includes('used'));
+  });
 
   /** Chưa gõ tìm: 5 tác giả nhiều sách nhất. Đang gõ: các tác giả khớp tên. Tác giả đã chọn luôn hiện. */
   protected readonly visibleAuthors = computed(() => {
@@ -57,6 +83,14 @@ export class BrowseFilters {
     return [...selected, ...shown];
   });
 
+  protected toggleType(id: BookType): void {
+    this.selectedTypes.update((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  }
+
+  protected toggleCondition(id: string): void {
+    this.selectedConditions.update((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  }
+
   protected toggleAuthor(id: string): void {
     this.selectedAuthors.update((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   }
@@ -67,6 +101,8 @@ export class BrowseFilters {
 
   protected submit(): void {
     this.apply.emit({
+      types: this.selectedTypes(),
+      conditions: this.showConditions() ? this.selectedConditions() : [],
       authors: this.selectedAuthors(),
       minPrice: this.minPrice() > 0 ? this.minPrice() : null,
       maxPrice: this.maxPrice() < PRICE_MAX ? this.maxPrice() : null,

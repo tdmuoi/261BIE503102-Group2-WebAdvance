@@ -68,16 +68,24 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// "a,b" trên URL → ['a', 'b']; không truyền thì trả mảng rỗng
+function listParam(value) {
+  return String(value ?? '').split(',').map((item) => item.trim()).filter(Boolean);
+}
+
 // API lấy danh sách sách từ MongoDB
 // Tham số tuỳ chọn:
-//   ?limit=50          số sách trả về (mặc định 20, tối đa 200)
+//   ?limit=50          số sách trả về (mặc định 20, tối đa 500)
 //   ?sort=newest       mới tạo trước | sort=updated: mới cập nhật trước
 //   ?discounted=true   chỉ lấy sách đang giảm giá
+//   ?format=new,used   lọc theo loại sách (field bookType: new, used, ebook)
+//   ?condition=a,b     lọc theo tình trạng sách cũ (field condition)
 app.get('/api/books', async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 200);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 500);
     const sortOptions = {
-      newest: { createdAt: -1 },
+      // Sách import cùng lúc trùng createdAt: thêm _id để thứ tự luôn ổn định
+      newest: { createdAt: -1, _id: -1 },
       updated: { updatedAt: -1 }
     };
     const sort = sortOptions[req.query.sort] || {};
@@ -86,6 +94,10 @@ app.get('/api/books', async (req, res) => {
     if (req.query.discounted === 'true') {
       filter.discountPercent = { $gt: 0 };
     }
+    const formats = listParam(req.query.format);
+    if (formats.length) filter.bookType = { $in: formats };
+    const conditions = listParam(req.query.condition);
+    if (conditions.length) filter.condition = { $in: conditions };
 
     const books = await database
       .collection('books')
@@ -171,6 +183,10 @@ app.use('/api', newsRoutes(() => database));
 const eventsRoutes = require('./routes/events');
 app.use('/api', eventsRoutes(() => database));
 
+// API đăng ký nhận bản tin: POST /api/newsletter (xem routes/newsletter.js)
+const newsletterRoutes = require('./routes/newsletter');
+app.use('/api', newsletterRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {
@@ -185,6 +201,7 @@ async function startServer() {
     await client.connect();
     database = client.db(dbName);
     await database.command({ ping: 1 });
+    await database.collection('newsletters').createIndex({ email: 1 }, { unique: true });
 
     console.log('MongoDB connected successfully');
     console.log('Database:', dbName);

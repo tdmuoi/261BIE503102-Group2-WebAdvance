@@ -3,23 +3,24 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
 
-import { Catalog } from '../../models/book';
+import { BookType, Catalog } from '../../models/book';
 import { VndPipe } from '../../pipes/vnd-pipe';
 import { BookService } from '../../services/book-service';
 import {
   BrowseQuery,
+  CONDITION_LABELS,
   PAGE_SIZE,
   SORT_OPTIONS,
   TYPE_LABELS,
   BrowseSort,
-  booksOfType,
+  booksOfTypes,
   filterBooks,
   parseQuery,
   sortBooks,
   toParams,
 } from './browse-query';
 import { EmptyTip } from './sections/browse-empty/browse-empty';
-import { AuthorFacet, FilterChange } from './sections/browse-filters/browse-filters';
+import { AuthorFacet, ConditionFacet, FilterChange, TypeFacet } from './sections/browse-filters/browse-filters';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -39,7 +40,7 @@ const HIDDEN_CATEGORY_SLUGS = ['uncategorized', 'used-book', 'ebook'];
 const SUGGESTION_COUNT = 4;
 const vnd = new VndPipe();
 
-/** Trang Browse Books — /books?type=new|used|ebook (Figma 892:8446) */
+/** Trang Browse Books — /books?type=new,used,ebook (Figma 892:8446) */
 @Component({
   selector: 'app-browse-book',
   standalone: false,
@@ -64,8 +65,14 @@ export class BrowseBook {
   /** Drawer bộ lọc trên tablet/mobile */
   protected readonly filtersOpen = signal(false);
 
-  /** Sách thuộc loại đang xem, chưa áp các bộ lọc khác */
-  protected readonly scope = computed(() => booksOfType(this.catalog()?.books ?? [], this.query().type));
+  /** Sách thuộc các loại đang chọn, chưa áp các bộ lọc khác */
+  protected readonly scope = computed(() => booksOfTypes(this.catalog()?.books ?? [], this.query().types));
+
+  /** Chọn đúng một loại thì trang mang hình hài loại đó: breadcrumb và banner */
+  protected readonly singleType = computed<BookType | null>(() => {
+    const types = this.query().types;
+    return types.length === 1 ? types[0] : null;
+  });
 
   protected readonly results = computed(() => filterBooks(this.catalog()?.books ?? [], this.query()));
   protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.results().length / PAGE_SIZE)));
@@ -106,6 +113,29 @@ export class BrowseBook {
     return [...facets.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'vi'));
   });
 
+  /** 3 loại sách kèm số đầu sách */
+  protected readonly typeFacets = computed<TypeFacet[]>(() => {
+    const books = this.catalog()?.books ?? [];
+    return (Object.keys(TYPE_LABELS) as BookType[]).map((id) => ({
+      id,
+      label: TYPE_LABELS[id],
+      count: books.filter((book) => book.type === id).length,
+    }));
+  });
+
+  /** Các tình trạng thật sự có trong DB, kèm số đầu sách */
+  protected readonly conditionFacets = computed<ConditionFacet[]>(() => {
+    const facets = new Map<string, ConditionFacet>();
+    for (const book of this.catalog()?.books ?? []) {
+      if (!book.condition) continue;
+      const facet = facets.get(book.condition)
+        ?? { id: book.condition, label: CONDITION_LABELS[book.condition] ?? book.conditionLabel ?? book.condition, count: 0 };
+      facet.count++;
+      facets.set(book.condition, facet);
+    }
+    return [...facets.values()].sort((a, b) => b.count - a.count);
+  });
+
   protected readonly activeFilters = computed<ActiveFilter[]>(() => {
     const query = this.query();
     const filters: ActiveFilter[] = [];
@@ -127,6 +157,14 @@ export class BrowseBook {
     if (query.sale) {
       filters.push({ id: 'sale', label: 'Đang giảm giá', tip: 'Bỏ chọn “Đang giảm giá”', patch: { sale: false } });
     }
+    for (const id of query.conditions) {
+      const label = CONDITION_LABELS[id] ?? id;
+      filters.push({ id: `condition:${id}`, label, tip: `Bỏ chọn “${label}”`, patch: { conditions: query.conditions.filter((c) => c !== id) } });
+    }
+    for (const id of query.types) {
+      const label = TYPE_LABELS[id];
+      filters.push({ id: `type:${id}`, label, tip: `Bỏ chọn “${label}”`, patch: { types: query.types.filter((t) => t !== id) } });
+    }
     return filters;
   });
 
@@ -138,8 +176,8 @@ export class BrowseBook {
   protected readonly summary = computed(() => {
     const total = this.results().length;
     if (!total) return 'sách phù hợp';
-    const type = this.query().type;
-    const parts = [type ? TYPE_LABELS[type].toLowerCase() : 'đầu sách'];
+    const types = this.query().types;
+    const parts = [types.length ? types.map((type) => TYPE_LABELS[type].toLowerCase()).join(', ') : 'đầu sách'];
     if (this.query().category) parts.push(this.categoryName(this.query().category!));
     const from = (this.page() - 1) * PAGE_SIZE + 1;
     parts.push(`hiển thị ${from}–${from + this.pageBooks().length - 1}`);
@@ -193,14 +231,16 @@ export class BrowseBook {
     if (filter) this.update(filter.patch);
   }
 
-  /** Bỏ mọi bộ lọc, giữ loại sách và cách sắp xếp */
+  /** Bỏ mọi bộ lọc, giữ cách sắp xếp */
   protected clearFilters(): void {
-    this.update({ category: null, authors: [], minPrice: null, maxPrice: null, q: '', sale: false });
+    this.update({ types: [], conditions: [], category: null, authors: [], minPrice: null, maxPrice: null, q: '', sale: false });
   }
 
   /** Ghi bộ lọc mới lên URL (đổi bộ lọc thì về trang 1) rồi cuộn về đầu kết quả */
   private update(patch: Partial<BrowseQuery>): void {
     const next: BrowseQuery = { ...this.query(), page: 1, ...patch };
+    // Tình trạng chỉ áp dụng cho sách cũ: bỏ chọn sách cũ thì bỏ luôn tình trạng
+    if (next.types.length && !next.types.includes('used')) next.conditions = [];
     this.filtersOpen.set(false);
     this.router.navigate([], { relativeTo: this.route, queryParams: toParams(next) }).then((navigated) => {
       // Router tự cuộn lên đầu trang sau mỗi lần điều hướng (scrollPositionRestoration: 'top'),

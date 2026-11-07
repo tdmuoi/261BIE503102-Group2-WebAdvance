@@ -32,7 +32,10 @@ export interface ConditionGroup {
   options: readonly ConditionOption[];
 }
 
-/** 3 nhóm chọn 1 trong "Tình trạng chi tiết" (Figma 846:3562) */
+/** Điểm của lựa chọn "còn nguyên": không đi cùng các lựa chọn báo hư hỏng trong nhóm */
+const PERFECT_SCORE = 100;
+
+/** 3 nhóm chọn nhiều trong "Tình trạng chi tiết" (Figma 846:3562) */
 export const CONDITION_GROUPS: readonly ConditionGroup[] = [
   {
     key: 'cover',
@@ -67,6 +70,13 @@ export const CONDITION_GROUPS: readonly ConditionGroup[] = [
   },
 ];
 
+/** Bật / tắt một lựa chọn trong nhóm; lựa chọn "còn nguyên" loại trừ các lựa chọn báo hư hỏng và ngược lại */
+export function toggleConditionOption(group: ConditionGroup, current: readonly string[], id: string): string[] {
+  if (current.includes(id)) return current.filter((value) => value !== id);
+  const perfect = group.options.filter((option) => option.score === PERFECT_SCORE).map((option) => option.id);
+  return perfect.includes(id) ? [id] : [...current.filter((value) => !perfect.includes(value)), id];
+}
+
 /** Nhóm "Kèm theo" — chọn nhiều, chỉ ghi nhận cho bước thẩm định, không ảnh hưởng hạng */
 export const EXTRA_NONE = 'none';
 export const EXTRA_OPTIONS: readonly { id: string; label: string }[] = [
@@ -89,7 +99,7 @@ export type GradeResult =
  *
  * Quy tắc:
  * 1. Mỗi lựa chọn ở Bìa / Gáy / Ruột có một "điểm tình trạng" (%) — xem CONDITION_GROUPS.
- * 2. Điểm của cuốn sách = điểm THẤP NHẤT trong 3 nhóm: phần hỏng nhất quyết định giá,
+ * 2. Điểm của cuốn sách = điểm THẤP NHẤT trong mọi lựa chọn: phần hỏng nhất quyết định giá,
  *    giống cách thẩm định thực tế (bìa đẹp không bù được gáy nứt).
  * 3. Đổi điểm ra hạng theo bảng định giá: từ 90% → Như mới, 70–89% → Tốt, 50–69% → Khá.
  * 4. Chọn "Thiếu hoặc rách trang" (không nhận) hoặc điểm dưới 50% → không đủ điều kiện thu mua.
@@ -100,10 +110,12 @@ export type GradeResult =
 export function gradeOf(condition: BookCondition): GradeResult {
   const scores: number[] = [];
   for (const group of CONDITION_GROUPS) {
-    const selected = group.options.find((option) => option.id === condition[group.key]);
-    if (!selected) return { status: 'incomplete' };
-    if (selected.score === null) return { status: 'rejected' };
-    scores.push(selected.score);
+    const selected = group.options.filter((option) => condition[group.key].includes(option.id));
+    if (!selected.length) return { status: 'incomplete' };
+    for (const { score } of selected) {
+      if (score === null) return { status: 'rejected' };
+      scores.push(score);
+    }
   }
 
   const score = Math.min(...scores);

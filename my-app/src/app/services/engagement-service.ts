@@ -2,14 +2,16 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 
+import { environment } from '../../environments/environment';
+
 /**
- * my-server chưa có API ghi cho theo dõi tác giả, giữ chỗ sự kiện và đăng ký nhận tin.
+ * my-server chưa có API ghi cho theo dõi tác giả và giữ chỗ sự kiện.
  * Backend thêm endpoint thì điền đường dẫn vào đây, không cần sửa chỗ khác.
  */
 const ENDPOINTS: { followAuthor: string | null; reserveEvent: string | null; newsletter: string | null } = {
   followAuthor: null, // ví dụ `${environment.apiUrl}/author-follows` (import environment từ ../../environments/environment)
   reserveEvent: null, // ví dụ `${environment.apiUrl}/event-registrations`
-  newsletter: null, // ví dụ `${environment.apiUrl}/newsletter`
+  newsletter: `${environment.apiUrl}/newsletter`,
 };
 
 /** Lỗi khi API chưa sẵn sàng — trang hiện thông báo riêng cho trường hợp này */
@@ -26,6 +28,9 @@ export interface EventReservation {
   phone: string;
   seats: number;
 }
+
+/** POST /api/newsletter trả 409: email đã đăng ký */
+export const NEWSLETTER_DUPLICATE_STATUS = 409;
 
 /** Nhận bản tin: lịch sự kiện hoặc thư Lightbook News */
 export type NewsletterTopic = 'events' | 'news';

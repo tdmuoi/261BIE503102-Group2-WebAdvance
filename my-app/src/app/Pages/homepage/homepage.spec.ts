@@ -11,6 +11,7 @@ describe('Homepage', () => {
   let http: HttpTestingController;
 
   const api = environment.apiUrl;
+  const newBooksUrl = `${api}/books?limit=200&sort=newest&format=new`;
   const book = {
     _id: 'b1', title: 'Kitchen', image: 'x.jpg', authorId: 'a1', categoryId: 'c1', price: 80000,
     originalPrice: 100000, discountPercent: 20, stock: 5, status: 'active', isbn: null,
@@ -42,6 +43,7 @@ describe('Homepage', () => {
     expect(text()).toContain('Đang tải sách');
 
     http.expectOne(`${api}/books?limit=200`).flush([book]);
+    http.expectOne(newBooksUrl).flush([book]);
     http.expectOne(`${api}/authors`).flush([{ _id: 'a1', name: 'Banana Yoshimoto' }]);
     http.expectOne(`${api}/categories`).flush([{ _id: 'c1', name: 'Văn học', slug: 'van-hoc' }]);
     await fixture.whenStable();
@@ -54,6 +56,7 @@ describe('Homepage', () => {
 
   it('báo lỗi và cho thử lại khi API sách không phản hồi', async () => {
     http.expectOne(`${api}/books?limit=200`).flush(null, { status: 0, statusText: 'Unknown Error' });
+    flushOpen(newBooksUrl);
     flushOpen(`${api}/authors`);
     flushOpen(`${api}/categories`);
     await fixture.whenStable();
@@ -64,12 +67,14 @@ describe('Homepage', () => {
     await fixture.whenStable();
     expect(text()).toContain('Đang tải sách');
     flushOpen(`${api}/books?limit=200`);
+    flushOpen(newBooksUrl);
     flushOpen(`${api}/authors`);
     flushOpen(`${api}/categories`);
   });
 
   it('vẫn hiện sách khi API tác giả lỗi', async () => {
     http.expectOne(`${api}/books?limit=200`).flush([book]);
+    http.expectOne(newBooksUrl).flush([book]);
     http.expectOne(`${api}/authors`).flush(null, { status: 500, statusText: 'Server Error' });
     http.expectOne(`${api}/categories`).flush([]);
     await fixture.whenStable();
@@ -77,5 +82,17 @@ describe('Homepage', () => {
     const component = fixture.componentInstance as unknown as { books: () => { authorName: string }[] };
     expect(component.books()[0].authorName).toBe('Đang cập nhật tác giả');
     expect(text()).not.toContain('Không kết nối được máy chủ');
+  });
+
+  it('Flash Sale và Sách mới phát hành chỉ nhận sách mới', async () => {
+    const used = { ...book, _id: 'b2', bookType: 'used' };
+    http.expectOne(`${api}/books?limit=200`).flush([book, used]);
+    http.expectOne(newBooksUrl).flush([book]);
+    flushOpen(`${api}/authors`);
+    flushOpen(`${api}/categories`);
+    await fixture.whenStable();
+
+    const component = fixture.componentInstance as unknown as { newBooks: () => { _id: string }[] };
+    expect(component.newBooks().map((item) => item._id)).toEqual(['b1']);
   });
 });

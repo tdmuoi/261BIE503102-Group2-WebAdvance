@@ -5,6 +5,34 @@
     <button class="filters-close" type="button" aria-label="Đóng bộ lọc" (click)="close.emit()">✕</button>
   </div>
 
+  <!-- Loại sách -->
+  <div class="filters-group" role="group" aria-labelledby="filter-type">
+    <h3 class="group-title" id="filter-type">Loại sách</h3>
+    @for (type of types(); track type.id) {
+      <label class="check">
+        <input type="checkbox" [checked]="selectedTypes().includes(type.id)" (change)="toggleType(type.id)" />
+        <span class="check-box" aria-hidden="true"></span>
+        <span class="check-label">{{ type.label }}</span>
+        <span class="check-count">{{ type.count }}</span>
+      </label>
+    }
+  </div>
+
+  <!-- Tình trạng sách cũ -->
+  @if (showConditions()) {
+    <div class="filters-group" role="group" aria-labelledby="filter-condition">
+      <h3 class="group-title" id="filter-condition">Tình trạng</h3>
+      @for (condition of conditions(); track condition.id) {
+        <label class="check">
+          <input type="checkbox" [checked]="selectedConditions().includes(condition.id)" (change)="toggleCondition(condition.id)" />
+          <span class="check-box" aria-hidden="true"></span>
+          <span class="check-label">{{ condition.label }}</span>
+          <span class="check-count">{{ condition.count }}</span>
+        </label>
+      }
+    </div>
+  }
+
   <!-- Tác giả -->
   <div class="filters-group" role="group" aria-labelledby="filter-author">
     <h3 class="group-title" id="filter-author">Tác giả</h3>

@@ -14,12 +14,12 @@ const book = (overrides: Partial<CatalogBook>): CatalogBook => ({
 describe('browse-query', () => {
   it('đọc được link từ thanh tìm kiếm trang chủ (type=paper, price=a-b)', () => {
     const query = parseQuery(convertToParamMap({ type: 'paper', price: '100000-200000', q: 'Kitchen', page: '2' }));
-    expect(query).toEqual(expect.objectContaining({ type: 'new', minPrice: 100000, maxPrice: 200000, q: 'Kitchen', page: 2 }));
+    expect(query).toEqual(expect.objectContaining({ types: ['new'], minPrice: 100000, maxPrice: 200000, q: 'Kitchen', page: 2 }));
   });
 
   it('giá trị lạ thì về mặc định', () => {
     const query = parseQuery(convertToParamMap({ type: 'abc', sort: 'xyz', page: '-3', price: 'foo' }));
-    expect(query).toEqual(expect.objectContaining({ type: null, sort: 'newest', page: 1, minPrice: null, maxPrice: null }));
+    expect(query).toEqual(expect.objectContaining({ types: [], sort: 'newest', page: 1, minPrice: null, maxPrice: null }));
   });
 
   it('ghi URL gọn, bỏ giá trị mặc định, đọc lại ra đúng bộ lọc', () => {
@@ -27,6 +27,27 @@ describe('browse-query', () => {
     const params = toParams(query);
     expect(params).toEqual({ type: 'used', author: 'a1,a2', price: '-200000', sort: 'price-asc' });
     expect(parseQuery(convertToParamMap(params))).toEqual(query);
+  });
+
+  it('chọn nhiều loại và nhiều tình trạng, ghi rồi đọc lại đúng bộ lọc', () => {
+    const query = parseQuery(convertToParamMap({ type: 'new,used,abc,used', condition: 'good,fair' }));
+    expect(query).toEqual(expect.objectContaining({ types: ['new', 'used'], conditions: ['good', 'fair'] }));
+    expect(toParams(query)).toEqual({ type: 'new,used', condition: 'good,fair' });
+  });
+
+  it('lọc nhiều loại sách và nhiều tình trạng cùng lúc', () => {
+    const books = [
+      book({ _id: '1' }),
+      book({ _id: '2', type: 'ebook' }),
+      book({ _id: '3', type: 'used', condition: 'good' }),
+      book({ _id: '4', type: 'used', condition: 'fair' }),
+      book({ _id: '5', type: 'used', condition: 'like-new' }),
+    ];
+    const ids = (params: Record<string, string>) =>
+      filterBooks(books, parseQuery(convertToParamMap(params))).map((b) => b._id).sort();
+
+    expect(ids({ type: 'new,ebook' })).toEqual(['1', '2']);
+    expect(ids({ type: 'used', condition: 'good,fair' })).toEqual(['3', '4']);
   });
 
   it('lọc theo loại, tác giả, giá, tìm không dấu và sắp xếp', () => {

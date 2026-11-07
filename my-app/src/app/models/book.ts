@@ -20,13 +20,14 @@ export interface Book {
   pages?: number | null;
   description?: string | null;
 
-  /** Loại sách: books trong DB đã có (new / ebook); sách cũ đang nằm ở collection old_books, chưa có API */
+  /** Loại sách: GET /api/books?format=new,used lọc theo field này */
   bookType?: BookType;
 
   // Chưa có trong DB — giao diện tự ẩn phần tương ứng khi thiếu, backend thêm vào là hiện
   slug?: string;
-  /** Hạng tình trạng sách cũ: 'like-new' | 'good' | 'fair' (old_books hiện chỉ ghi "used") */
+  /** Hạng tình trạng sách cũ: 'like-new' | 'good' | 'fair' (DB hiện chỉ ghi "used") */
   condition?: string | null;
+  conditionLabel?: string | null;
   translator?: string | null;
   images?: BookImage[];
   size?: string | null;

@@ -4,7 +4,7 @@
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a routerLink="/">Trang chủ</a>
     <span class="breadcrumb-sep" aria-hidden="true">/</span>
-    @if (current.type; as type) {
+    @if (singleType(); as type) {
       <a routerLink="/books">Browse Book</a>
       <span class="breadcrumb-sep" aria-hidden="true">/</span>
       <span class="breadcrumb-current" aria-current="page">{{ typeLabels[type] }}</span>
@@ -14,7 +14,7 @@
   </nav>
 
   <!-- Banner theo loại sách -->
-  @if (current.type; as type) {
+  @if (singleType(); as type) {
     <app-browse-banner [type]="type" [books]="scope()"></app-browse-banner>
   }
 
@@ -108,7 +108,8 @@
       }
     </section>
 
-    <app-browse-filters id="browse-filters" [query]="current" [authors]="authorFacets()" [open]="filtersOpen()"
+    <app-browse-filters id="browse-filters" [query]="current" [types]="typeFacets()" [conditions]="conditionFacets()"
+                        [authors]="authorFacets()" [open]="filtersOpen()"
                         (apply)="applyFilters($event)" (clearAll)="clearFilters()" (close)="filtersOpen.set(false)">
     </app-browse-filters>
   </div>

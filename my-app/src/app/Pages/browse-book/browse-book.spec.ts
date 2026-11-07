@@ -37,6 +37,8 @@ describe('BrowseBook', () => {
   }
 
   beforeEach(() => {
+    // jsdom chưa có scrollIntoView
+    Element.prototype.scrollIntoView = () => undefined;
     catalog = {
       books: [
         ...Array.from({ length: 30 }, (_, i) => book(i + 1)),
@@ -72,6 +74,27 @@ describe('BrowseBook', () => {
     const el = await open('/books?type=ebook&category=thieu-nhi');
     expect(el.querySelector('app-browse-empty')).not.toBeNull();
     expect(el.querySelector('.active-filters')?.textContent).toContain('Thiếu nhi');
+  });
+
+  it('vào từ menu "Sách mới" thì loại sách đã được chọn sẵn và hiện trong "Đang lọc"', async () => {
+    const el = await open('/books?type=new');
+    expect(el.querySelector('.active-filters')?.textContent).toContain('Sách mới');
+    expect(el.querySelector('app-browse-filters')).not.toBeNull();
+  });
+
+  it('chọn nhiều loại thì gộp kết quả và không hiện banner của riêng loại nào', async () => {
+    const el = await open('/books?type=new,used');
+    expect(el.querySelector('.results-count')?.textContent).toContain('32 sách mới, sách cũ');
+    expect(el.querySelector('app-browse-banner')).toBeNull();
+  });
+
+  it('bỏ chọn sách cũ thì bỏ luôn lọc tình trạng', async () => {
+    const el = await open('/books?type=new,used&condition=good');
+    const chip = [...el.querySelectorAll<HTMLButtonElement>('.active-chip')].find((c) => c.textContent?.includes('Sách cũ'))!;
+    chip.click();
+    await harness.fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/books?type=new');
   });
 
   it('báo lỗi khi không tải được sách', async () => {

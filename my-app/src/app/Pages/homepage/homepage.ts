@@ -23,6 +23,8 @@ export class Homepage {
 
   protected readonly state = signal<LoadState>('loading');
   protected readonly books = signal<BookView[]>([]);
+  /** Chỉ sách mới, mới nhất trước: dùng cho Flash Sale, Sách mới phát hành và Gợi ý cho bạn */
+  protected readonly newBooks = signal<BookView[]>([]);
   protected readonly authors = signal<Author[]>([]);
   protected readonly categories = signal<Category[]>([]);
 
@@ -48,16 +50,18 @@ export class Homepage {
 
     forkJoin({
       books: this.bookService.getBooks({ limit: 200 }),
+      newBooks: this.bookService.getBooks({ limit: 200, sort: 'newest', format: ['new'] }),
       // Thiếu tác giả hoặc thể loại thì trang vẫn hiện sách
       authors: this.authorService.getAuthors().pipe(catchError(() => of<Author[]>([]))),
       categories: this.categoryService.getCategories().pipe(catchError(() => of<Category[]>([]))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ books, authors, categories }) => {
+        next: ({ books, newBooks, authors, categories }) => {
           this.authors.set(authors);
           this.categories.set(categories);
           this.books.set(this.toViews(books, authors, categories));
+          this.newBooks.set(this.toViews(newBooks, authors, categories));
           this.state.set('ready');
         },
         error: (error) => {

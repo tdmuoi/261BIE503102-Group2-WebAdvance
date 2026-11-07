@@ -5,7 +5,7 @@
     <p>Nhận lịch Author Talk mỗi đầu tháng qua email — kèm ưu tiên giữ chỗ cho thành viên.</p>
   </div>
 
-  <form class="en-form" (ngSubmit)="submit()" novalidate>
+  <form class="en-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <label class="en-field">
       <span>Email</span>
       <span class="en-input" [class.is-error]="error">
@@ -23,6 +23,8 @@
         <span class="text-error">{{ error }}</span>
       } @else if (state() === 'done') {
         <span class="text-success">Cảm ơn bạn! Lịch Author Talk sẽ được gửi vào email mỗi đầu tháng.</span>
+      } @else if (state() === 'duplicate') {
+        Email này đã đăng ký nhận lịch Author Talk rồi nhé.
       } @else if (state() === 'unavailable') {
         Chức năng đăng ký nhận lịch đang được hoàn thiện, bạn vui lòng quay lại sau nhé.
       } @else if (state() === 'error') {

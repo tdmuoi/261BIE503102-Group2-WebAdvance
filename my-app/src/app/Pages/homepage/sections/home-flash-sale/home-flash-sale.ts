@@ -25,7 +25,7 @@ interface Countdown {
   templateUrl: './home-flash-sale.html',
 })
 export class HomeFlashSale {
-  /** Toàn bộ sách đã tải; section tự lọc sách đang giảm giá */
+  /** Sách mới đã tải; section tự lọc sách đang giảm giá */
   readonly books = input.required<BookView[]>();
 
   /** 5 sách giảm sâu nhất; cùng mức giảm thì ưu tiên sách tiết kiệm được nhiều tiền hơn */

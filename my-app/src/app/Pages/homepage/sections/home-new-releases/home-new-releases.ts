@@ -15,7 +15,7 @@ const MAX_PAGES = 3;
 export class HomeNewReleases {
   readonly books = input.required<BookView[]>();
 
-  /** Sách mới nhất theo ngày tạo, đủ cho tối đa 3 trang */
+  /** N cuốn mới nhất theo ngày tạo, không lọc cứng 7 ngày vì sách thường được import cùng một đợt */
   private readonly newest = computed(() =>
     [...this.books()]
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))

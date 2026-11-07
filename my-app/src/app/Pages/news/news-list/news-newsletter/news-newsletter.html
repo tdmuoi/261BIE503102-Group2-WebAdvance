@@ -6,7 +6,7 @@
     <p>Sách mới, review indie và lịch Author Talk gửi thẳng vào hộp thư mỗi thứ Năm. Không spam, huỷ bất cứ lúc nào.</p>
   </div>
 
-  <form class="nn-form" (ngSubmit)="submit()" novalidate>
+  <form class="nn-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <label class="nn-field">
       <span>Email của bạn</span>
       <span class="nn-input" [class.is-error]="error">
@@ -18,8 +18,6 @@
     <p id="nn-msg" class="nn-msg" role="status">
       @if (error) {
         <span class="text-error">{{ error }}</span>
-      } @else if (state() === 'done') {
-        <span class="text-success">Cảm ơn bạn! Thư từ Lightbook sẽ đến hộp thư của bạn vào thứ Năm.</span>
       } @else if (state() === 'unavailable') {
         Chức năng đăng ký bản tin đang được hoàn thiện, bạn vui lòng quay lại sau nhé.
       } @else if (state() === 'error') {
@@ -32,3 +30,22 @@
     </button>
   </form>
 </div>
+
+@if (popupOpen()) {
+  <div class="np-overlay" (click)="closePopup()">
+    <section class="np-modal" role="dialog" aria-modal="true" aria-labelledby="np-title" (click)="$event.stopPropagation()">
+      <button type="button" class="np-close" aria-label="Đóng" (click)="closePopup()">
+        <img src="images/account/x-sm.svg" alt="" width="14" height="14" />
+      </button>
+      <span class="np-icon" aria-hidden="true">{{ state() === 'done' ? '✓' : '✦' }}</span>
+      @if (state() === 'done') {
+        <h2 class="np-title" id="np-title">Bạn đã đăng ký thành công!</h2>
+        <p class="np-text">Thư từ Lightbook sẽ đến hộp thư của bạn vào mỗi thứ Năm.</p>
+      } @else {
+        <h2 class="np-title" id="np-title">Bạn đã đăng ký rồi nhé!</h2>
+        <p class="np-text">Email này đã có trong danh sách nhận Thư từ Lightbook.</p>
+      }
+      <button type="button" class="btn btn-primary np-btn" (click)="closePopup()">Đã hiểu</button>
+    </section>
+  </div>
+}

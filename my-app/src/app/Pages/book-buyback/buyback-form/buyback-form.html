@@ -130,7 +130,7 @@
                 <div class="bb-condition-head">
                   <div>
                     <p class="bb-condition-title">Tình trạng chi tiết</p>
-                    <p class="bb-condition-sub">Chọn mô tả đúng nhất cho từng phần của sách</p>
+                    <p class="bb-condition-sub">Chọn các mô tả đúng với từng phần của sách, chọn được nhiều mục</p>
                   </div>
                   @if (grade.status === 'ok') {
                     <span class="bb-estimate" aria-live="polite">Ước tính: {{ grade.tier.label }} · ~{{ grade.score }}%</span>
@@ -142,14 +142,14 @@
                 @for (group of conditionGroups; track group.key) {
                   @let control = c[group.key];
                   @let groupError = error(control, group.key);
-                  <div class="bb-criterion" role="radiogroup" [attr.aria-label]="group.label"
+                  <div class="bb-criterion" role="group" [attr.aria-label]="group.label"
                        [attr.aria-invalid]="groupError ? true : null" [attr.tabindex]="groupError ? -1 : null">
                     <span class="bb-criterion-label" aria-hidden="true">{{ group.label }}</span>
                     <div class="bb-chips">
                       @for (option of group.options; track option.id) {
-                        @let on = control.value === option.id;
-                        <button class="bb-chip" type="button" role="radio" [class.is-on]="on" [attr.aria-checked]="on"
-                                (click)="selectCondition(item, group.key, option.id)">@if (on) { ✓ }{{ option.label }}</button>
+                        @let on = control.value.includes(option.id);
+                        <button class="bb-chip" type="button" [class.is-on]="on" [attr.aria-pressed]="on"
+                                (click)="toggleCondition(item, group, option.id)">@if (on) { ✓ }{{ option.label }}</button>
                       }
                       @if (groupError) { <p class="bb-error">{{ groupError }}</p> }
                     </div>

@@ -26,13 +26,13 @@
 
   @case ('ready') {
     <!-- 3. Flash Sale -->
-    <app-home-flash-sale [books]="books()"></app-home-flash-sale>
+    <app-home-flash-sale [books]="newBooks()"></app-home-flash-sale>
 
     <!-- 4. Dải vàng -->
     <app-marquee [items]="promoItems"></app-marquee>
 
     <!-- 5. Sách mới phát hành -->
-    <app-home-new-releases [books]="books()"></app-home-new-releases>
+    <app-home-new-releases [books]="newBooks()"></app-home-new-releases>
 
     <!-- 6. Góc tác giả -->
     <app-home-authors [books]="books()" [authors]="authors()"></app-home-authors>
@@ -50,6 +50,6 @@
     <app-home-bestsellers [books]="books()"></app-home-bestsellers>
 
     <!-- 9. Gợi ý cho bạn -->
-    <app-home-recommendations [books]="books()"></app-home-recommendations>
+    <app-home-recommendations [books]="newBooks()"></app-home-recommendations>
   }
 }

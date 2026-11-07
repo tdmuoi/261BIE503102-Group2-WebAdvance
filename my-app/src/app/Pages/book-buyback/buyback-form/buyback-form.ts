@@ -10,6 +10,7 @@ import { BuybackService, BuybackUnavailableError } from '../../../services/buyba
 import { PROVINCES } from '../../../shared/constants/provinces';
 import {
   CONDITION_GROUPS,
+  ConditionGroup,
   DELIVERY_LABELS,
   EXTRA_NONE,
   EXTRA_OPTIONS,
@@ -20,6 +21,7 @@ import {
   WAREHOUSE,
   estimatePrice,
   gradeOf,
+  toggleConditionOption,
 } from '../buyback-rules';
 
 type Step = 1 | 2 | 3;
@@ -82,9 +84,9 @@ function createItem() {
       author: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(120)] }),
       quantity: new FormControl(1, { nonNullable: true, validators: [Validators.min(1), Validators.max(MAX_BOOKS)] }),
       coverPrice: new FormControl<number | null>(null, [Validators.required, Validators.min(1000), Validators.max(10_000_000)]),
-      cover: new FormControl<string | null>(null, Validators.required),
-      spine: new FormControl<string | null>(null, Validators.required),
-      pages: new FormControl<string | null>(null, Validators.required),
+      cover: new FormControl<string[]>([], { nonNullable: true, validators: Validators.required }),
+      spine: new FormControl<string[]>([], { nonNullable: true, validators: Validators.required }),
+      pages: new FormControl<string[]>([], { nonNullable: true, validators: Validators.required }),
       extras: new FormControl<string[]>([], { nonNullable: true, validators: Validators.required }),
       note: new FormControl('', { nonNullable: true, validators: Validators.maxLength(NOTE_MAX) }),
     },
@@ -305,9 +307,9 @@ export class BuybackForm {
     input.value = this.formatPrice(price);
   }
 
-  protected selectCondition(item: ItemGroup, key: 'cover' | 'spine' | 'pages', id: string): void {
-    const control = item.controls[key];
-    control.setValue(id);
+  protected toggleCondition(item: ItemGroup, group: ConditionGroup, id: string): void {
+    const control = item.controls[group.key];
+    control.setValue(toggleConditionOption(group, control.value, id));
     control.markAsTouched();
   }
 

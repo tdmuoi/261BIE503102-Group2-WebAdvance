@@ -7,11 +7,11 @@ export type DeliveryMethod = 'store' | 'post';
 /** Hình thức nhận tiền thanh lý */
 export type PayoutMethod = 'bank' | 'voucher';
 
-/** Tình trạng chi tiết của một cuốn: mã lựa chọn trong buyback-rules.ts */
+/** Tình trạng chi tiết của một cuốn: các mã lựa chọn trong buyback-rules.ts, mỗi phần chọn được nhiều */
 export interface BookCondition {
-  cover: string | null;
-  spine: string | null;
-  pages: string | null;
+  cover: string[];
+  spine: string[];
+  pages: string[];
   /** Chọn nhiều; "none" (Không có) loại trừ các lựa chọn khác */
   extras: string[];
 }

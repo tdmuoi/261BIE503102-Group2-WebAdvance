@@ -14,10 +14,12 @@ export interface BookQuery {
   sort?: 'newest' | 'updated';
   /** Chỉ lấy sách đang giảm giá */
   discounted?: boolean;
+  /** Chỉ lấy các loại sách này */
+  format?: BookType[];
 }
 
-/** Server trả tối đa 200 cuốn mỗi lần */
-const CATALOG_LIMIT = 200;
+/** Server trả tối đa 500 cuốn mỗi lần */
+const CATALOG_LIMIT = 500;
 
 /**
  * DB chưa có field loại sách (bookType). Tạm suy ra từ thể loại đặc biệt có sẵn trong DB:
@@ -42,6 +44,7 @@ export class BookService {
     if (query.limit) params = params.set('limit', query.limit);
     if (query.sort) params = params.set('sort', query.sort);
     if (query.discounted) params = params.set('discounted', 'true');
+    if (query.format?.length) params = params.set('format', query.format.join(','));
     return this.http.get<Book[]>(this.baseUrl, { params });
   }
 
