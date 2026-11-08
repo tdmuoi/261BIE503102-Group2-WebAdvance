@@ -177,6 +177,7 @@ export class BookForm {
     const author = this.findAuthor(this.form.authorName.trim());
     const payload: BookPayload = {
       ...this.form,
+      ...(this.isEdit ? { revision: this.book()?.updatedAt || null } : {}),
       condition: this.form.bookType === 'used' ? this.form.condition?.trim() || null : null,
       authorId: author?._id ?? null,
       authorName: this.form.authorName.trim(),

@@ -28,6 +28,7 @@ function matches(doc, q) {
     if (k === "$and") return v.every((x) => matches(doc, x));
     if (k === "$or") return v.some((x) => matches(doc, x));
     if (k === "$expr") return expression(doc, v);
+    if (Array.isArray(v)) return JSON.stringify(doc[k]) === JSON.stringify(v);
     if (
       v instanceof ObjectId ||
       v instanceof Date ||
@@ -334,6 +335,27 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       assert.equal((await request("/api/admin/auth/session")).status, 200);
     },
   );
+  await t.test('Customer URL casing cannot substitute account permissions', async () => {
+    const role = records.roles.find((r) => r.code === 'CONTENT_MANAGER');
+    const previous = role.permissions;
+    try {
+      role.permissions = [{ module: 'accounts', actions: ['view'] }];
+      const response = await request('/api/admin/auth/login', 'POST', {
+        email: 'other@example.test', password, rememberMe: false,
+      });
+      assert.equal(response.status, 200);
+      cookie = response.headers.get('set-cookie').split(';')[0];
+      csrf = (await response.json()).csrfToken;
+      for (const path of ['/customers', '/CUSTOMERS', '/CuStOmErS/export'])
+        assert.equal((await request('/api/admin/accounts' + path)).status, 403);
+      assert.equal((await request('/api/admin/accounts/admins')).status, 200);
+    } finally {
+      role.permissions = previous;
+      // Login rotates the incoming session; establish a fresh root fixture session.
+      cookie = ''; csrf = '';
+      assert.equal((await login()).status, 200);
+    }
+  });
   await t.test(
     "customer metrics require confirmed payment; history and CSV stay linked",
     async () => {
@@ -672,6 +694,42 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       );
     },
   );
+  await t.test('Existing role permissions use native module/actions, protect SUPER_ADMIN and reject stale edits', async () => {
+    const data = await (await request('/api/admin/accounts/admins')).json();
+    assert.equal(data.capabilities.roles, true);
+    const role = data.roles.roles.find((role) => role.code === 'CONTENT_MANAGER');
+    const root = data.roles.roles.find((role) => role.code === 'SUPER_ADMIN');
+    assert.equal(role.editable, true); assert.equal(root.editable, false);
+    const original = records.roles.find((role) => role.code === 'CONTENT_MANAGER');
+    const keys = Object.keys(original).sort();
+    const permissions = [{ module: 'content', actions: ['view', 'create'] }, { module: 'accounts', actions: ['view'] }];
+    const url = '/api/admin/accounts/roles/' + role._id + '/permissions';
+    const before = writes;
+    assert.equal((await request(url, 'PUT', { permissionIds: ['content'] })).status, 400);
+    assert.equal((await request('/api/admin/accounts/roles/' + root._id + '/permissions', 'PUT', { permissions, revision: root.revision })).status, 409);
+    assert.equal(writes, before);
+    const saved = await request(url, 'PUT', { permissions, revision: role.revision });
+    assert.equal(saved.status, 200);
+    const result = await saved.json();
+    assert.notEqual(result.revision, role.revision);
+    assert.deepEqual(Object.keys(original).sort(), keys);
+    assert.deepEqual(original.permissions, permissions);
+    const other = records.accounts.find((account) => String(account._id) === String(otherAdminId));
+    const otherLogin = await fetch(base + '/api/admin/auth/login', { method: 'POST',
+      headers: { Origin: 'http://localhost:4201', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: other.email, password, rememberMe: false }),
+    });
+    assert.equal(otherLogin.status, 200);
+    const otherCookie = otherLogin.headers.get('set-cookie').split(';')[0];
+    const readAsOther = () => fetch(base + '/api/admin/accounts/admins', { headers: { Cookie: otherCookie } });
+    assert.equal((await readAsOther()).status, 200);
+    const after = writes;
+    assert.equal((await request(url, 'PUT', { permissions: [], revision: role.revision })).status, 409);
+    assert.equal((await request(url, 'PUT', { permissions: [{ module: 'content', actions: ['root'] }], revision: result.revision })).status, 400);
+    assert.equal(writes, after);
+    assert.equal((await request(url, 'PUT', { permissions: [{ module: 'content', actions: ['view'] }], revision: result.revision })).status, 200);
+    assert.equal((await readAsOther()).status, 403, 'Existing sessions must enforce revoked permissions immediately');
+  });
   await t.test(
     "role permission changes, account locks, password revocation and idle expiry",
     async () => {
@@ -715,6 +773,8 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       assert.equal((await login("wrong")).status, 401);
     const limited = await login("wrong");
     assert.equal(limited.status, 429);
-    assert.equal(limited.headers.get("retry-after"), "900");
+    // Retry-After is the remaining window, not always its original duration.
+    const retryAfter = Number(limited.headers.get("retry-after"));
+    assert.ok(Number.isInteger(retryAfter) && retryAfter > 0 && retryAfter <= 900);
   });
 });

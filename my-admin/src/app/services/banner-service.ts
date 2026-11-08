@@ -26,16 +26,16 @@ export class BannerService {
   }
 
   /** Bật / tắt nhanh */
-  setActive(id: string, active: boolean): Observable<Banner> {
-    return this.auth.withSession((csrfToken) => this.http.patch<Banner>(`${this.baseUrl}/${id}`, { active }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
+  setActive(id: string, active: boolean, revision: string | null = null): Observable<Banner> {
+    return this.auth.withSession((csrfToken) => this.http.patch<Banner>(`${this.baseUrl}/${id}`, { active, revision }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
   /** Lưu thứ tự mới của các banner trong cùng 1 vị trí */
-  reorder(ids: string[]): Observable<{ reordered: number }> {
-    return this.auth.withSession((csrfToken) => this.http.patch<{ reordered: number }>(`${this.baseUrl}/reorder`, { ids }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
+  reorder(ids: string[], revisions: Record<string, string | null> = {}): Observable<{ reordered: number }> {
+    return this.auth.withSession((csrfToken) => this.http.patch<{ reordered: number }>(`${this.baseUrl}/reorder`, { ids, revisions }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  deleteBanner(id: string): Observable<{ deleted: boolean }> {
-    return this.auth.withSession((csrfToken) => this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/${id}`, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
+  deleteBanner(id: string, revision: string | null = null): Observable<{ deleted: boolean }> {
+    return this.auth.withSession((csrfToken) => this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/${id}`, { body: { revision }, withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 }

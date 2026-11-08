@@ -2,7 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Observable, Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { adminApiError } from '../../../services/admin-api-error';
 
 import { AdminBook, BookListResponse, BookQuery, Category } from '../../../models/book';
 import { BookService } from '../../../services/book-service';
@@ -76,6 +77,8 @@ export class BookList {
   readonly someChecked = computed(() => this.selected().size > 0 && !this.allChecked());
 
   private readonly search$ = new Subject<string>();
+  private readRequest?: Subscription;
+  ngOnDestroy(): void { this.readRequest?.unsubscribe(); }
 
   constructor() {
     const message = typeof history !== 'undefined' ? history.state?.flash : '';
@@ -99,9 +102,10 @@ export class BookList {
   }
 
   load(): void {
+    this.readRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set('');
-    this.bookService
+    this.readRequest = this.bookService
       .getBooks({
         q: this.q(),
         status: this.status(),
@@ -123,11 +127,9 @@ export class BookList {
           this.loading.set(false);
         },
         error: (err: HttpErrorResponse) => {
-          this.error.set(
-            err.status === 0
-              ? 'Không kết nối được my-server (http://localhost:3002). Hãy chạy "npm run dev" trong thư mục my-server.'
-              : 'Không tải được danh sách sách. Xem terminal của my-server để biết chi tiết.',
-          );
+          this.data.set(null);
+          this.selected.set(new Set());
+          this.error.set(adminApiError(err, 'Không tải được danh sách sách.'));
           this.loading.set(false);
         },
       });
@@ -222,7 +224,7 @@ export class BookList {
 
   confirmPending(): void {
     const p = this.pending();
-    if (!p) return;
+    if (!p || this.working()) return;
     this.working.set(true);
     const request: Observable<unknown> =
       p.ids.length === 1 ? this.bookService.deleteBook(p.ids[0]) : this.bookService.bulk(p.ids, 'delete');
@@ -254,18 +256,26 @@ export class BookList {
   badge(book: AdminBook): { status: string; label: string } {
     const threshold = this.data()?.lowStockThreshold ?? 5;
     if (book.status === 'hidden') return { status: 'hidden', label: 'Đã ẩn' };
+    if (book.bookType === 'ebook') return { status: 'active', label: 'Đang bán' };
+    if (!Number.isSafeInteger(book.stock) || book.stock < 0) return { status: 'unknown', label: 'Chưa xác định tồn kho' };
     if (book.stock <= 0) return { status: 'out_of_stock', label: 'Hết hàng' };
     if (book.stock <= threshold) return { status: 'low_stock', label: 'Sắp hết' };
     return { status: 'active', label: 'Đang bán' };
   }
 
   stockClass(book: AdminBook): string {
+    if (book.bookType === 'ebook' || !Number.isSafeInteger(book.stock) || book.stock < 0) return '';
     const threshold = this.data()?.lowStockThreshold ?? 5;
     return book.stock <= 0 ? 'stock-out' : book.stock <= threshold ? 'stock-low' : '';
   }
 
   hideCover(event: Event): void {
     (event.target as HTMLImageElement).style.visibility = 'hidden';
+  }
+
+  stockLabel(book: AdminBook): string {
+    return book.bookType === 'ebook' ? 'Không áp dụng'
+      : Number.isSafeInteger(book.stock) && book.stock >= 0 ? book.stock.toLocaleString('vi-VN') : '—';
   }
 
   private showFlash(message: string): void {

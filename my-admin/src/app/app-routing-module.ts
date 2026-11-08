@@ -23,6 +23,7 @@ import { UsersRoles } from './Pages/settings/users-roles/users-roles';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { adminAuthGuard, adminAuthChildGuard } from './services/admin-auth-service';
 import { pendingChangesGuard } from './Pages/settings/pending-changes-guard';
+import { AccessDenied } from './Pages/access-denied/access-denied';
 
 const routes: Routes = [
   { path: 'login', component: Login },              // đăng nhập: không có sidebar
@@ -32,6 +33,7 @@ const routes: Routes = [
     canActivateChild: [adminAuthChildGuard],
     children: [    // các trang có sidebar
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'access-denied', component: AccessDenied },
       { path: 'dashboard', component: Dashboard },
       { path: 'book-list', component: BookList },
       { path: 'book-form', component: BookForm },          // thêm sách

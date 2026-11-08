@@ -101,7 +101,7 @@ export class Inventory implements OnInit, OnDestroy {
             !user?.permissions?.some((p) => p.module === 'inventory' && p.actions.includes('view'))
           )
             return throwError(() => new Error('Tài khoản chưa có quyền xem tồn kho.'));
-          return this.books.getBooks({ page, limit: 100, sort: 'title' });
+          return this.books.getInventory({ page, limit: 100, sort: 'title' });
         })
         .pipe(timeout(15000));
     this.request = fetchPage(1)

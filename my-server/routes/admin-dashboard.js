@@ -77,13 +77,14 @@ function percentChange(current, previous) {
 }
 
 function startOfDay(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const d = new Date(date.getTime() + 7 * 3600000);
+  d.setUTCHours(0, 0, 0, 0);
+  return new Date(d.getTime() - 7 * 3600000);
 }
 
 function dayKey(date) {
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  const d = new Date(date.getTime() + 7 * 3600000);
+  return `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`;
 }
 
 function idString(value) {
@@ -133,7 +134,8 @@ async function buildDashboard(db, days, now = new Date()) {
   const chartIndex = new Map();
   for (let i = 0; i < days; i++) {
     const d = new Date(start.getTime() + i * DAY_MS);
-    const label = days <= 7 ? WEEKDAYS[d.getDay()] : `${d.getDate()}/${d.getMonth() + 1}`;
+    const local = new Date(d.getTime() + 7 * 3600000);
+    const label = days <= 7 ? WEEKDAYS[local.getUTCDay()] : `${local.getUTCDate()}/${local.getUTCMonth() + 1}`;
     chartIndex.set(dayKey(d), chart.length);
     chart.push({ date: dayKey(d), label, revenue: 0, orders: 0 });
   }
@@ -182,7 +184,7 @@ async function buildDashboard(db, days, now = new Date()) {
       return {
         _id: idString(o._id),
         code: o.orderCode || o.code || '#' + idString(o._id).slice(-6).toUpperCase(),
-        customerName: o.customerName || o.shippingAddress?.fullName || o.shipping?.fullName ||
+        customerName: o.customer?.name || o.customerName || o.shippingAddress?.fullName || o.shipping?.fullName ||
           user?.fullName || user?.name || user?.username || user?.email || 'Khách vãng lai',
         createdAt: docDate(o),
         total: orderTotal(o),
@@ -193,7 +195,7 @@ async function buildDashboard(db, days, now = new Date()) {
   // ----- Tồn kho -----
   const activeBooks = books.filter((b) => normalize(b.status) === 'active');
   const lowStock = activeBooks
-    .filter((b) => ['new', 'used'].includes(b.bookType) && toNumber(b.stock) <= LOW_STOCK_THRESHOLD)
+    .filter((b) => ['new', 'used'].includes(b.bookType) && Number.isSafeInteger(b.stock) && b.stock >= 0 && b.stock <= LOW_STOCK_THRESHOLD)
     .sort((a, b) => toNumber(a.stock) - toNumber(b.stock));
 
   return {

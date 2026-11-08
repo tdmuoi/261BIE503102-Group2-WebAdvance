@@ -14,11 +14,19 @@ export class BookService {
   private readonly baseUrl = `${environment.apiUrl}/admin/books`;
 
   getBooks(query: BookQuery = {}): Observable<BookListResponse> {
+    return this.listBooks(this.baseUrl, query);
+  }
+
+  getInventory(query: BookQuery = {}): Observable<BookListResponse> {
+    return this.listBooks(`${this.baseUrl}/inventory`, query);
+  }
+
+  private listBooks(url: string, query: BookQuery): Observable<BookListResponse> {
     let params = new HttpParams();
     Object.entries(query).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') params = params.set(key, value);
     });
-    return this.http.get<BookListResponse>(this.baseUrl, { params, withCredentials: true });
+    return this.http.get<BookListResponse>(url, { params, withCredentials: true });
   }
 
   getBook(id: string): Observable<AdminBook> {

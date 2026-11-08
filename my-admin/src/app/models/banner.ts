@@ -36,6 +36,7 @@ export interface BannerListResponse {
 
 /** Dữ liệu form gửi lên. Ngày dạng 'YYYY-MM-DD' (giờ Việt Nam), bỏ trống = không giới hạn */
 export interface BannerPayload {
+  revision?: string | null;
   name: string;
   title: string;
   subtitle: string;

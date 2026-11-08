@@ -89,9 +89,10 @@
       <section class="block">
         <h3>Thanh toán</h3>
         <p>{{ paymentMethods[o.paymentMethod] ?? o.paymentMethod }}</p>
-        <select class="select" [value]="o.paymentStatus" [disabled]="saving() || !o.userId || o.isDemo === true" (change)="setPayment($any($event.target).value)" aria-label="Trạng thái thanh toán">
+        <select class="select" [value]="o.paymentStatus" disabled aria-label="Trạng thái thanh toán (chỉ đọc)">
           @for (p of paymentOptions; track p) { <option [value]="p">{{ paymentInfo[p].label }}</option> }
         </select>
+        <p class="hint">Chỉ đọc. Hoàn tiền được ghi nhận qua yêu cầu đổi trả; chưa hỗ trợ sửa thanh toán trực tiếp.</p>
       </section>
 
       <!-- Ghi chú nội bộ -->

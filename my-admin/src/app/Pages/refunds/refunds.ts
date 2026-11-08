@@ -2,7 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { adminApiError } from '../../services/admin-api-error';
 
 import {
   RETURN_REASON,
@@ -68,6 +69,8 @@ export class Refunds {
   });
 
   private readonly search$ = new Subject<string>();
+  private readRequest?: Subscription;
+  ngOnDestroy(): void { this.readRequest?.unsubscribe(); }
 
   constructor() {
     this.search$.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed()).subscribe((text) => {
@@ -80,9 +83,10 @@ export class Refunds {
   }
 
   load(): void {
+    this.readRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set('');
-    this.returnService
+    this.readRequest = this.returnService
       .getReturns({ q: this.q(), status: this.status(), type: this.type(), from: this.from(), to: this.to(), page: this.page(), limit: this.pageSize })
       .subscribe({
         next: (res) => {
@@ -90,11 +94,8 @@ export class Refunds {
           this.loading.set(false);
         },
         error: (err: HttpErrorResponse) => {
-          this.error.set(
-            err.status === 0
-              ? 'Không kết nối được my-server (http://localhost:3002). Hãy chạy "npm run dev" trong thư mục my-server.'
-              : 'Không tải được yêu cầu đổi trả. Xem terminal của my-server để biết chi tiết.',
-          );
+          this.data.set(null);
+          this.error.set(adminApiError(err, 'Không tải được yêu cầu đổi trả.'));
           this.loading.set(false);
         },
       });

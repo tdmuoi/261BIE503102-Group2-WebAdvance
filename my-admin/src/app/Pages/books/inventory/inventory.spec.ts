@@ -1,4 +1,4 @@
-﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -46,13 +46,13 @@ const page = (
 });
 describe('Inventory with persisted BookService data', () => {
   let fixture: ComponentFixture<Inventory>;
-  const books = { getBooks: vi.fn() };
+  const books = { getInventory: vi.fn() };
   const auth = {
     user: { role: 'superadmin', permissions: [] as { module: string; actions: string[] }[] },
     withSession: <T>(work: () => T) => work(),
   };
   beforeEach(async () => {
-    books.getBooks
+    books.getInventory
       .mockReset()
       .mockReturnValue(
         of(
@@ -91,7 +91,7 @@ describe('Inventory with persisted BookService data', () => {
     expect(inventory.rows().some((row) => row._id === 'ebook')).toBe(false);
   });
   it('uses per-book thresholds before the API fallback', async () => {
-    books.getBooks.mockReturnValue(
+    books.getInventory.mockReturnValue(
       of(
         page([
           book('a', 7, { stockThreshold: 10 }),
@@ -106,7 +106,7 @@ describe('Inventory with persisted BookService data', () => {
     expect(inventory.threshold(inventory.rows()[2])).toBe(5);
   });
   it('reads every backend page before exposing totals', async () => {
-    books.getBooks.mockImplementation(({ page: current }) =>
+    books.getInventory.mockImplementation(({ page: current }) =>
       of(
         current === 1
           ? page([book('a', 2), book('b', 3)], 4, 1, 2)
@@ -114,13 +114,13 @@ describe('Inventory with persisted BookService data', () => {
       ),
     );
     const inventory = await create();
-    expect(books.getBooks).toHaveBeenCalledTimes(2);
+    expect(books.getInventory).toHaveBeenCalledTimes(2);
     expect(inventory.summary().total).toBe(14);
     expect(inventory.rows().length).toBe(4);
   });
   it('does not invent zero stock while the API is pending', async () => {
     const response = new Subject<BookListResponse>();
-    books.getBooks.mockReturnValue(response);
+    books.getInventory.mockReturnValue(response);
     fixture = TestBed.createComponent(Inventory);
     fixture.detectChanges();
     expect(fixture.componentInstance.loaded()).toBe(false);
@@ -131,7 +131,7 @@ describe('Inventory with persisted BookService data', () => {
     expect(fixture.componentInstance.summary().total).toBe(8);
   });
   it('rejects duplicate rows across pages instead of reporting partial totals', async () => {
-    books.getBooks.mockImplementation(({ page: current }) =>
+    books.getInventory.mockImplementation(({ page: current }) =>
       of(current === 1 ? page([book('a', 2)], 2, 1, 1) : page([book('a', 3)], 2, 2, 1)),
     );
     const inventory = await create();
@@ -151,14 +151,14 @@ describe('Inventory with persisted BookService data', () => {
     expect(inventory.filtered()[0]._id).toBe('out');
   });
   it('keeps invalid/missing stock unknown rather than treating it as empty stock', async () => {
-    books.getBooks.mockReturnValue(of(page([book('a', Number.NaN)])));
+    books.getInventory.mockReturnValue(of(page([book('a', Number.NaN)])));
     const inventory = await create();
     expect(inventory.summary().total).toBeNull();
     expect(inventory.summary().out).toBe(0);
     expect(inventory.status(inventory.rows()[0])).toBe('unknown');
   });
   it('shows API failures without sample rows', async () => {
-    books.getBooks.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+    books.getInventory.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
     const inventory = await create();
     expect(inventory.rows()).toEqual([]);
     expect(inventory.loading()).toBe(false);
@@ -167,7 +167,7 @@ describe('Inventory with persisted BookService data', () => {
   it('checks the existing inventory view permission before loading books', async () => {
     auth.user = { role: 'admin', permissions: [] };
     const inventory = await create();
-    expect(books.getBooks).not.toHaveBeenCalled();
+    expect(books.getInventory).not.toHaveBeenCalled();
     expect(inventory.error()).toContain('quyền');
   });
   it('stock-in/history controls explain unsupported actions without changing quantities', async () => {
@@ -178,10 +178,10 @@ describe('Inventory with persisted BookService data', () => {
     inventory.bulkStockIn();
     inventory.showHistory();
     expect(inventory.rows()[0].stock).toBe(3);
-    expect(books.getBooks).toHaveBeenCalledTimes(1);
+    expect(books.getInventory).toHaveBeenCalledTimes(1);
   });
   it('exports filtered CSV data and escapes spreadsheet formulas', async () => {
-    books.getBooks.mockReturnValue(
+    books.getInventory.mockReturnValue(
       of(page([book('a', 2, { title: '=SUM(1,2)', sku: 'EXPORT' }), book('b', 9)])),
     );
     const inventory = await create();

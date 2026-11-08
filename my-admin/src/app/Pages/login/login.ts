@@ -63,7 +63,7 @@ export class Login implements OnInit, OnDestroy {
         next: () => {
           this.checking = false;
           this.changeDetector.markForCheck();
-          void this.router.navigate(['/dashboard']);
+          void this.router.navigate([this.auth.landingPage]);
         },
         error: (error: unknown) => {
           this.checking = false;
@@ -121,7 +121,7 @@ export class Login implements OnInit, OnDestroy {
             form.resetForm({ ...this.user });
             this.loading = false;
             this.changeDetector.markForCheck();
-            void this.router.navigate(['/dashboard']);
+            void this.router.navigate([this.auth.landingPage]);
           },
           error: (error: unknown) => {
             this.user.password = '';

@@ -52,6 +52,16 @@ describe('RefundDetail', () => {
     expect(component.request()?.status).toBe('approved');
   });
 
+  it('sends the loaded note revision and retains text when a newer note exists', () => {
+    loadWith({ updatedAt: '2026-11-08T00:00:00.000Z' });
+    component.adminNote = 'Unsaved return note'; component.saveNote();
+    const request = http.expectOne(r => r.method === 'PATCH');
+    expect(request.request.body).toEqual({ adminNote: 'Unsaved return note', revision: '2026-11-08T00:00:00.000Z' });
+    request.flush({ message: 'Dữ liệu đã thay đổi' }, { status: 409, statusText: 'Conflict' });
+    expect(component.adminNote).toBe('Unsaved return note');
+    expect(component.error()).toContain('đã thay đổi');
+  });
+
   it('từ chối bắt buộc nhập lý do', () => {
     loadWith();
     component.act('rejected');

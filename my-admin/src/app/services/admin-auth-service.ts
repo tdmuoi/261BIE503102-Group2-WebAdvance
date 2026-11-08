@@ -4,6 +4,7 @@ import { CanActivateFn, CanActivateChildFn, Router } from '@angular/router';
 import { BehaviorSubject, Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AdminLoginRequest, AdminSession, AdminUser } from '../models/admin-auth';
+import { canAccessRoute, landingPage } from './admin-route-access';
 
 @Injectable({ providedIn: 'root' })
 export class AdminAuthService {
@@ -14,6 +15,10 @@ export class AdminAuthService {
   get user(): AdminUser | null {
     return this.state.value?.user ?? null;
   }
+
+  get landingPage(): string { return landingPage(this.user); }
+
+  expireSession(): void { this.clear(); }
 
   login(body: AdminLoginRequest): Observable<AdminSession> {
     return this.http
@@ -68,14 +73,15 @@ export class AdminAuthService {
   }
 }
 
-// Prepared here so no routing/module file is changed before group approval.
-function checkAdminRoute() {
+function checkAdminRoute(url: string) {
   const auth = inject(AdminAuthService);
   const router = inject(Router);
   return auth.checkSession().pipe(
-    map(() => true),
+    map((session) => canAccessRoute(session.user, url) ? true : router.parseUrl(
+      url.split(/[?#]/)[0] === '/dashboard' ? landingPage(session.user) : '/access-denied',
+    )),
     catchError(() => of(router.parseUrl('/login'))),
   );
 }
-export const adminAuthGuard: CanActivateFn = () => checkAdminRoute();
-export const adminAuthChildGuard: CanActivateChildFn = () => checkAdminRoute();
+export const adminAuthGuard: CanActivateFn = (_route, state) => checkAdminRoute(state.url ?? '');
+export const adminAuthChildGuard: CanActivateChildFn = (_route, state) => checkAdminRoute(state.url ?? '');

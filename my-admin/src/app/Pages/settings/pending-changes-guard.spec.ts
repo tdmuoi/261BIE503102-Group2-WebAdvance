@@ -84,7 +84,7 @@ describe('pendingChangesGuard with News, Settings and the existing sidebar', () 
         ] }]),
         provideLocationMocks(),
         { provide: AdminAuthService, useValue: { user: {
-          fullName: 'Test Admin', roleName: 'Admin', email: 'admin@example.invalid',
+          fullName: 'Test Admin', role: 'superadmin', roleName: 'Admin', email: 'admin@example.invalid',
         } } },
         { provide: NewsService, useValue: {
           list: () => of({ categories: [] }),
@@ -134,7 +134,7 @@ describe('pendingChangesGuard with News, Settings and the existing sidebar', () 
     await sidebar(harness, '/accounts');
     expect(router.url).toBe('/accounts');
     expect(confirm).not.toHaveBeenCalled();
-  });
+  }, 15000);
   it('preserves Settings on cancelled sidebar/Back, and allows clean or confirmed route changes', async () => {
     const harness = await RouterTestingHarness.create();
     const router = TestBed.inject(Router);

@@ -66,4 +66,24 @@ describe('ConfirmDialog – hành vi', () => {
     component.cancel();
     expect(count).toBe(0);
   });
+
+  it('moves focus into the dialog, traps Tab and restores the opener', async () => {
+    const opener = document.createElement('button');
+    document.body.append(opener); opener.focus();
+    try {
+      fixture.componentRef.setInput('open', true); fixture.detectChanges();
+      await fixture.whenStable();
+      const buttons = fixture.nativeElement.querySelectorAll('.actions button') as NodeListOf<HTMLButtonElement>;
+      expect(document.activeElement).toBe(buttons[0]);
+      buttons[1].focus();
+      const forward = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true });
+      document.dispatchEvent(forward);
+      expect(forward.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(buttons[0]);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true }));
+      expect(document.activeElement).toBe(buttons[1]);
+      fixture.componentRef.setInput('open', false); fixture.detectChanges();
+      expect(document.activeElement).toBe(opener);
+    } finally { opener.remove(); }
+  });
 });

@@ -65,6 +65,10 @@ describe('BookList', () => {
     expect(component.badge(book({ stock: 4 })).label).toBe('Sắp hết');
     expect(component.badge(book({ status: 'hidden', stock: 0 })).label).toBe('Đã ẩn');
     expect(component.badge(book()).label).toBe('Đang bán');
+    expect(component.badge(book({ stock: 0, bookType: 'ebook' })).label).toBe('Đang bán');
+    expect(component.stockLabel(book({ stock: 0, bookType: 'ebook' }))).toBe('Không áp dụng');
+    expect(component.badge(book({ stock: Number.NaN })).label).toContain('Chưa xác định');
+    expect(component.stockLabel(book({ stock: Number.NaN }))).toBe('—');
   });
 
   it('đổi tab trạng thái thì gọi lại API với status và về trang 1', () => {

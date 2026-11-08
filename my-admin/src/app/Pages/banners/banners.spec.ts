@@ -79,7 +79,7 @@ describe('Banners', () => {
     component.move(component.data()!.items[1], -1);
     expect(component.groups()[0].items.map((b) => b._id)).toEqual(['h2', 'h1']);
     const req = http.expectOne((r) => r.url.endsWith('/admin/banners/reorder'));
-    expect(req.request.body).toEqual({ ids: ['h2', 'h1'] });
+    expect(req.request.body).toEqual({ ids: ['h2', 'h1'], revisions: { h1: null, h2: null } });
     req.flush({ reordered: 2 });
     flushList([]);
   });
@@ -88,7 +88,7 @@ describe('Banners', () => {
     flushList([banner()]);
     component.toggle(component.data()!.items[0]);
     const req = http.expectOne((r) => r.method === 'PATCH' && r.url.endsWith('/admin/banners/h1'));
-    expect(req.request.body).toEqual({ active: false });
+    expect(req.request.body).toEqual({ active: false, revision: banner().updatedAt });
     req.flush(banner({ active: false, state: 'off' }));
     flushList([]);
   });

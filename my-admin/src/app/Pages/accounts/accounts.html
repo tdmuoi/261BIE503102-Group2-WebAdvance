@@ -459,7 +459,7 @@
         <div class="section-title">
           <div>
             <h2>Ma trận phân quyền</h2>
-            <p>Quyền lưu trên máy chủ. Thực thi trên các API khác cần tích hợp riêng.</p>
+            <p>Quyền được kiểm tra trên máy chủ. SUPER_ADMIN được bảo vệ và không thể sửa tại đây.</p>
           </div>
           @if (permissionEditing()) {
             <div class="permission-actions">
@@ -507,8 +507,20 @@
                     <td>{{ permission.label }}</td>
                     @for (role of data.roles.roles; track role._id) {
                       <td>
-                        @if (data.roles.moduleActions) {
+                        @if (!role.permissionsKnown) {
+                          <span>Chưa có dữ liệu quyền hợp lệ</span>
+                        } @else if (data.roles.moduleActions) {
+                          @if (permissionEditing() && role.editable && data.roles.availableActions) {
+                            @for (action of data.roles.availableActions[permission._id] ?? []; track action) {
+                              <label style="display: block">
+                                <input type="checkbox" [checked]="hasModuleAction(role._id, permission._id, action)" [disabled]="saving()"
+                                  (change)="setModuleAction(role._id, permission._id, action, $any($event.target).checked)" />
+                                {{ actionLabel(action) }}
+                              </label>
+                            }
+                          } @else {
                           <span>{{ roleActions(role._id, permission._id) }}</span>
+                          }
                         } @else if (permissionEditing()) {
                           <select
                             [value]="permissionLevel(role._id, permission._id)"
@@ -766,4 +778,10 @@
   [loading]="saving()"
   (confirmed)="confirmMutation()"
   (cancelled)="confirmAction.set(null)"
+></app-confirm-dialog>
+<app-confirm-dialog
+  [open]="permissionConfirmOpen()" title="Lưu thay đổi phân quyền?"
+  message="Thay đổi áp dụng cho toàn bộ tài khoản thuộc vai trò đã sửa từ yêu cầu kế tiếp. Người dùng nên tải lại trang để cập nhật menu."
+  confirmText="Lưu phân quyền" [loading]="saving()"
+  (confirmed)="confirmRolePermissions()" (cancelled)="permissionConfirmOpen.set(false)"
 ></app-confirm-dialog>

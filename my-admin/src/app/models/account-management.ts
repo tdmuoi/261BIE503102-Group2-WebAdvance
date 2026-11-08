@@ -107,6 +107,7 @@ export interface AdminAccount {
 }
 
 export interface AdminRole {
+  revision?: string;
   _id: string;
   code: string;
   name: string;
@@ -121,6 +122,7 @@ export interface Permission {
 }
 
 export interface RolePermissions {
+  availableActions?: Record<string, string[]>;
   moduleActions?: Record<string, Record<string, string[]>>;
   roles: AdminRole[];
   permissions: Permission[];

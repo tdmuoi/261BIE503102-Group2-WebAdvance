@@ -1,6 +1,7 @@
 ﻿const express = require("express");
 const { ObjectId } = require("mongodb");
 const createAdminAuth = require("../middleware/admin-auth");
+const rolePermissions = require('../middleware/admin-role-permissions');
 const text = (value) => (typeof value === "string" ? value.trim() : "");
 const id = (value) => (value == null ? "" : String(value));
 const asDate = (value) =>
@@ -39,6 +40,7 @@ const MODULE_LABELS = {
   settings: "Cài đặt",
   banners: "Banner",
   categories: "Thể loại",
+  vouchers: "Mã giảm giá",
 };
 const ADMIN_CODES = [
   "SUPER_ADMIN",
@@ -139,7 +141,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
   router.use(auth.cors, auth.requireAdmin);
   router.use((req, res, next) =>
     auth.requirePermission(
-      req.path.startsWith("/customers") ? "customers" : "accounts",
+      req.path.toLowerCase().startsWith("/customers") ? "customers" : "accounts",
       ["GET", "HEAD"].includes(req.method) ? "view" : "update",
     )(req, res, next),
   );
@@ -250,11 +252,11 @@ module.exports = function adminAccountsRoutes(getDb, options) {
     const roles = data.roles.filter((role) => ADMIN_CODES.includes(role.code));
     const modules = [
       ...new Set(
-        roles.flatMap((role) =>
-          Array.isArray(role.permissions)
+        [...Object.keys(rolePermissions.actions), ...roles.flatMap((role) =>
+          rolePermissions.shape(role.permissions)
             ? role.permissions.map((entry) => entry.module)
             : [],
-        ),
+        )],
       ),
     ];
     return {
@@ -263,19 +265,21 @@ module.exports = function adminAccountsRoutes(getDb, options) {
         code: role.code,
         name: role.name,
         label: role.name,
-        editable: false,
-        permissionsKnown: Array.isArray(role.permissions),
+        editable: role.code !== 'SUPER_ADMIN' && rolePermissions.validate(role.permissions),
+        revision: rolePermissions.revision(role),
+        permissionsKnown: rolePermissions.shape(role.permissions),
       })),
       permissions: modules.map((_id) => ({
         _id,
         label: MODULE_LABELS[_id] || _id,
       })),
       grants: {},
+      availableActions: rolePermissions.actions,
       moduleActions: Object.fromEntries(
         roles.map((role) => [
           id(role._id),
           Object.fromEntries(
-            (role.permissions || []).map((entry) => [
+            (rolePermissions.shape(role.permissions) ? role.permissions : []).map((entry) => [
               entry.module,
               entry.actions,
             ]),
@@ -635,7 +639,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           invite: false,
           edit: req.admin.roleCode === "SUPER_ADMIN",
           remove: false,
-          roles: false,
+          roles: req.admin.roleCode === 'SUPER_ADMIN',
         },
         customerTotal: data.accounts.filter(
           (account) => account.roleCode === "CUSTOMER",
@@ -839,12 +843,25 @@ module.exports = function adminAccountsRoutes(getDb, options) {
         "Vai trò hiện tại là isSystem và permissions dạng module/actions. Chưa được phép tạo hoặc thay schema quyền.",
     }),
   );
-  router.put("/roles/:id/permissions", (req, res) =>
-    res.status(501).json({
-      message:
-        "Không ghi permissionIds lên schema permissions hiện có. Cần nhóm duyệt quy trình chỉnh quyền chi tiết.",
-    }),
-  );
+  router.put('/roles/:id/permissions', async (req, res) => {
+    try {
+      superOnly(req);
+      const body = req.body || {};
+      if (Object.keys(body).some((key) => !['permissions', 'revision'].includes(key)) || !rolePermissions.validate(body.permissions))
+        throw fail(400, 'Gửi permissions dạng module/actions với các quyền hợp lệ, không dùng permissionIds.');
+      const db = getDb();
+      const role = await db.collection('roles').findOne({ _id: matchId(req.params.id) });
+      if (!role || !ADMIN_CODES.includes(role.code)) throw fail(404, 'Không tìm thấy vai trò Admin.');
+      if (role.code === 'SUPER_ADMIN') throw fail(409, 'Không thay đổi quyền SUPER_ADMIN.');
+      if (!rolePermissions.validate(role.permissions)) throw fail(409, 'Quyền hiện tại chưa khớp hợp đồng module/actions.');
+      if (body.revision !== rolePermissions.revision(role)) throw fail(409, 'Vai trò đã thay đổi. Tải lại trước khi sửa quyền.');
+      const result = await db.collection('roles').updateOne(
+        { _id: role._id, code: role.code, permissions: role.permissions }, { $set: { permissions: body.permissions } },
+      );
+      if (!result.matchedCount) throw fail(409, 'Vai trò vừa được thay đổi. Tải lại trước khi sửa quyền.');
+      res.json({ revision: rolePermissions.revision({ ...role, permissions: body.permissions }) });
+    } catch (error) { respondError(res, error); }
+  });
   router.patch("/security", (req, res) =>
     res.status(501).json({
       message:

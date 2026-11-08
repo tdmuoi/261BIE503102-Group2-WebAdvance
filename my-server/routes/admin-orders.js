@@ -33,6 +33,8 @@
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
+const revisions = require('../middleware/admin-revision');
+const dateRange = require('../middleware/admin-date-range');
 
 const STATUSES = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled', 'returned'];
 const PAYMENT_STATUSES = ['unpaid', 'paid', 'refunded'];
@@ -71,14 +73,6 @@ function toNumber(value) {
 function toDate(value) {
   if (!value) return null;
   const d = value instanceof Date ? value : new Date(value);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-/** 'YYYY-MM-DD' theo giờ VN -> Date */
-function parseDay(value, endOfDay = false) {
-  const text = cleanText(value);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
-  const d = new Date(`${text}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}+07:00`);
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -192,8 +186,7 @@ module.exports = function adminOrdersRoutes(getDb, getClient) {
       if (PAYMENT_STATUSES.includes(req.query.payment)) {
         base.paymentStatus = req.query.payment === 'unpaid' ? { $nin: ['paid', 'refunded'] } : req.query.payment;
       }
-      const from = parseDay(req.query.from);
-      const to = parseDay(req.query.to, true);
+      const { from, to } = dateRange(req.query);
       if (from || to) {
         base.createdAt = {};
         if (from) base.createdAt.$gte = from;
@@ -227,7 +220,7 @@ module.exports = function adminOrdersRoutes(getDb, getClient) {
       });
     } catch (error) {
       console.error('GET /api/admin/orders failed:', error.message);
-      res.status(500).json({ message: 'Không tải được danh sách đơn hàng' });
+      res.status(error.status || 500).json({ message: error.status ? error.message : 'Không tải được danh sách đơn hàng' });
     }
   });
 
@@ -274,23 +267,21 @@ module.exports = function adminOrdersRoutes(getDb, getClient) {
       if (!doc) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
 
       if (req.body?.paymentStatus !== undefined) return res.status(409).json({ message: 'Manual payment changes require an approved settlement workflow' });
+      if (Object.keys(req.body || {}).some((key) => !['adminNote', 'trackingCode', 'revision'].includes(key)))
+        return res.status(400).json({ message: 'Có trường không được phép sửa.' });
+      revisions.requireRevision(req.body, doc);
       const set = {};
       if (typeof req.body?.adminNote === 'string') set.adminNote = req.body.adminNote.trim().slice(0, 1000);
       if (typeof req.body?.trackingCode === 'string') set.trackingCode = req.body.trackingCode.trim().slice(0, 100);
-      if (req.body?.paymentStatus !== undefined) {
-        if (!PAYMENT_STATUSES.includes(req.body.paymentStatus)) {
-          return res.status(400).json({ message: 'Trạng thái thanh toán không hợp lệ' });
-        }
-        set.paymentStatus = req.body.paymentStatus;
-      }
       if (!Object.keys(set).length) return res.status(400).json({ message: 'Không có gì để cập nhật' });
 
-      set.updatedAt = new Date();
-      await orders().updateOne({ _id: doc._id }, { $set: set });
+      set.updatedAt = revisions.nextUpdatedAt(doc);
+      const result = await orders().updateOne({ _id: doc._id, ...revisions.snapshot(doc) }, { $set: set });
+      if (!result.matchedCount) throw revisions.conflict();
       res.json(await presentOne(await orders().findOne({ _id: doc._id })));
     } catch (error) {
       console.error('PATCH /api/admin/orders/:id failed:', error.message);
-      res.status(500).json({ message: 'Không cập nhật được đơn hàng' });
+      res.status(error.status || 500).json({ message: error.status ? error.message : 'Không cập nhật được đơn hàng' });
     }
   });
 

@@ -13,8 +13,9 @@
       <path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5" /></svg
     >Xuất báo cáo
   </button>
-  <button type="button" class="btn btn-primary" (click)="stockIn()">＋ Tạo phiếu nhập kho</button>
+  <button type="button" class="btn btn-primary" disabled title="Chức năng tạo phiếu nhập kho chưa khả dụng">＋ Tạo phiếu nhập kho</button>
 </app-page-heading>
+<p class="inventory-data-note" role="status">Hiện có thể theo dõi và xuất tồn kho. Tạo phiếu nhập kho và nhật ký nhập/xuất chưa khả dụng.</p>
 <div class="inventory-stats">
   <app-stat-card
     label="Tổng tồn kho"
@@ -48,7 +49,7 @@
     <strong>{{ summary().low }}</strong> sản phẩm sắp hết và
     <strong>{{ summary().out }}</strong> sản phẩm đã hết hàng.
   </p>
-  <button type="button" class="btn" (click)="bulkStockIn()">Nhập hàng loạt</button>
+  <button type="button" class="btn" disabled title="Nhập hàng loạt chưa khả dụng">Nhập hàng loạt</button>
 </div>
 <div *ngIf="error()" class="inventory-error" role="alert">
   {{ error() }} <button type="button" class="btn btn-sm" (click)="load()">Thử lại</button>
@@ -175,7 +176,7 @@
 <section class="card inventory-history">
   <header>
     <h2>Lịch sử nhập / xuất kho gần đây</h2>
-    <button type="button" class="btn" (click)="showHistory()">Xem tất cả</button>
+    <button type="button" class="btn" disabled title="Lịch sử nhập/xuất chưa khả dụng">Xem tất cả</button>
   </header>
   <div class="inventory-table-scroll">
     <table class="table">

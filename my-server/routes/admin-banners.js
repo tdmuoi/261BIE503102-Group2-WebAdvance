@@ -18,6 +18,8 @@
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
+const revisions = require('../middleware/admin-revision');
+const transaction = require('../middleware/admin-transaction');
 
 const POSITIONS = ['hero', 'flash_sale', 'promo_strip'];
 const STATES = ['live', 'scheduled', 'expired', 'off'];
@@ -94,6 +96,7 @@ function parseBanner(body) {
   const endDate = parseDay(body.endDate, true);
 
   if (!name) errors.name = 'Vui lòng đặt tên banner';
+  if (body.active !== undefined && typeof body.active !== 'boolean') errors.active = 'Trạng thái phải là boolean';
   if (!title && !image) errors.title = 'Cần có tiêu đề hoặc ảnh banner';
   if (image && !/^(https?:\/\/|\/|images\/)/i.test(image)) errors.image = 'Link ảnh phải bắt đầu bằng http(s):// hoặc /';
   if (link && !/^(https?:\/\/|\/)/i.test(link)) errors.link = 'Link phải bắt đầu bằng / (trang trong web) hoặc http(s)://';
@@ -122,6 +125,7 @@ function parseBanner(body) {
 }
 
 function handleError(res, error, action) {
+  if (error.status) return res.status(error.status).json({ message: error.message });
   if (error instanceof ValidationError) {
     return res.status(400).json({ message: 'Dữ liệu chưa hợp lệ', errors: error.errors });
   }
@@ -156,7 +160,7 @@ module.exports = function bannersRoutes(getDb) {
   router.use('/admin/banners/:id', async (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     try {
-      const ids = req.params.id === 'reorder' ? req.body?.ids : [req.params.id];
+      const ids = req.params.id.toLowerCase() === 'reorder' ? req.body?.ids : [req.params.id];
       if (!Array.isArray(ids) || !ids.every(id => ObjectId.isValid(String(id)))) return res.status(400).json({ message: 'Invalid IDs' });
       const docs = await banners().find({ _id: { $in: ids.map(id => new ObjectId(String(id))) } }).toArray();
       if (docs.some(doc => present(doc).contractIssues.length)) return res.status(409).json({ message: 'Banner contract requires team approval; read only' });
@@ -178,11 +182,25 @@ module.exports = function bannersRoutes(getDb) {
   // ---------- Admin: đổi thứ tự (đặt trước /:id) ----------
   router.patch('/admin/banners/reorder', async (req, res) => {
     try {
-      const ids = Array.isArray(req.body?.ids) ? req.body.ids.filter((id) => ObjectId.isValid(id)) : [];
-      if (!ids.length) return res.status(400).json({ message: 'Cần gửi danh sách ids theo thứ tự mới' });
-      await Promise.all(
-        ids.map((id, index) => banners().updateOne({ _id: new ObjectId(String(id)) }, { $set: { order: index + 1 } })),
-      );
+      const ids = req.body?.ids;
+      if (!Array.isArray(ids) || !ids.length || ids.length > 500 ||
+          !ids.every((id) => typeof id === 'string' && ObjectId.isValid(id)) || new Set(ids).size !== ids.length)
+        return res.status(400).json({ message: 'Cần gửi 1–500 ID banner khác nhau và hợp lệ.' });
+      const supplied = req.body?.revisions;
+      if (!supplied || typeof supplied !== 'object' || Array.isArray(supplied)) throw revisions.conflict();
+      await transaction(getDb(), async (session) => {
+        const docs = await banners().find({ _id: { $in: ids.map((id) => new ObjectId(id)) } }, { session }).toArray();
+        if (docs.length !== ids.length || new Set(docs.map((doc) => doc.position)).size !== 1 || docs.some((doc) => present(doc).contractIssues.length))
+          throw Object.assign(new Error('Chỉ sắp xếp các banner còn tồn tại trong cùng một vị trí hợp lệ.'), { status: 409 });
+        const byId = new Map(docs.map((doc) => [String(doc._id), doc]));
+        for (const id of ids) revisions.requireRevision({ revision: supplied[id] }, byId.get(id));
+        for (const [index, id] of ids.entries()) {
+          const doc = byId.get(id);
+          const result = await banners().updateOne({ _id: doc._id, position: doc.position, ...revisions.snapshot(doc) },
+            { $set: { order: index + 1, updatedAt: revisions.nextUpdatedAt(doc) } }, { session });
+          if (!result.matchedCount) throw revisions.conflict();
+        }
+      });
       res.json({ reordered: ids.length });
     } catch (error) {
       handleError(res, error, 'PATCH /api/admin/banners/reorder');
@@ -210,8 +228,10 @@ module.exports = function bannersRoutes(getDb) {
       const existing = await banners().findOne({ _id });
       if (!existing) return res.status(404).json({ message: 'Không tìm thấy banner' });
 
+      revisions.requireRevision(req.body, existing);
+
       const data = parseBanner(req.body || {});
-      const update = { ...data, updatedAt: new Date() };
+      const update = { ...data, updatedAt: revisions.nextUpdatedAt(existing) };
       // Preserve the date keys already used by this document; never create a
       // competing canonical field beside an existing legacy alias.
       for (const [canonical, alias] of [['startDate', 'startAt'], ['endDate', 'endAt']]) {
@@ -225,7 +245,8 @@ module.exports = function bannersRoutes(getDb) {
         const last = await banners().find({ position: data.position }).sort({ order: -1 }).limit(1).toArray();
         update.order = (last[0]?.order ?? 0) + 1;
       }
-      await banners().updateOne({ _id }, { $set: update });
+      const result = await banners().updateOne({ _id, ...revisions.snapshot(existing) }, { $set: update });
+      if (!result.matchedCount) throw revisions.conflict();
       res.json(present(await banners().findOne({ _id })));
     } catch (error) {
       handleError(res, error, 'PUT /api/admin/banners/:id');
@@ -239,8 +260,11 @@ module.exports = function bannersRoutes(getDb) {
         return res.status(400).json({ message: 'Cần gửi { active: true | false }' });
       }
       const _id = new ObjectId(req.params.id);
-      const result = await banners().updateOne({ _id }, { $set: { active: req.body.active, updatedAt: new Date() } });
-      if (!result.matchedCount) return res.status(404).json({ message: 'Không tìm thấy banner' });
+      const existing = await banners().findOne({ _id });
+      if (!existing) return res.status(404).json({ message: 'Không tìm thấy banner' });
+      revisions.requireRevision(req.body, existing);
+      const result = await banners().updateOne({ _id, ...revisions.snapshot(existing) }, { $set: { active: req.body.active, updatedAt: revisions.nextUpdatedAt(existing) } });
+      if (!result.matchedCount) throw revisions.conflict();
       res.json(present(await banners().findOne({ _id })));
     } catch (error) {
       handleError(res, error, 'PATCH /api/admin/banners/:id');
@@ -251,8 +275,12 @@ module.exports = function bannersRoutes(getDb) {
   router.delete('/admin/banners/:id', async (req, res) => {
     try {
       if (!ObjectId.isValid(req.params.id)) return res.status(404).json({ message: 'Không tìm thấy banner' });
-      const result = await banners().deleteOne({ _id: new ObjectId(req.params.id) });
-      if (!result.deletedCount) return res.status(404).json({ message: 'Không tìm thấy banner' });
+      const _id = new ObjectId(req.params.id);
+      const existing = await banners().findOne({ _id });
+      if (!existing) return res.status(404).json({ message: 'Không tìm thấy banner' });
+      revisions.requireRevision(req.body, existing);
+      const result = await banners().deleteOne({ _id, ...revisions.snapshot(existing) });
+      if (!result.deletedCount) throw revisions.conflict();
       res.json({ deleted: true });
     } catch (error) {
       handleError(res, error, 'DELETE /api/admin/banners/:id');

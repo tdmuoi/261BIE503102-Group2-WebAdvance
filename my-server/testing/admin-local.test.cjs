@@ -662,6 +662,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name: doc.name,
+              revision: null,
               title: doc.title,
               position: "hero",
               active: true,
@@ -740,7 +741,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
           await fetch(base + "/api/admin/orders/" + o._id, {
             method: "PATCH",
             headers,
-            body: JSON.stringify({ adminNote: "Permitted fixture note" }),
+            body: JSON.stringify({ adminNote: "Permitted fixture note", revision: null }),
           })
         ).status,
         200,

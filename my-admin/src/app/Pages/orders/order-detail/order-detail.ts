@@ -16,7 +16,7 @@ const ACTIONS: Record<OrderStatus, { label: string; style: 'primary' | 'danger' 
   shipping: { label: 'Giao cho vận chuyển', style: 'primary' },
   delivered: { label: 'Đã giao thành công', style: 'primary' },
   cancelled: { label: 'Huỷ đơn', style: 'danger' },
-  returned: { label: 'Ghi nhận trả hàng', style: 'danger' },
+  returned: { label: 'Xử lý qua yêu cầu đổi trả', style: 'default' },
 };
 
 /**
@@ -123,7 +123,11 @@ export class OrderDetail {
     const o = this.order();
     if (!o || this.saving() || !o.nextStatuses.includes(next)) return;
     if (!this.allowWrite(o)) return;
-    if (next === 'cancelled' || next === 'returned') {
+    if (next === 'returned') {
+      void this.router.navigate(['/refunds']);
+      return;
+    }
+    if (next === 'cancelled') {
       this.reason = '';
       this.restock = o.stockDeducted === true && !o.restocked && !o.onlyEbooks;
       this.reasonError.set('');
@@ -148,7 +152,7 @@ export class OrderDetail {
     if (!o || this.saving() || this.loading()) return;
     if (!this.allowWrite(o) || !o.nextStatuses.includes(next)) return;
     this.saving.set(true);
-    this.orderService
+    this.writes.add(this.orderService
       .changeStatus(o._id, {
         status: next,
         note: note || undefined,
@@ -167,13 +171,13 @@ export class OrderDetail {
           this.pending.set(null);
           this.error.set(this.errorText(err));
         },
-      });
+      }));
   }
 
   // ---------- Thông tin phụ ----------
   setPayment(status: string): void {
     if (!this.paymentOptions.includes(status as PaymentStatus)) return;
-    this.update({ paymentStatus: status as PaymentStatus }, 'Đã cập nhật thanh toán');
+    this.error.set('Trạng thái thanh toán chỉ đọc. Hoàn tiền được ghi nhận qua yêu cầu đổi trả; chưa có quy trình đối soát để sửa thanh toán trực tiếp.');
   }
 
   saveNote(): void {
@@ -185,7 +189,7 @@ export class OrderDetail {
     if (!o || this.saving() || this.loading()) return;
     if (!this.allowWrite(o)) return;
     this.saving.set(true);
-    this.writes.add(this.orderService.update(o._id, body).subscribe({
+    this.writes.add(this.orderService.update(o._id, { ...body, revision: o.updatedAt }).subscribe({
       next: (updated) => {
         this.apply(updated);
         this.message.set(done);

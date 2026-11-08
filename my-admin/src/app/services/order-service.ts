@@ -30,7 +30,7 @@ export class OrderService {
     return this.auth.withSession((csrfToken) => this.http.patch<Order>(`${this.baseUrl}/${id}/status`, body, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  update(id: string, body: { adminNote?: string; trackingCode?: string; paymentStatus?: PaymentStatus }): Observable<Order> {
+  update(id: string, body: { adminNote?: string; trackingCode?: string; paymentStatus?: PaymentStatus; revision?: string | null }): Observable<Order> {
     return this.auth.withSession((csrfToken) => this.http.patch<Order>(`${this.baseUrl}/${id}`, body, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 }

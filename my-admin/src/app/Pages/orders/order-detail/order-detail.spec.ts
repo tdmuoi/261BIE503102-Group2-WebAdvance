@@ -137,4 +137,35 @@ describe('OrderDetail', () => {
     expect(component.error()).toBeTruthy(); http.expectNone(r => r.method === 'PATCH');
   });
 
+  it('routes delivered returns through the verified return workflow without a failing status write', async () => {
+    await setup(); create(); component.orderId = 'o1';
+    http.expectOne(() => true).flush(makeOrder({ status: 'delivered', nextStatuses: ['returned'] }));
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    component.act('returned');
+    expect(navigate).toHaveBeenCalledWith(['/refunds']);
+    http.expectNone(r => r.method === 'PATCH');
+  });
+
+  it('does not offer manual payment changes rejected by the settlement API', async () => {
+    await setup(); create(); component.orderId = 'o1';
+    http.expectOne(() => true).flush(makeOrder());
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('select[aria-label="Trạng thái thanh toán (chỉ đọc)"]').disabled).toBe(true);
+    component.setPayment('paid');
+    http.expectNone(r => r.method === 'PATCH');
+    expect(component.error()).toContain('chỉ đọc');
+  });
+
+  it('sends the loaded note revision and preserves the edited note on conflict', async () => {
+    await setup(); create(); component.orderId = 'o1';
+    http.expectOne(() => true).flush(makeOrder({ updatedAt: '2026-11-08T00:00:00.000Z' }));
+    component.adminNote = 'Unsaved note'; component.saveNote();
+    const request = http.expectOne(r => r.method === 'PATCH');
+    expect(request.request.body.revision).toBe('2026-11-08T00:00:00.000Z');
+    request.flush({ message: 'Dữ liệu đã thay đổi' }, { status: 409, statusText: 'Conflict' });
+    expect(component.adminNote).toBe('Unsaved note');
+    expect(component.error()).toContain('đã thay đổi');
+    expect(component.saving()).toBe(false);
+  });
+
 });

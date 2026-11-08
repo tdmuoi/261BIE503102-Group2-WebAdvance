@@ -87,6 +87,7 @@ describe('BookForm', () => {
     component.save();
     const req = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/admin/books/b1'));
     expect(req.request.body.stock).toBe(10);
+    expect(req.request.body.revision).toBe('2026-10-02T00:00:00Z');
     req.flush({ _id: 'b1', title: 'Circe' });
   });
 

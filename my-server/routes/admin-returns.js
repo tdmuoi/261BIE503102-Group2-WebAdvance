@@ -39,6 +39,8 @@
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
+const revisions = require('../middleware/admin-revision');
+const dateRange = require('../middleware/admin-date-range');
 
 const STATUSES = ['pending', 'approved', 'received', 'refunded', 'exchanged', 'rejected'];
 const OPEN = ['pending', 'approved', 'received'];
@@ -67,12 +69,6 @@ function toDate(value) {
   const d = value instanceof Date ? value : new Date(value);
   return isNaN(d.getTime()) ? null : d;
 }
-function parseDay(value, endOfDay = false) {
-  const text = cleanText(value);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
-  return new Date(`${text}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}+07:00`);
-}
-
 function normalizeStatus(value) {
   const s = String(value ?? '').trim().toLowerCase();
   const aliases = { requested: 'pending', processing: 'approved', completed: 'refunded', done: 'refunded', declined: 'rejected' };
@@ -158,8 +154,7 @@ module.exports = function adminReturnsRoutes(getDb, getClient) {
         base.$or = [{ requestCode: regex }, { orderCode: regex }, { 'customer.name': regex }, { 'customer.phone': regex }, { customerName: regex }];
       }
       if (req.query.type === 'refund' || req.query.type === 'exchange') base.type = req.query.type;
-      const from = parseDay(req.query.from);
-      const to = parseDay(req.query.to, true);
+      const { from, to } = dateRange(req.query);
       if (from || to) {
         base.createdAt = {};
         if (from) base.createdAt.$gte = from;
@@ -202,7 +197,7 @@ module.exports = function adminReturnsRoutes(getDb, getClient) {
       });
     } catch (error) {
       console.error('GET /api/admin/returns failed:', error.message);
-      res.status(500).json({ message: 'Không tải được danh sách yêu cầu đổi trả' });
+      res.status(error.status || 500).json({ message: error.status ? error.message : 'Không tải được danh sách yêu cầu đổi trả' });
     }
   });
 
@@ -261,11 +256,14 @@ module.exports = function adminReturnsRoutes(getDb, getClient) {
       const doc = await findRequest(req.params.id);
       if (!doc) return res.status(404).json({ message: 'Không tìm thấy yêu cầu' });
       if (typeof req.body?.adminNote !== 'string') return res.status(400).json({ message: 'Cần gửi adminNote' });
-      await returns().updateOne({ _id: doc._id }, { $set: { adminNote: req.body.adminNote.trim().slice(0, 1000), updatedAt: new Date() } });
+      if (Object.keys(req.body).some((key) => !['adminNote', 'revision'].includes(key))) return res.status(400).json({ message: 'Có trường không được phép sửa.' });
+      revisions.requireRevision(req.body, doc);
+      const result = await returns().updateOne({ _id: doc._id, ...revisions.snapshot(doc) }, { $set: { adminNote: req.body.adminNote.trim().slice(0, 1000), updatedAt: revisions.nextUpdatedAt(doc) } });
+      if (!result.matchedCount) throw revisions.conflict();
       res.json(await presentOne(await returns().findOne({ _id: doc._id })));
     } catch (error) {
       console.error('PATCH /api/admin/returns/:id failed:', error.message);
-      res.status(500).json({ message: 'Không lưu được ghi chú' });
+      res.status(error.status || 500).json({ message: error.status ? error.message : 'Không lưu được ghi chú' });
     }
   });
 

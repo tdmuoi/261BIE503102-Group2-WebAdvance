@@ -53,6 +53,7 @@ export class BannerForm implements OnInit {
     const b = this.banner;
     this.form = b
       ? {
+          revision: b.updatedAt,
           name: b.name, title: b.title, subtitle: b.subtitle, image: b.image ?? '', link: b.link,
           bgColor: b.bgColor, textColor: b.textColor, position: b.position, active: b.active,
           startDate: toDateInput(b.startDate), endDate: toDateInput(b.endDate),

@@ -18,6 +18,7 @@
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
+const revisions = require('../middleware/admin-revision');
 
 const LOW_STOCK_THRESHOLD = 5;
 const EDITABLE_STATUSES = ['active', 'hidden'];
@@ -184,6 +185,7 @@ module.exports = function adminBooksRoutes(getDb) {
   }
 
   function handleError(res, error, action) {
+    if (error.status === 409) return res.status(409).json({ message: error.message });
     if (error instanceof ValidationError) {
       return res.status(400).json({ message: 'Dữ liệu chưa hợp lệ', errors: error.errors });
     }
@@ -192,7 +194,7 @@ module.exports = function adminBooksRoutes(getDb) {
   }
 
   // ---------- GET danh sách ----------
-  router.get('/books', async (req, res) => {
+  router.get(['/books', '/books/inventory'], async (req, res) => {
     try {
       const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
       const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
@@ -300,9 +302,16 @@ module.exports = function adminBooksRoutes(getDb) {
       const existing = await books().findOne({ _id, status: { $ne: 'deleted' } });
       if (!existing) return res.status(404).json({ message: 'Không tìm thấy sách' });
 
+      revisions.requireRevision(req.body, existing);
+
       const style = await storageStyle();
       const data = await parseBook(req.body || {}, style, existing);
-      await books().updateOne({ _id }, { $set: { ...data, updatedAt: now(style) } });
+      const timestamp = revisions.nextUpdatedAt(existing);
+      const result = await books().updateOne(
+        { _id, status: existing.status, stock: Object.hasOwn(existing, 'stock') ? existing.stock : { $exists: false }, ...revisions.snapshot(existing) },
+        { $set: { ...data, updatedAt: style.dateAsString ? timestamp.toISOString() : timestamp } },
+      );
+      if (!result.matchedCount) throw revisions.conflict();
       const updated = await books().findOne({ _id });
       res.json((await withNames([updated]))[0]);
     } catch (error) {

@@ -142,6 +142,13 @@ export class AccountManagementService {
       .pipe(timeout(15000));
   }
 
+  saveRoleActions(roleId: string, permissions: { module: string; actions: string[] }[], revision: string): Observable<{ revision: string }> {
+    return this.auth.withSession((csrfToken) => this.http.put<{ revision: string }>(
+      `${this.baseUrl}/roles/${encodeURIComponent(roleId)}/permissions`, { permissions, revision },
+      { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } },
+    )).pipe(timeout(15000));
+  }
+
   updateSecurity(body: {
     requireTwoFactor: boolean;
     forcePasswordRotation: boolean;

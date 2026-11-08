@@ -127,7 +127,7 @@ export class RefundDetail {
     if (!r || this.saving() || this.loading()) return;
     if (!this.allowWrite(r)) return;
     this.saving.set(true);
-    this.writes.add(this.returnService.saveNote(r._id, this.adminNote).subscribe({
+    this.writes.add(this.returnService.saveNote(r._id, this.adminNote, r.updatedAt).subscribe({
       next: (updated) => {
         this.apply({ ...updated, order: r.order });
         this.message.set('Đã lưu ghi chú');

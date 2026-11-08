@@ -198,7 +198,7 @@
               "
               [tone]="method.configured === true ? 'ok' : 'mute'"
             />
-            <button type="button" class="btn" (click)="unsupported('Cấu hình ' + method.name)">
+            <button type="button" class="btn" disabled title="Cấu hình phương thức thanh toán chưa khả dụng">
               Cấu hình
             </button>
             <input
@@ -394,7 +394,7 @@
           <h2 id="email-title">Email & thông báo</h2>
           <p class="section-subtitle">Email giao dịch và thông báo cho khách hàng</p>
           <p>Chưa có API cấu hình dịch vụ gửi email, template hoặc gửi thử.</p>
-          <button type="button" class="btn" (click)="unsupported('Gửi email thử')">
+          <button type="button" class="btn" disabled title="Gửi email thử chưa khả dụng">
             Gửi email thử
           </button>
         </section>
@@ -403,7 +403,7 @@
           <p class="section-subtitle">Phiên quản trị được bảo vệ bằng cookie HttpOnly và CSRF.</p>
           <p>Chưa có API thay đổi chính sách bảo mật, bật 2FA hoặc thu hồi phiên từ Settings.</p>
           <a class="btn" routerLink="/accounts">Quản lý tài khoản & phân quyền</a
-          ><button type="button" class="btn" (click)="unsupported('Thay đổi chính sách bảo mật')">
+          ><button type="button" class="btn" disabled title="Thay đổi chính sách bảo mật chưa khả dụng">
             Cấu hình bảo mật
           </button>
         </section>

@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { AdminAuthService } from '../../services/admin-auth-service';
+import { canAccessRoute, landingPage } from '../../services/admin-route-access';
 
 /**
  * Khung chung cho mọi trang admin (trừ /login): sidebar + topbar + <router-outlet>.
@@ -109,8 +110,24 @@ export class AdminLayout {
   sidebarOpen = false;
   currentUrl = this.router.url;
 
-  /** Thông tin admin đang đăng nhập — trang Login lưu vào localStorage key "adminUser" */
-  admin = this.readAdmin();
+  /** Display identity only from the verified in-memory session. */
+  get admin() { return this.readAdmin(); }
+
+  get visibleGroups(): NavGroup[] {
+    return this.navGroups.map((group) => ({
+      ...group, items: group.items.filter((item) => this.canVisit(item.link)),
+    })).filter((group) => group.items.length > 0);
+  }
+
+  canVisit(url: string): boolean {
+    try { return canAccessRoute(this.injector.get(AdminAuthService).user, url); }
+    catch { return false; }
+  }
+
+  get homeLink(): string {
+    try { return landingPage(this.injector.get(AdminAuthService).user); }
+    catch { return '/login'; }
+  }
 
   constructor() {
     this.router.events
@@ -185,11 +202,7 @@ export class AdminLayout {
           name: verified.fullName,
           role: verified.roleName || verified.roleCode || verified.role,
         };
-      const saved = JSON.parse(localStorage.getItem('adminUser') ?? 'null');
-      return {
-        name: saved?.fullName || saved?.name || fallback.name,
-        role: saved?.roleLabel || saved?.role || fallback.role,
-      };
+      return fallback;
     } catch {
       return fallback;
     }

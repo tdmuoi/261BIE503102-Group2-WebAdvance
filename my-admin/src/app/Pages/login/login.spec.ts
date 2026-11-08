@@ -16,6 +16,7 @@ describe('Login API and template-driven form', () => {
   let booksService: { getBooks: ReturnType<typeof vi.fn> };
   let auth: {
     user: AdminSession['user'] | null;
+    landingPage: string;
     checkSession: ReturnType<typeof vi.fn>;
     login: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
@@ -29,6 +30,7 @@ describe('Login API and template-driven form', () => {
     booksService = { getBooks: vi.fn(() => of([])) };
     auth = {
       user: null,
+      landingPage: '/dashboard',
       checkSession: vi.fn(() => throwError(() => new HttpErrorResponse({ status: 401 }))),
       login: vi.fn(),
       logout: vi.fn(),

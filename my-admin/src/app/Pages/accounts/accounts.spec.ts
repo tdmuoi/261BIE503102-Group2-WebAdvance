@@ -296,6 +296,31 @@ describe('Accounts authenticated HTTP and UI', () => {
     http.expectNone(base + '/security');
     expect(fixture.componentInstance.error()).toContain('Không lưu');
   });
+
+  it('confirms native module/action changes and sends the loaded role revision', async () => {
+    await admins();
+    const page = fixture.componentInstance;
+    const data = page.admins()!;
+    page.admins.set({ ...data, roles: { ...data.roles,
+      roles: data.roles.roles.map((role) => ({ ...role, editable: role._id === 'r1', revision: 'loaded-revision' })),
+      availableActions: { products: ['view', 'update'] }, moduleActions: { r1: { products: ['view'] } },
+    } });
+    page.beginPermissionEdit();
+    page.setModuleAction('r1', 'products', 'update', true);
+    page.setModuleAction('r2', 'products', 'update', true);
+    expect(Object.keys(page.dirtyModuleActions())).toEqual(['r1']);
+    page.savePermissions();
+    expect(page.permissionConfirmOpen()).toBe(true);
+    http.expectNone((request) => request.method === 'PUT');
+    page.confirmRolePermissions();
+    const request = http.expectOne(base + '/roles/r1/permissions');
+    expect(request.request.body).toEqual({ permissions: [{ module: 'products', actions: ['view', 'update'] }], revision: 'loaded-revision' });
+    request.flush({ revision: 'new-revision' });
+    expect(page.hasPermissionChanges()).toBe(false);
+    expect(page.permissionEditing()).toBe(false);
+    expect(page.admins()?.roles.roles.find((role) => role._id === 'r1')?.revision).toBe('new-revision');
+    expect(page.roleActions('r1', 'products')).toBe('Xem, Cập nhật');
+  });
   it('does not open an invitation or call a known unsupported API', async () => {
     await admins();
     const page = fixture.componentInstance;

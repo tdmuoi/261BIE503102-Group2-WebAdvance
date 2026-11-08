@@ -17,7 +17,9 @@ function quantities(items) {
     )
       throw failure(409, "Unverified item identity/quantity");
     const id = String(item.bookId);
-    result.set(id, (result.get(id) || 0) + item.quantity);
+    const total = (result.get(id) || 0) + item.quantity;
+    if (!Number.isSafeInteger(total)) throw failure(409, 'Quantity exceeds safe integer range');
+    result.set(id, total);
   }
   return result;
 }
@@ -35,6 +37,7 @@ async function stockReturn(db, session, items) {
       book.stock < 0
     )
       throw failure(409, "Physical stock is not verified");
+    if (!Number.isSafeInteger(book.stock + qty)) throw failure(409, 'Stock exceeds safe integer range');
     const changed = await db
       .collection("books")
       .updateOne(
@@ -49,6 +52,16 @@ async function stockReturn(db, session, items) {
   return count;
 }
 async function transition(db, client, kind, id, body) {
+  const allowed = kind === 'orders'
+    ? ['status', 'note', 'trackingCode', 'restock']
+    : ['status', 'note', 'refundAmount', 'restock'];
+  if (!body || typeof body !== 'object' || Array.isArray(body) ||
+      Object.keys(body).some((key) => !allowed.includes(key)) ||
+      typeof body.status !== 'string' ||
+      (body.note !== undefined && typeof body.note !== 'string') ||
+      (body.trackingCode !== undefined && typeof body.trackingCode !== 'string') ||
+      (body.refundAmount !== undefined && (typeof body.refundAmount !== 'number' || !Number.isFinite(body.refundAmount))))
+    throw failure(400, 'Invalid status payload; unexpected fields or field types');
   if (!client) throw failure(503, "Transactional client unavailable");
   const hello = await db.admin().command({ hello: 1 });
   if (!hello.setName && hello.msg !== "isdbgrid")

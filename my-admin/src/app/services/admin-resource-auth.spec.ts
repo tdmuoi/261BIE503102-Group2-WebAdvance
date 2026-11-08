@@ -20,12 +20,13 @@ describe('Admin resource authentication', () => {
 
   it('sends session cookies on all five resource reads without exposing CSRF in the URL', () => {
     TestBed.inject(BookService).getBooks().subscribe();
+    TestBed.inject(BookService).getInventory().subscribe();
     TestBed.inject(OrderService).getOrders().subscribe();
     TestBed.inject(ReturnService).getReturns().subscribe();
     TestBed.inject(BannerService).getBanners().subscribe();
     TestBed.inject(DashboardService).getDashboard().subscribe();
     const requests = http.match(r => r.url.includes('/admin/'));
-    expect(requests.length).toBe(5);
+    expect(requests.length).toBe(6);
     for (const req of requests) {
       expect(req.request.withCredentials).toBe(true);
       expect(req.request.params.has('csrfToken')).toBe(false);

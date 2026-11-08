@@ -119,4 +119,14 @@ describe('AdminAuthService and guard', () => {
     http.expectOne(base + '/session').flush(session);
     expect(result).toBe(true);
   });
+
+  it('blocks direct navigation to a module missing from the verified session', () => {
+    let result: unknown;
+    const guard = TestBed.runInInjectionContext(() =>
+      adminAuthGuard({} as ActivatedRouteSnapshot, { url: '/inventory' } as RouterStateSnapshot),
+    ) as Observable<unknown>;
+    guard.subscribe((value) => result = value);
+    http.expectOne(base + '/session').flush({ ...session, user: { ...session.user, role: 'admin', permissions: [] } });
+    expect(TestBed.inject(Router).serializeUrl(result as Parameters<Router['serializeUrl']>[0])).toBe('/access-denied');
+  });
 });

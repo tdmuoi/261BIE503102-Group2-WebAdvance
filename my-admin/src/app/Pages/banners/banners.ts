@@ -1,6 +1,7 @@
 import { adminApiError } from '../../services/admin-api-error';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 
 import { Banner, BannerListResponse, BannerPosition, BannerState, POSITION_LABELS } from '../../models/banner';
 import { BannerService } from '../../services/banner-service';
@@ -24,6 +25,8 @@ const STATE_BADGE: Record<BannerState, { status: string; label: string }> = {
   templateUrl: './banners.html',
 })
 export class Banners {
+  private readRequest?: Subscription;
+  ngOnDestroy(): void { this.readRequest?.unsubscribe(); }
   private readonly bannerService = inject(BannerService);
 
   readonly positionLabels = POSITION_LABELS;
@@ -76,14 +79,16 @@ export class Banners {
   }
 
   load(): void {
+    this.readRequest?.unsubscribe();
     this.loading.set(true);
-    this.bannerService.getBanners().subscribe({
+    this.readRequest = this.bannerService.getBanners().subscribe({
       next: (res) => {
         this.data.set(res);
         this.error.set('');
         this.loading.set(false);
       },
       error: (err: HttpErrorResponse) => {
+        this.data.set(null);
         this.error.set(this.message(err, 'Không tải được danh sách banner.'));
         this.loading.set(false);
       },
@@ -133,7 +138,7 @@ export class Banners {
   toggle(b: Banner): void {
     if (this.busyId() || this.loading() || this.hasContractIssue(b)) return;
     this.busyId.set(b._id);
-    this.bannerService.setActive(b._id, !b.active).subscribe({
+    this.bannerService.setActive(b._id, !b.active, b.updatedAt).subscribe({
       next: () => {
         this.busyId.set('');
         this.showFlash(`Đã ${b.active ? 'tắt' : 'bật'} banner "${b.name}"`);
@@ -158,7 +163,7 @@ export class Banners {
     const others = items.filter((x) => x.position !== b.position || this.hasContractIssue(x));
     this.data.update((d) => (d ? { ...d, items: [...others, ...list.map((x, i) => ({ ...x, order: i + 1 }))] } : d));
     this.busyId.set(b._id);
-    this.bannerService.reorder(list.map((x) => x._id)).subscribe({
+    this.bannerService.reorder(list.map((x) => x._id), Object.fromEntries(list.map((x) => [x._id, x.updatedAt]))).subscribe({
       next: () => {
         this.busyId.set('');
         this.load();
@@ -175,7 +180,7 @@ export class Banners {
     const b = this.deleting();
     if (!b || this.busyId() || this.loading() || this.hasContractIssue(b)) return;
     this.busyId.set(b._id);
-    this.bannerService.deleteBanner(b._id).subscribe({
+    this.bannerService.deleteBanner(b._id, b.updatedAt).subscribe({
       next: () => {
         this.busyId.set('');
         this.deleting.set(null);

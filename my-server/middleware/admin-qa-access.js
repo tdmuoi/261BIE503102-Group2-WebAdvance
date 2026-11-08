@@ -14,6 +14,8 @@ module.exports = function adminQaAccess(auth) {
     const module = modules[resource];
     if (!module) return next();
     return auth.requireAdmin(req, res, () => {
+      if (resource === "books" && pathname === "/books/inventory" && ["GET", "HEAD"].includes(req.method))
+        return auth.requirePermission("inventory", "view")(req, res, next);
       let action = ["GET", "HEAD"].includes(req.method)
         ? "view"
         : req.method === "POST"
@@ -28,7 +30,7 @@ module.exports = function adminQaAccess(auth) {
             : req.body?.status === "returned"
               ? "refund"
               : "confirm";
-      if (resource === "orders" && req.body?.paymentStatus !== undefined)
+      if (resource === "orders" && !pathname.endsWith("/status") && req.body?.paymentStatus !== undefined)
         action = req.body.paymentStatus === "refunded" ? "refund" : "confirm";
       if (resource === "returns" && !["GET", "HEAD"].includes(req.method))
         action = pathname.endsWith("/status")

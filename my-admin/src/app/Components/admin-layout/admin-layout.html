@@ -1,7 +1,7 @@
 <div class="admin" [class.sidebar-open]="sidebarOpen">
   <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar">
-    <a class="brand" routerLink="/dashboard">
+    <a class="brand" [routerLink]="homeLink">
       <span class="brand-logo">L</span>
       <span class="brand-text">
         <strong>Lightbook</strong>
@@ -10,7 +10,7 @@
     </a>
 
     <nav class="nav">
-      @for (group of navGroups; track group.title) {
+      @for (group of visibleGroups; track group.title) {
         <p class="nav-group">{{ group.title }}</p>
         @for (item of group.items; track item.link) {
           <a class="nav-item" [routerLink]="item.link" [class.active]="isActive(item)"
@@ -22,10 +22,12 @@
       }
     </nav>
 
+    @if (canVisit('/book-form')) {
     <a class="btn btn-primary btn-add" routerLink="/book-form">
       <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.plus" /></svg>
       Thêm sách mới
     </a>
+    }
   </aside>
 
   <!-- Nền mờ khi mở sidebar trên mobile -->
@@ -38,17 +40,18 @@
         <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.menu" /></svg>
       </button>
 
+      @if (canVisit('/book-list')) {
       <form class="search" role="search" (submit)="$event.preventDefault(); search(keyword.value)">
-        <input #keyword class="search-input" type="search" placeholder="Tìm sách, SKU..." aria-label="Tìm kiếm" />
+        <input #keyword class="search-input" type="search" placeholder="Tìm sách, ISBN, tác giả..." aria-label="Tìm kiếm" />
         <button type="submit" class="search-btn" aria-label="Tìm">
           <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.search" /></svg>
         </button>
       </form>
+      }
 
       <div class="topbar-right">
-        <button type="button" class="icon-btn bell" aria-label="Thông báo">
+        <button type="button" class="icon-btn bell" disabled aria-label="Thông báo chưa khả dụng" title="Chưa có dịch vụ thông báo quản trị">
           <svg class="icon" viewBox="0 0 24 24"><path [attr.d]="icons.bell" /></svg>
-          <span class="dot"></span>
         </button>
 
         <div class="profile">

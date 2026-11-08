@@ -69,6 +69,8 @@ export class Accounts implements OnInit {
   readonly editRole = signal('');
   readonly editStatus = signal('');
   readonly dirtyPermissions = signal<Record<string, string[]>>({});
+  readonly dirtyModuleActions = signal<Record<string, Record<string, string[]>>>({});
+  readonly permissionConfirmOpen = signal(false);
 
   readonly customerItems = computed(() => this.customers()?.items ?? []);
   readonly adminItems = computed(() => this.admins()?.items ?? []);
@@ -76,7 +78,7 @@ export class Accounts implements OnInit {
     this.tab() === 'customers' ? (this.customers()?.total ?? 0) : (this.admins()?.total ?? 0),
   );
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize)));
-  readonly hasPermissionChanges = computed(() => Object.keys(this.dirtyPermissions()).length > 0);
+  readonly hasPermissionChanges = computed(() => Object.keys(this.dirtyPermissions()).length > 0 || Object.keys(this.dirtyModuleActions()).length > 0);
 
   constructor() {
     this.search$.pipe(debounceTime(300), takeUntilDestroyed()).subscribe(({ value, version }) => {
@@ -314,6 +316,10 @@ export class Accounts implements OnInit {
 
   savePermissions(): void {
     if (this.saving() || !this.admins()?.capabilities.roles) return;
+    if (this.admins()?.roles.availableActions) {
+      if (Object.keys(this.dirtyModuleActions()).length) this.permissionConfirmOpen.set(true);
+      return;
+    }
     const changes = Object.entries(this.dirtyPermissions());
     if (!changes.length) return;
     this.saving.set(true);
@@ -355,12 +361,64 @@ export class Accounts implements OnInit {
   beginPermissionEdit(): void {
     if (!this.admins()?.capabilities.roles || this.saving()) return;
     this.dirtyPermissions.set({});
+    this.dirtyModuleActions.set({});
     this.permissionEditing.set(true);
   }
 
   cancelPermissionEdit(): void {
     this.dirtyPermissions.set({});
+    this.dirtyModuleActions.set({});
+    this.permissionConfirmOpen.set(false);
     this.permissionEditing.set(false);
+  }
+
+  hasModuleAction(roleId: string, module: string, action: string): boolean {
+    return (this.dirtyModuleActions()[roleId] ?? this.admins()?.roles.moduleActions?.[roleId])?.[module]?.includes(action) ?? false;
+  }
+
+  setModuleAction(roleId: string, module: string, action: string, checked: boolean): void {
+    const data = this.admins();
+    if (this.saving() || !this.permissionEditing() || !data?.capabilities.roles ||
+        !data.roles.roles.find((role) => role._id === roleId)?.editable ||
+        !data.roles.availableActions?.[module]?.includes(action)) return;
+    const current = this.dirtyModuleActions()[roleId] ?? data.roles.moduleActions?.[roleId] ?? {};
+    const actions = new Set(current[module] ?? []);
+    if (checked) actions.add(action); else actions.delete(action);
+    this.dirtyModuleActions.set({ ...this.dirtyModuleActions(), [roleId]: { ...current, [module]: [...actions] } });
+  }
+
+  confirmRolePermissions(): void {
+    const data = this.admins(), changes = Object.entries(this.dirtyModuleActions());
+    if (this.saving() || !this.permissionConfirmOpen() || !data?.capabilities.roles || !changes.length) return;
+    this.saving.set(true);
+    this.requests.add(forkJoin(changes.map(([roleId, modules]) => {
+      const role = data.roles.roles.find((role) => role._id === roleId)!;
+      return this.accountsService.saveRoleActions(roleId,
+        Object.entries(modules).filter(([, actions]) => actions.length).map(([module, actions]) => ({ module, actions })), role.revision ?? '',
+      ).pipe(map((result) => ({ roleId, modules, revision: result.revision, error: '' })),
+        catchError((error: HttpErrorResponse) => of({ roleId, modules, revision: '', error: this.describeError(error) })));
+    })).subscribe((results) => {
+      this.saving.set(false); this.permissionConfirmOpen.set(false);
+      const failed: Record<string, Record<string, string[]>> = {};
+      const next = this.admins();
+      if (next) {
+        const moduleActions = { ...next.roles.moduleActions };
+        const roles = next.roles.roles.map((role) => ({ ...role }));
+        for (const result of results) {
+          if (result.error) failed[result.roleId] = result.modules;
+          else {
+            moduleActions[result.roleId] = result.modules;
+            const role = roles.find((role) => role._id === result.roleId);
+            if (role) role.revision = result.revision;
+          }
+        }
+        this.admins.set({ ...next, roles: { ...next.roles, roles, moduleActions } });
+      }
+      this.dirtyModuleActions.set(failed);
+      this.permissionEditing.set(Object.keys(failed).length > 0);
+      this.message.set(`Đã lưu ${results.length - Object.keys(failed).length}/${results.length} vai trò. Máy chủ áp dụng từ yêu cầu kế tiếp; tải lại trang để cập nhật menu.`);
+      this.error.set(results.filter((result) => result.error).map((result) => result.error).join(' '));
+    }));
   }
 
   openRoleEditor(): void {
@@ -513,6 +571,9 @@ export class Accounts implements OnInit {
   }
   roleActions(roleId: string, module: string): string {
     const actions = this.admins()?.roles.moduleActions?.[roleId]?.[module] ?? [];
+    return actions.length ? actions.map((action) => this.actionLabel(action)).join(', ') : '—';
+  }
+  actionLabel(action: string): string {
     const labels: Record<string, string> = {
       view: 'Xem',
       create: 'Tạo',
@@ -528,7 +589,7 @@ export class Accounts implements OnInit {
       publish: 'Đăng',
       adjust_inventory: 'Điều chỉnh kho',
     };
-    return actions.length ? actions.map((action) => labels[action] ?? action).join(', ') : '—';
+    return labels[action] ?? action;
   }
   setPermissionLevel(roleId: string, permissionId: string, level: string): void {
     if (this.saving()) return;

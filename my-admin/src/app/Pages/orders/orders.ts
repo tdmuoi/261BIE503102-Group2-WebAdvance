@@ -2,7 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import { adminApiError } from '../../services/admin-api-error';
 
 import { ORDER_STATUS, Order, OrderListResponse, OrderQuery, OrderStatus, PAYMENT_STATUS, PaymentStatus } from '../../models/order';
 import { OrderService } from '../../services/order-service';
@@ -56,6 +57,8 @@ export class Orders {
   readonly hasFilter = computed(() => !!(this.q() || this.status() || this.payment() || this.from() || this.to()));
 
   private readonly search$ = new Subject<string>();
+  private readRequest?: Subscription;
+  ngOnDestroy(): void { this.readRequest?.unsubscribe(); }
 
   constructor() {
     this.search$.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed()).subscribe((text) => {
@@ -71,9 +74,10 @@ export class Orders {
   }
 
   load(): void {
+    this.readRequest?.unsubscribe();
     this.loading.set(true);
     this.error.set('');
-    this.orderService
+    this.readRequest = this.orderService
       .getOrders({
         q: this.q(), status: this.status(), payment: this.payment(), from: this.from(), to: this.to(),
         sort: this.sort(), page: this.page(), limit: this.pageSize,
@@ -84,11 +88,8 @@ export class Orders {
           this.loading.set(false);
         },
         error: (err: HttpErrorResponse) => {
-          this.error.set(
-            err.status === 0
-              ? 'Không kết nối được my-server (http://localhost:3002). Hãy chạy "npm run dev" trong thư mục my-server.'
-              : 'Không tải được danh sách đơn hàng. Xem terminal của my-server để biết chi tiết.',
-          );
+          this.data.set(null);
+          this.error.set(adminApiError(err, 'Không tải được danh sách đơn hàng.'));
           this.loading.set(false);
         },
       });

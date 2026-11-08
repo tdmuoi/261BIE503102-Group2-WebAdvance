@@ -30,7 +30,7 @@ export class ReturnService {
     return this.auth.withSession((csrfToken) => this.http.patch<ReturnRequest>(`${this.baseUrl}/${id}/status`, body, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  saveNote(id: string, adminNote: string): Observable<ReturnRequest> {
-    return this.auth.withSession((csrfToken) => this.http.patch<ReturnRequest>(`${this.baseUrl}/${id}`, { adminNote }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
+  saveNote(id: string, adminNote: string, revision: string | null = null): Observable<ReturnRequest> {
+    return this.auth.withSession((csrfToken) => this.http.patch<ReturnRequest>(`${this.baseUrl}/${id}`, { adminNote, revision }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 }

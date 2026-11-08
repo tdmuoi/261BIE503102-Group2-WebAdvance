@@ -47,6 +47,7 @@ export interface BookListResponse {
 
 /** Dữ liệu form Thêm/Sửa gửi lên server */
 export interface BookPayload {
+  revision?: string | null;
   title: string;
   /** Chọn tác giả có sẵn thì gửi authorId; gõ tên mới thì gửi authorName (server tự tạo tác giả) */
   authorId: string | null;
