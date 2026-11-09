@@ -187,6 +187,10 @@ app.use('/api', eventsRoutes(() => database));
 const newsletterRoutes = require('./routes/newsletter');
 app.use('/api', newsletterRoutes(() => database));
 
+// API chatbot Thủ thư Lightbook gợi ý sách: POST /api/librarian (xem routes/librarian.js)
+const librarianRoutes = require('./routes/librarian');
+app.use('/api', librarianRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {

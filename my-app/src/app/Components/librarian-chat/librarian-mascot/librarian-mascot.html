@@ -1,0 +1,56 @@
+<svg class="lm-svg" viewBox="0 0 120 120" aria-hidden="true">
+  <defs>
+    <radialGradient [attr.id]="uid + '-body'" cx="0.35" cy="0.3" r="0.75">
+      <stop offset="0" class="lm-stop-light" />
+      <stop offset="0.6" class="lm-stop-mid" />
+      <stop offset="1" class="lm-stop-deep" />
+    </radialGradient>
+    <linearGradient [attr.id]="uid + '-phone'" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" class="lm-stop-green" />
+      <stop offset="1" class="lm-stop-green-deep" />
+    </linearGradient>
+  </defs>
+
+  <g class="lm-bob">
+    <!-- Bàn chân nhỏ -->
+    <ellipse cx="46" cy="104" rx="9" ry="6" class="lm-foot" />
+    <ellipse cx="74" cy="104" rx="9" ry="6" class="lm-foot" />
+
+    <!-- Tai mèo bo tròn -->
+    <path d="M28 46 C24 30 26 18 32 16 C38 14 46 24 52 32 Z" class="lm-ear" />
+    <path d="M92 46 C96 30 94 18 88 16 C82 14 74 24 68 32 Z" class="lm-ear" />
+    <path d="M33 38 C32 30 33 24 35 23 C38 23 42 28 45 32 Z" class="lm-ear-in" />
+    <path d="M87 38 C88 30 87 24 85 23 C82 23 78 28 75 32 Z" class="lm-ear-in" />
+
+    <!-- Thân tròn -->
+    <circle cx="60" cy="64" r="41" [attr.fill]="bodyFill" />
+    <!-- Nhúm lông trên đỉnh -->
+    <path d="M53 26 C55 18 60 18 60 24 C61 17 67 18 67 26 Z" class="lm-ear" />
+
+    <!-- Má hồng -->
+    <ellipse cx="35" cy="78" rx="7.5" ry="4.5" class="lm-cheek" />
+    <ellipse cx="85" cy="78" rx="7.5" ry="4.5" class="lm-cheek" />
+
+    <!-- Mắt to tròn long lanh -->
+    <g class="lm-eyes">
+      <ellipse cx="45" cy="66" rx="9" ry="10.5" class="lm-pupil" />
+      <ellipse cx="75" cy="66" rx="9" ry="10.5" class="lm-pupil" />
+      <circle cx="48.5" cy="61.5" r="3.8" class="lm-shine" />
+      <circle cx="78.5" cy="61.5" r="3.8" class="lm-shine" />
+      <circle cx="42.5" cy="70.5" r="1.8" class="lm-shine" />
+      <circle cx="72.5" cy="70.5" r="1.8" class="lm-shine" />
+    </g>
+
+    <!-- Miệng cười nhỏ -->
+    <path d="M55.5 79 Q58 82.5 60 79.5 Q62 82.5 64.5 79" class="lm-mouth" />
+
+    <!-- Tai nghe: quai mảnh, 2 bên tai, micro -->
+    <path d="M21 62 C20 22 100 22 99 62" class="lm-band" />
+    <rect x="13" y="54" width="15" height="22" rx="7.5" [attr.fill]="phoneFill" />
+    <rect x="92" y="54" width="15" height="22" rx="7.5" [attr.fill]="phoneFill" />
+    <rect x="16" y="58" width="4" height="14" rx="2" class="lm-cushion" />
+    <rect x="100" y="58" width="4" height="14" rx="2" class="lm-cushion" />
+    <path d="M20 75 Q22 88 36 88" class="lm-boom" />
+    <circle cx="38" cy="88" r="3.5" class="lm-mic" />
+  </g>
+</svg>

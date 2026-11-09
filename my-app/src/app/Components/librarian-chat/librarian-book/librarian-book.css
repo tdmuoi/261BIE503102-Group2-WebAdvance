@@ -1,0 +1,98 @@
+.lb-card {
+  display: flex;
+  gap: var(--space-12);
+  padding: var(--space-10);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+  box-shadow: var(--shadow-offset-xs);
+}
+
+.lb-cover {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 92px;
+  border-radius: var(--radius-8);
+  background: var(--color-bg-placeholder);
+}
+
+.lb-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-8);
+}
+
+.lb-index {
+  position: absolute;
+  top: calc(-1 * var(--space-6));
+  left: calc(-1 * var(--space-6));
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  background: var(--color-tint-yellow-strong);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 800 12px/1 var(--font-sans);
+}
+
+.lb-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.lb-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font: 800 14px/1.3 var(--font-sans);
+}
+
+.lb-title:hover { text-decoration: underline; }
+
+.lb-author {
+  font: 400 12px/1.3 var(--font-sans);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-reason {
+  margin: var(--space-4) 0 0;
+  font: italic 400 13px/1.5 var(--font-sans);
+  color: var(--color-text-body);
+}
+
+.lb-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-top: auto;
+  padding-top: var(--space-6);
+}
+
+.lb-price {
+  font: 800 14px/1.25 var(--font-sans);
+  color: var(--color-text-price);
+}
+
+.lb-add {
+  margin-left: auto;
+  padding: var(--space-4) var(--space-10);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/1.3 var(--font-sans);
+  transition: transform .12s ease;
+}
+
+.lb-add:active { transform: translateY(1px); }

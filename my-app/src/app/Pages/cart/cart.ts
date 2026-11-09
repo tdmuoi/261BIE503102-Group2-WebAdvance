@@ -34,7 +34,11 @@ export class Cart {
   readonly allSelected = this.facade.allSelected;
   readonly selected = this.facade.selectedLines;
   readonly voucher = this.facade.voucher;
-  readonly totals = computed(() => computeTotals(this.selected().map((l) => ({ price: l.price, quantity: l.quantity, ebook: l.ebook })), this.voucher()));
+  readonly totals = computed(() =>
+    computeTotals(this.selected().map((l) => ({ price: l.price, quantity: l.quantity, ebook: l.ebook })), this.voucher(), 'standard', this.facade.comboTotals()),
+  );
+  readonly comboLabels = this.facade.comboLabels;
+  readonly comboFreeship = computed(() => this.facade.comboTotals().freeship && this.totals().hasPhysical);
   readonly cartIds = computed(() => this.lines().map((l) => l.bookId));
 
   /** Ô mã giảm giá (dùng chung với trang Thanh toán) */

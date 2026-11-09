@@ -56,6 +56,7 @@
                 <a class="title" [routerLink]="['/product-detail', line.bookId]">{{ line.title }}</a>
                 @if (line.author) { <p class="author">{{ line.author }}</p> }
                 <p class="meta">{{ line.meta || line.variant }}</p>
+                @if (comboLabels().get(line.bookId); as combo) { <span class="tag tag-mint">Combo “{{ combo }}” · giảm 10%</span> }
                 <div class="actions">
                   <button type="button" class="text-btn" (click)="saveToWishlist(line)" [class.is-on]="isLiked(line)">
                     <img src="images/shop/heart.svg" alt="" width="16" height="16" />{{ isLiked(line) ? 'Đã lưu yêu thích' : 'Lưu vào yêu thích' }}
@@ -98,7 +99,11 @@
             <div class="track" role="progressbar" [attr.aria-valuenow]="totals().freeshipProgress" aria-valuemin="0" aria-valuemax="100">
               <span [style.width.%]="totals().freeshipProgress"></span>
             </div>
-            <p class="freeship-note">{{ totals().subtotal | vnd }} / {{ freeshipMin | vnd }} · Freeship cho đơn từ 500.000đ (áp dụng nội thành)</p>
+            @if (comboFreeship()) {
+              <p class="freeship-note">Freeship nhờ combo tự chọn (giao tiêu chuẩn)</p>
+            } @else {
+              <p class="freeship-note">{{ totals().subtotal | vnd }} / {{ freeshipMin | vnd }} · Freeship cho đơn từ 500.000đ (áp dụng nội thành)</p>
+            }
           </div>
         }
 
@@ -123,6 +128,9 @@
 
         <dl class="lines">
           <div><dt>Tạm tính ({{ totals().itemCount }} sản phẩm · {{ totals().bookCount }} cuốn)</dt><dd>{{ totals().subtotal | vnd }}</dd></div>
+          @if (totals().comboDiscount) {
+            <div><dt>Giảm combo</dt><dd class="is-discount">−{{ totals().comboDiscount | vnd }}</dd></div>
+          }
           @if (voucher(); as v) {
             <div><dt>Giảm giá ({{ v.code }})</dt><dd class="is-discount">−{{ totals().discount | vnd }}</dd></div>
           }

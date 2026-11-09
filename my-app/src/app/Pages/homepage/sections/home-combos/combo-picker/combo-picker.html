@@ -1,0 +1,27 @@
+<dialog #dialog class="picker" aria-labelledby="combo-picker-title" (close)="closed.emit()" (click)="onBackdrop($event)">
+  <div class="picker-head">
+    <h3 id="combo-picker-title">Chọn sách cho combo</h3>
+    <button type="button" class="picker-close" aria-label="Đóng" (click)="dialog.close()">✕</button>
+  </div>
+
+  <input class="input" type="search" placeholder="Tìm theo tên sách hoặc tác giả…" aria-label="Tìm sách" [value]="query()" (input)="onSearch($event)" />
+
+  <ul class="picker-list">
+    @for (book of results(); track book._id) {
+      <li>
+        <button type="button" class="picker-item" (click)="picked.emit(book)">
+          <span class="picker-cover"><img [appTrimCover]="book.image" alt="" loading="lazy" /></span>
+          <span class="picker-info">
+            <strong>{{ book.title }}</strong>
+            @if (book.authorName) {
+              <small>{{ book.authorName }}</small>
+            }
+            <span class="picker-price">{{ book.price | vnd }}</span>
+          </span>
+        </button>
+      </li>
+    } @empty {
+      <li class="picker-empty">Không tìm thấy cuốn nào phù hợp.</li>
+    }
+  </ul>
+</dialog>

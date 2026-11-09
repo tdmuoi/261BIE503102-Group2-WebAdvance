@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 
 import { VndPipe } from '../../../../pipes/vnd-pipe';
+import { CartFacade } from '../../../cart/cart-facade';
 import { makeBook, makeBooks } from '../../../../testing/mock-books';
 import { HomeCombos } from './home-combos';
 
@@ -20,6 +21,7 @@ describe('HomeCombos', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([])],
       declarations: [HomeCombos, VndPipe],
+      providers: [{ provide: CartFacade, useValue: { addCombo: () => undefined } }],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(HomeCombos);

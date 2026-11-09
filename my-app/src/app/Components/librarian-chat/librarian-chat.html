@@ -1,0 +1,79 @@
+@if (open()) {
+  <section class="lc-panel" role="dialog" aria-label="Thủ thư Lightbook" (keydown.escape)="close()">
+    <header class="lc-head">
+      <app-librarian-mascot class="lc-avatar" />
+      <div class="lc-title">
+        <strong class="lc-name">Thủ thư Lightbook <span class="lc-ai">AI</span></strong>
+        <span class="lc-sub">Kể mình nghe bạn muốn đọc gì, mình tìm sách cho bạn</span>
+      </div>
+      <button class="lc-close" type="button" aria-label="Đóng thủ thư" (click)="close()">✕</button>
+    </header>
+
+    <div class="lc-body" #scrollBox aria-live="polite">
+      @for (m of messages(); track $index) {
+        <div class="lc-msg" [class.lc-user]="m.role === 'user'">
+          @if (m.text) {
+            <div class="lc-line">
+              @if (m.role === 'bot') {
+                <app-librarian-mascot class="lc-mini" />
+              }
+              <p class="lc-bubble">{{ m.text }}</p>
+            </div>
+          }
+          @if (m.books?.length) {
+            <div class="lc-books lc-indent">
+              @for (b of m.books; track b._id; let i = $index) {
+                <app-librarian-book [book]="b" [index]="i" (opened)="onBookOpened()" />
+              }
+            </div>
+          }
+          @if (m.followUp) {
+            <p class="lc-bubble lc-indent">{{ m.followUp }}</p>
+          }
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="lc-msg">
+          <div class="lc-line">
+            <app-librarian-mascot class="lc-mini" />
+            <p class="lc-bubble lc-typing">Mình đang lục tìm trên kệ sách…</p>
+          </div>
+        </div>
+      }
+
+      @if (messages().length === 1 && !loading()) {
+        <div class="lc-chips">
+          @for (s of suggestions; track s) {
+            <button class="lc-chip" type="button" (click)="send(s)">{{ s }}</button>
+          }
+        </div>
+      }
+    </div>
+
+    <form class="lc-form" (submit)="submit($event)">
+      <input
+        #inputBox
+        class="input lc-input"
+        [formControl]="input"
+        [attr.maxlength]="maxLength"
+        placeholder="Bạn đang muốn đọc gì…"
+        aria-label="Tin nhắn cho thủ thư"
+        autocomplete="off"
+        [readonly]="loading()"
+      />
+      <button class="lc-send" type="submit" [disabled]="loading() || !input.value.trim()" aria-label="Gửi">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </button>
+    </form>
+  </section>
+}
+
+<button class="lc-fab" type="button" (click)="toggle()" [class.is-open]="open()" [attr.aria-expanded]="open()" [attr.aria-label]="open() ? 'Đóng thủ thư' : 'Hỏi thủ thư Lightbook'">
+  <app-librarian-mascot class="lc-fab-mascot" [animated]="!open()" />
+  @if (!open()) {
+    <span class="lc-fab-tip">Hỏi thủ thư AI</span>
+  }
+</button>

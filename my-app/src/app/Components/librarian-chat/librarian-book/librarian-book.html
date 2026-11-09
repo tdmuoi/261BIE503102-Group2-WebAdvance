@@ -1,0 +1,26 @@
+@let b = book();
+<article class="lb-card">
+  <a class="lb-cover" [routerLink]="['/books', b._id]" (click)="opened.emit()" [attr.aria-label]="b.title">
+    @if (b.image) {
+      <img [appTrimCover]="b.image" [alt]="b.title" loading="lazy" />
+    }
+    <span class="lb-index">{{ index() + 1 }}</span>
+  </a>
+
+  <div class="lb-info">
+    <a class="lb-title" [routerLink]="['/books', b._id]" (click)="opened.emit()" [title]="b.title">{{ b.title }}</a>
+    @if (b.authorName) {
+      <span class="lb-author">{{ b.authorName }}</span>
+    }
+    @if (b.reason) {
+      <p class="lb-reason">{{ b.reason }}</p>
+    }
+    <div class="lb-foot">
+      <span class="lb-price">{{ b.price | vnd }}</span>
+      @if (b.originalPrice > b.price) {
+        <span class="price-old">{{ b.originalPrice | vnd }}</span>
+      }
+      <button class="lb-add" type="button" (click)="addToCart()">Thêm vào giỏ</button>
+    </div>
+  </div>
+</article>

@@ -19,6 +19,8 @@ export interface Totals {
   /** Tổng số cuốn */
   bookCount: number;
   subtotal: number;
+  /** Giảm giá combo (10% các combo đủ sách) */
+  comboDiscount: number;
   discount: number;
   shipping: number;
   total: number;
@@ -29,24 +31,40 @@ export interface Totals {
   freeshipProgress: number;
 }
 
-export function computeTotals(lines: PriceLine[], voucher: VoucherResult | null, method: ShippingMethod = 'standard'): Totals {
+/** Giảm combo đã tính sẵn (ComboService.discountFor) */
+export interface ComboTotals {
+  amount: number;
+  /** Có combo tự chọn → freeship giao tiêu chuẩn */
+  freeship: boolean;
+}
+
+export function computeTotals(
+  lines: PriceLine[],
+  voucher: VoucherResult | null,
+  method: ShippingMethod = 'standard',
+  combo: ComboTotals = { amount: 0, freeship: false },
+): Totals {
   const subtotal = lines.reduce((s, l) => s + l.price * l.quantity, 0);
   const physical = lines.filter((l) => !l.ebook);
   const physicalSubtotal = physical.reduce((s, l) => s + l.price * l.quantity, 0);
   const hasPhysical = physical.length > 0;
-  const freeship = method === 'standard' && physicalSubtotal >= FREESHIP_MIN;
+  const comboDiscount = Math.min(combo.amount, subtotal);
+  const comboFreeship = method === 'standard' && combo.freeship;
+  const freeship = comboFreeship || (method === 'standard' && physicalSubtotal >= FREESHIP_MIN);
   const shipping = !hasPhysical || freeship ? 0 : SHIPPING_FEES[method];
-  const discount = voucher ? Math.round((subtotal * voucher.percent) / 100) : 0;
+  // Mã giảm giá tính trên số tiền sau khi đã trừ combo
+  const discount = voucher ? Math.round(((subtotal - comboDiscount) * voucher.percent) / 100) : 0;
   return {
     itemCount: lines.length,
     bookCount: lines.reduce((s, l) => s + l.quantity, 0),
     subtotal,
+    comboDiscount,
     discount,
     shipping,
-    total: Math.max(0, subtotal - discount + shipping),
+    total: Math.max(0, subtotal - comboDiscount - discount + shipping),
     hasPhysical,
-    freeshipRemaining: Math.max(0, FREESHIP_MIN - physicalSubtotal),
-    freeshipProgress: Math.min(100, Math.round((physicalSubtotal / FREESHIP_MIN) * 100)),
+    freeshipRemaining: comboFreeship ? 0 : Math.max(0, FREESHIP_MIN - physicalSubtotal),
+    freeshipProgress: comboFreeship ? 100 : Math.min(100, Math.round((physicalSubtotal / FREESHIP_MIN) * 100)),
   };
 }
 

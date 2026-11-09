@@ -7,3 +7,7 @@
    <app-page-footer></app-page-footer>
 
    <app-toast></app-toast>
+
+   @if (librarianChat(); as chat) {
+     <ng-container *ngComponentOutlet="chat" />
+   }

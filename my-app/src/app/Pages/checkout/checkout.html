@@ -175,6 +175,9 @@
 
           <dl class="lines">
             <div><dt>Tạm tính ({{ totals().itemCount }} sản phẩm · {{ totals().bookCount }} cuốn)</dt><dd>{{ totals().subtotal | vnd }}</dd></div>
+            @if (totals().comboDiscount) {
+              <div><dt>Giảm combo</dt><dd class="is-discount">−{{ totals().comboDiscount | vnd }}</dd></div>
+            }
             @if (voucher(); as v) {
               <div><dt>Giảm giá ({{ v.code }})</dt><dd class="is-discount">−{{ totals().discount | vnd }}</dd></div>
             }

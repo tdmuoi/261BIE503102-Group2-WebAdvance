@@ -1,0 +1,46 @@
+:host {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  line-height: 0;
+}
+
+.lm-svg { width: 100%; height: 100%; overflow: visible; }
+
+/* Gradient thân mềm: hồng rất nhạt → hồng pastel, không viền, không bóng */
+.lm-stop-light { stop-color: var(--pink-50); }
+.lm-stop-mid { stop-color: var(--pink-200); }
+.lm-stop-deep { stop-color: var(--pink-300); }
+/* Gradient tai nghe: xanh accent → xanh đậm của nút primary */
+.lm-stop-green { stop-color: var(--green-700); }
+.lm-stop-green-deep { stop-color: var(--green-900); }
+
+.lm-foot { fill: var(--pink-300); }
+.lm-ear { fill: var(--pink-300); }
+.lm-ear-in { fill: var(--pink-200); }
+.lm-cheek { fill: var(--pink-400); opacity: .45; }
+.lm-pupil { fill: var(--neutral-charcoal); }
+.lm-shine { fill: var(--neutral-white); }
+.lm-mouth { fill: none; stroke: var(--neutral-charcoal); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lm-band { fill: none; stroke: var(--green-900); stroke-width: 4; stroke-linecap: round; }
+.lm-cushion { fill: var(--green-100); }
+.lm-boom { fill: none; stroke: var(--green-900); stroke-width: 2.5; stroke-linecap: round; }
+.lm-mic { fill: var(--pink-600); }
+
+/* Nút nổi: nhún nhẹ và chớp mắt để khách để ý */
+:host(.lm-animated) .lm-bob { animation: lm-bob 2.8s ease-in-out infinite; transform-origin: 60px 108px; }
+:host(.lm-animated) .lm-eyes { animation: lm-blink 4.5s infinite; transform-origin: 60px 66px; }
+
+@keyframes lm-bob {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-4px) scale(1.02, .98); }
+}
+
+@keyframes lm-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host(.lm-animated) .lm-bob, :host(.lm-animated) .lm-eyes { animation: none; }
+}

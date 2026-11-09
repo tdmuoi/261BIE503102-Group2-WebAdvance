@@ -1,0 +1,87 @@
+.custom-combo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-20);
+  padding: 24px 32px;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+}
+
+.custom-copy { flex: 1 1 320px; }
+.custom-copy h3 { font: 800 26px/normal var(--font-display); letter-spacing: -0.26px; }
+.custom-copy p { margin: 6px 0 0; font: 400 14px/normal var(--font-sans); }
+
+.custom-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.custom-price .sale-price { font-size: 24px; }
+.custom-price .old-price { font-size: 15px; color: var(--color-text-body); }
+
+.custom-saving {
+  align-self: center;
+  padding: 4px 10px;
+  background: var(--color-tint-mint);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 12px/normal var(--font-sans);
+}
+
+.custom-slots { display: flex; gap: var(--space-12); }
+
+.slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 80px;
+  padding: 0;
+  background: var(--color-bg-surface);
+  border: var(--border-strong) dashed var(--color-tint-pink-strong);
+  border-radius: var(--radius-8);
+  font: 700 22px/1 var(--font-sans);
+  color: var(--color-tint-pink-strong);
+  transition: background .12s ease, transform .12s ease;
+}
+
+button.slot:hover { background: var(--color-bg-subtle); transform: translateY(-2px); }
+
+.slot.is-filled { border: var(--border-default) solid var(--color-border-strong); }
+
+.slot-btn {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+}
+
+.slot-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+.slot-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font: 700 10px/1 var(--font-sans);
+}
+
+.custom-cta { padding: 12px 22px; background: var(--color-bg-subtle); }
+.custom-cta:disabled { background: var(--color-bg-disabled); color: var(--color-text-muted); box-shadow: none; transform: none; cursor: not-allowed; }
+
+@media (max-width: 680px) {
+  .custom-combo { padding: 20px; }
+  .custom-slots { width: 100%; justify-content: center; }
+  .custom-cta { width: 100%; }
+}

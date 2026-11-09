@@ -129,37 +129,6 @@
 .combo-cta { padding: 12px 22px; background: var(--color-bg-subtle); }
 .combo-card .combo-cta { width: 100%; }
 
-/* ---------- Banner tự chọn combo ---------- */
-.custom-combo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-20);
-  padding: 24px 32px;
-  background: var(--color-bg-surface);
-  border: var(--border-default) solid var(--color-border-strong);
-  border-radius: var(--radius-20);
-  box-shadow: var(--shadow-offset-md);
-}
-
-.custom-copy h3 { font: 800 26px/normal var(--font-display); letter-spacing: -0.26px; }
-.custom-copy p { margin: 6px 0 0; font: 400 14px/normal var(--font-sans); }
-
-.custom-slots { display: flex; gap: var(--space-12); }
-
-.custom-slots span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 80px;
-  border: var(--border-strong) dashed var(--color-tint-pink-strong);
-  border-radius: var(--radius-8);
-  font: 700 22px/1 var(--font-sans);
-  color: var(--color-tint-pink-strong);
-}
-
 @media (max-width: 1100px) {
   .combo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -167,6 +136,4 @@
 @media (max-width: 680px) {
   .combos { padding: 56px 0 64px; }
   .combo-grid { grid-template-columns: minmax(0, 1fr); }
-  .custom-combo { padding: 20px; }
-  .custom-slots { display: none; }
 }

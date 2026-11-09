@@ -1,6 +1,9 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 
 import { BookView } from '../../../../models/book';
+import { comboPrice } from '../../../../services/combo-service';
+import { ToastService } from '../../../../services/toast-service';
+import { CartFacade } from '../../../cart/cart-facade';
 
 interface ComboDefinition {
   name: string;
@@ -21,9 +24,6 @@ interface Combo {
   saving: number;
   discountPercent: number;
 }
-
-/** Combo giảm thêm 10% trên tổng giá bán của các cuốn */
-const COMBO_EXTRA_DISCOUNT = 0.1;
 
 // Tên combo gõ cứng, sách bên trong lấy từ API
 const COMBO_DEFINITIONS: ComboDefinition[] = [
@@ -57,6 +57,9 @@ const normalize = (text: string) => text.normalize('NFC').toLocaleLowerCase('vi'
   templateUrl: './home-combos.html',
 })
 export class HomeCombos {
+  private readonly facade = inject(CartFacade);
+  private readonly toast = inject(ToastService);
+
   readonly books = input.required<BookView[]>();
 
   protected readonly combos = computed<Combo[]>(() => {
@@ -93,7 +96,7 @@ export class HomeCombos {
       const books = picked[index];
       const salePrice = books.reduce((sum, book) => sum + book.price, 0);
       const originalPrice = books.reduce((sum, book) => sum + book.originalPrice, 0);
-      const price = Math.round((salePrice * (1 - COMBO_EXTRA_DISCOUNT)) / 1000) * 1000;
+      const price = comboPrice(salePrice);
 
       return {
         name: definition.name,
@@ -107,4 +110,10 @@ export class HomeCombos {
       };
     }).filter((combo) => combo.books.length > 0);
   });
+
+  /** Thêm đủ các cuốn của combo vào giỏ; giỏ hàng tự trừ thêm 10% khi đủ bộ */
+  protected addCombo(combo: Combo): void {
+    this.facade.addCombo(combo.name, combo.books);
+    this.toast.show(`Đã thêm combo “${combo.name}” vào giỏ.`, { label: 'Xem giỏ hàng', path: '/cart' });
+  }
 }

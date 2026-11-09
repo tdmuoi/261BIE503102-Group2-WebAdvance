@@ -79,7 +79,12 @@ export class Checkout implements OnInit {
   readonly voucherField = new VoucherState(this.facade, this.destroyRef);
   readonly voucher = this.facade.voucher;
   readonly totals = computed(() =>
-    computeTotals(this.lines().map((l) => ({ price: l.price, quantity: l.quantity, ebook: l.ebook })), this.voucher(), this.shipping()),
+    computeTotals(
+      this.lines().map((l) => ({ price: l.price, quantity: l.quantity, ebook: l.ebook })),
+      this.voucher(),
+      this.shipping(),
+      this.facade.comboTotals(),
+    ),
   );
 
   /** Số thứ tự bước — đơn chỉ có ebook bỏ 2 bước đầu */
@@ -155,7 +160,7 @@ export class Checkout implements OnInit {
             : null,
           subtotal: totals.subtotal,
           shippingFee: totals.shipping,
-          discount: totals.discount,
+          discount: totals.discount + totals.comboDiscount,
           total: totals.total,
         })
       : this.account.createOrder(body);

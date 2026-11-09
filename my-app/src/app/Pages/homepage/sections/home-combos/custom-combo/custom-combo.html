@@ -1,0 +1,40 @@
+@let s = summary();
+<div class="custom-combo">
+  <div class="custom-copy">
+    <h3>Tự chọn combo của riêng bạn</h3>
+    @if (s.count >= minBooks) {
+      <p class="custom-price">
+        <span class="sale-price">{{ s.price | vnd }}</span>
+        @if (s.original > s.price) {
+          <span class="old-price">{{ s.original | vnd }}</span>
+        }
+        <span class="custom-saving">Tiết kiệm {{ s.saving | vnd }} · Freeship</span>
+      </p>
+    } @else if (s.count === 1) {
+      <p>Chọn thêm ít nhất 1 cuốn nữa để thành combo nhé.</p>
+    } @else {
+      <p>Bấm vào ô “+” để chọn 2–3 cuốn bất kỳ trong kho – giảm thêm 10% và freeship toàn quốc.</p>
+    }
+  </div>
+
+  <div class="custom-slots">
+    @for (book of slots(); track $index; let i = $index) {
+      @if (book) {
+        <div class="slot is-filled">
+          <button type="button" class="slot-btn" (click)="openSlot(i)" [title]="book.title" [attr.aria-label]="'Đổi cuốn ' + (i + 1) + ': ' + book.title">
+            <img [appTrimCover]="book.image" [alt]="book.title" />
+          </button>
+          <button type="button" class="slot-remove" (click)="clear(i)" [attr.aria-label]="'Bỏ ' + book.title">✕</button>
+        </div>
+      } @else {
+        <button type="button" class="slot" (click)="openSlot(i)" [attr.aria-label]="'Chọn cuốn thứ ' + (i + 1)">+</button>
+      }
+    }
+  </div>
+
+  <button type="button" class="pill-btn custom-cta" (click)="addToCart()" [disabled]="s.count < minBooks">
+    {{ s.count < minBooks ? 'Chọn ít nhất 2 cuốn' : 'Thêm combo vào giỏ →' }}
+  </button>
+</div>
+
+<app-combo-picker [books]="candidates()" [open]="activeSlot() !== null" (picked)="pick($event)" (closed)="closePicker()" />

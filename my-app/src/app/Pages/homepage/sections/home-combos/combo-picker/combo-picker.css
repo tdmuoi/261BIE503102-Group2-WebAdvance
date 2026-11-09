@@ -1,0 +1,74 @@
+.picker {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 48px));
+  padding: var(--space-20);
+  background: var(--color-bg-page);
+  border: var(--border-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-20);
+  box-shadow: var(--shadow-offset-md);
+  color: var(--color-text-primary);
+}
+
+.picker[open] { display: flex; flex-direction: column; gap: var(--space-12); }
+.picker-head, .picker .input { flex-shrink: 0; }
+
+.picker::backdrop { background: color-mix(in srgb, var(--neutral-ink) 45%, transparent); }
+
+.picker-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.picker-head h3 { font: 800 20px/1.3 var(--font-display); }
+
+.picker-close {
+  padding: var(--space-4);
+  background: none;
+  border: 0;
+  color: var(--color-text-secondary);
+}
+
+.picker-list {
+  flex: 1;
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4) 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  padding: var(--space-8);
+  background: var(--color-bg-surface);
+  border: var(--border-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-12);
+  text-align: left;
+}
+
+.picker-item:hover, .picker-item:focus-visible { border-color: var(--color-border-strong); background: var(--color-bg-subtle); }
+
+.picker-cover {
+  flex-shrink: 0;
+  width: 44px;
+  height: 64px;
+  overflow: hidden;
+  background: var(--color-bg-placeholder);
+  border-radius: var(--radius-6);
+}
+
+.picker-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.picker-info { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+
+.picker-info strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font: 700 14px/1.3 var(--font-sans);
+}
+
+.picker-info small { font: 400 12px/1.3 var(--font-sans); color: var(--color-text-secondary); }
+.picker-price { font: 800 13px/1.3 var(--font-sans); color: var(--color-text-price); }
+.picker-empty { padding: var(--space-24) 0; text-align: center; color: var(--color-text-muted); }

@@ -42,20 +42,11 @@
             <span class="combo-saving">Tiết kiệm {{ combo.saving | vnd }}</span>
           </div>
 
-          <a class="pill-btn combo-cta" routerLink="/cart">Thêm combo vào giỏ →</a>
+          <button type="button" class="pill-btn combo-cta" (click)="addCombo(combo)">Thêm combo vào giỏ →</button>
         </article>
       }
     </div>
 
-    <div class="custom-combo">
-      <div class="custom-copy">
-        <h3>Tự chọn combo của riêng bạn</h3>
-        <p>Chọn 2–3 cuốn bất kỳ trong kho – giảm thêm 10% và freeship toàn quốc.</p>
-      </div>
-      <div class="custom-slots" aria-hidden="true">
-        <span>+</span><span>+</span><span>+</span>
-      </div>
-      <a class="pill-btn combo-cta" routerLink="/browse-book">Bắt đầu chọn →</a>
-    </div>
+    <app-custom-combo [books]="books()" />
   </div>
 </section>

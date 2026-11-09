@@ -37,6 +37,8 @@ import { HomeFlashSale } from './Pages/homepage/sections/home-flash-sale/home-fl
 import { HomeNewReleases } from './Pages/homepage/sections/home-new-releases/home-new-releases';
 import { HomeAuthors } from './Pages/homepage/sections/home-authors/home-authors';
 import { HomeCombos } from './Pages/homepage/sections/home-combos/home-combos';
+import { CustomCombo } from './Pages/homepage/sections/home-combos/custom-combo/custom-combo';
+import { ComboPicker } from './Pages/homepage/sections/home-combos/combo-picker/combo-picker';
 import { HomeBestsellers } from './Pages/homepage/sections/home-bestsellers/home-bestsellers';
 import { HomeRecommendations } from './Pages/homepage/sections/home-recommendations/home-recommendations';
 import { HomeBestPanel } from './Pages/homepage/sections/home-best-panel/home-best-panel';
@@ -81,6 +83,8 @@ import { FooterLegal } from './Components/footer-legal/footer-legal';
     HomeNewReleases,
     HomeAuthors,
     HomeCombos,
+    CustomCombo,
+    ComboPicker,
     HomeBestsellers,
     HomeRecommendations,
     HomeBestPanel,
