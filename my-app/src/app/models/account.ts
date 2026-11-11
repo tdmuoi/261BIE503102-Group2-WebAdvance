@@ -143,11 +143,27 @@ export interface CreateOrderRequest {
   paymentMethod: PaymentMethod;
   voucherCode: string | null;
   note: string;
+  /** Combo trong giỏ (ComboService) — server tự kiểm tra đủ sách mới giảm */
+  combos?: { bookIds: string[]; freeship: boolean }[];
 }
 
-/** Kết quả kiểm tra mã giảm giá — POST /api/vouchers/validate */
+/** percent: giảm % (có thể có trần maxDiscount) · fixed: giảm số tiền · freeship: miễn phí giao tiêu chuẩn */
+export type VoucherType = 'percent' | 'fixed' | 'freeship';
+
+/** Body POST /api/vouchers/apply */
+export interface VoucherRequest {
+  code: string;
+  items: { bookId: string; quantity: number }[];
+  combos?: { bookIds: string[]; freeship: boolean }[];
+  shippingMethod?: ShippingMethod;
+}
+
+/** Kết quả kiểm tra mã giảm giá — POST /api/vouchers/apply (theo collection vouchers) */
 export interface VoucherResult {
   code: string;
-  percent: number;
+  type: VoucherType;
+  value: number;
+  maxDiscount: number | null;
+  minOrderValue: number;
   description: string;
 }

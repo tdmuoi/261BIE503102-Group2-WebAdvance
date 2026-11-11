@@ -1,12 +1,13 @@
 import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { Address, CreateOrderRequest, Order, OrderItem, PaymentMethod, ShippingMethod } from '../../models/account';
+import { Router } from '@angular/router';
+
+import { Address, CreateOrderRequest, Order, PaymentMethod, ShippingMethod } from '../../models/account';
 import { AccountService } from '../../services/account-service';
-import { USE_MOCK_ADDRESS, mockGetAddresses } from '../account/address/address.mock';
 import { formatPhone, fullAddress } from '../account/address/address';
-import { USE_MOCK_ORDERS, mockCancelOrder, mockCreateOrder, mockPayOrder } from '../account/orders/orders.mock';
-import { CartFacade, CartLine } from '../cart/cart-facade';
+import { AuthService } from '../../services/auth-service';
+import { CartFacade } from '../cart/cart-facade';
 import { SHIPPING_FEES, computeTotals } from '../cart/pricing';
 import { VoucherState } from '../cart/voucher-state';
 import { ToastService } from '../../services/toast-service';
@@ -45,6 +46,8 @@ export class Checkout implements OnInit {
   private readonly account = inject(AccountService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly shippingOptions = SHIPPING_OPTIONS;
   readonly shippingFees = SHIPPING_FEES;
@@ -103,14 +106,19 @@ export class Checkout implements OnInit {
   }
 
   ngOnInit(): void {
+    // Đặt hàng cần tài khoản (đơn, địa chỉ, mã giảm giá lưu theo người dùng)
+    if (!this.auth.isLoggedIn()) {
+      this.toast.show('Vui lòng đăng nhập để thanh toán');
+      this.router.navigate(['/login'], { queryParams: { returnUrl: '/checkout' } });
+      return;
+    }
     this.loadAddresses();
   }
 
   loadAddresses(): void {
     this.addressesLoading.set(true);
     this.addressesError.set(false);
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/account/addresses
-    (USE_MOCK_ADDRESS ? mockGetAddresses() : this.account.getAddresses()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.account.getAddresses().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (list) => {
         this.addresses.set(list);
         this.addressId.set((list.find((a) => a.isDefault) ?? list[0])?._id ?? null);
@@ -140,7 +148,10 @@ export class Checkout implements OnInit {
       return;
     }
     const lines = this.lines();
-    const totals = this.totals();
+    if (this.totals().voucherError) {
+      this.submitError.set(this.totals().voucherError);
+      return;
+    }
     const body: CreateOrderRequest = {
       items: lines.map((l) => ({ bookId: l.bookId, quantity: l.quantity })),
       addressId: this.hasPhysical() ? address!._id : null,
@@ -148,23 +159,11 @@ export class Checkout implements OnInit {
       paymentMethod: this.payment(),
       voucherCode: this.voucher()?.code ?? null,
       note: this.note().trim(),
+      combos: this.facade.combosForOrder(),
     };
     this.placing.set(true);
     this.submitError.set(null);
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có POST /api/orders
-    const request$ = USE_MOCK_ORDERS
-      ? mockCreateOrder(body, {
-          items: lines.map(toOrderItem),
-          address: address && this.hasPhysical()
-            ? { fullName: address.fullName, phone: address.phone, address: address.street, ward: address.ward, province: address.province }
-            : null,
-          subtotal: totals.subtotal,
-          shippingFee: totals.shipping,
-          discount: totals.discount + totals.comboDiscount,
-          total: totals.total,
-        })
-      : this.account.createOrder(body);
-    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.account.createOrder(body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (order) => {
         this.placing.set(false);
         // COD: xong luôn. MoMo / VNPay / chuyển khoản: mở bước quét mã thanh toán
@@ -223,8 +222,9 @@ export class Checkout implements OnInit {
     if (!order || this.paymentBusy()) return;
     this.paymentBusy.set('confirm');
     this.paymentError.set(null);
-    // TODO: thay bằng API — backend nhận kết quả từ MoMo/VNPay (IPN) hoặc đối soát chuyển khoản; trang hỏi lại GET /api/orders/:id
-    (USE_MOCK_ORDERS ? mockPayOrder(order._id) : this.account.getOrder(order._id)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    // Bản demo: server ghi nhận đã trả tiền khi bấm nút. Khi nối cổng MoMo/VNPay thật thì đổi thành
+    // this.account.getOrder(order._id) — trạng thái "đã thanh toán" do IPN/webhook của cổng cập nhật.
+    this.account.confirmPayment(order._id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.paymentBusy.set(null);
         if (updated.paymentStatus === 'paid') this.finish(updated);
@@ -243,8 +243,7 @@ export class Checkout implements OnInit {
     if (!order || this.paymentBusy()) return;
     this.stopTimer();
     this.paymentBusy.set('cancel');
-    // TODO: thay bằng API — PUT /api/account/orders/:id/cancel
-    (USE_MOCK_ORDERS ? mockCancelOrder(order._id) : this.account.cancelOrder(order._id)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.account.cancelOrder(order._id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.closePayment(expired),
       error: () => this.closePayment(expired),
     });
@@ -277,6 +276,3 @@ export class Checkout implements OnInit {
   }
 }
 
-function toOrderItem(l: CartLine): OrderItem {
-  return { bookId: l.bookId, title: l.title, image: l.image || null, price: l.price, quantity: l.quantity, format: l.ebook ? 'ebook' : 'print', variant: l.variant };
-}

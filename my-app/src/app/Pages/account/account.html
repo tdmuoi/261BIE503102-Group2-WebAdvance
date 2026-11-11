@@ -37,7 +37,7 @@
 
     <hr class="divider" />
 
-    <button type="button" class="logout" (click)="logout()">
+    <button type="button" class="logout" (click)="confirmingLogout.set(true)">
       <img src="images/account/logout.svg" alt="" width="20" height="20" />Đăng xuất
     </button>
 
@@ -52,3 +52,17 @@
     <router-outlet />
   </section>
 </div>
+
+@if (confirmingLogout()) {
+  <div class="overlay" (click)="confirmingLogout.set(false)">
+    <section class="modal logout-modal" role="alertdialog" aria-modal="true" aria-labelledby="logout-title" aria-describedby="logout-text"
+      (click)="$event.stopPropagation()">
+      <h2 id="logout-title" class="modal-title">Đăng xuất khỏi Lightbook?</h2>
+      <p id="logout-text" class="logout-text">Giỏ hàng vẫn được giữ trên trình duyệt này. Bạn có thể đăng nhập lại bất cứ lúc nào.</p>
+      <div class="logout-actions">
+        <button type="button" class="btn-ghost" (click)="confirmingLogout.set(false)">Ở lại</button>
+        <button type="button" class="btn-pink" (click)="logout()">Đăng xuất</button>
+      </div>
+    </section>
+  </div>
+}

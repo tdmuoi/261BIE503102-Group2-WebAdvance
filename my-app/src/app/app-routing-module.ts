@@ -56,6 +56,8 @@ const routes: Routes = [
   { path: 'news-list', redirectTo: 'news' },   // link cũ
   { path: 'news-detail/:id', redirectTo: 'news/:id' },
   { path: 'about-us', component: AboutUs },
+  // Trang Chính sách (standalone, nạp khi mở): /policies#bao-mat · #thanh-toan · #doi-tra
+  { path: 'policies', loadComponent: () => import('./Pages/policies/policies').then((m) => m.Policies) },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   { path: 'forgot-password', component: ForgotPassword },
@@ -76,8 +78,8 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  // scrollPositionRestoration: chuyển trang thì tự cuộn lên đầu
-  imports: [RouterModule.forRoot(routes, { scrollPositionRestoration: 'top' })],
+  // scrollPositionRestoration: chuyển trang thì tự cuộn lên đầu; anchorScrolling: link có #fragment (vd. /#flashsale) cuộn tới đúng phần
+  imports: [RouterModule.forRoot(routes, { scrollPositionRestoration: 'top', anchorScrolling: 'enabled' })],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }

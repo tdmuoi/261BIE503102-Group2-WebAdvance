@@ -7,7 +7,6 @@ import { Observable } from 'rxjs';
 import { ForgotPasswordResponse } from '../../../models/user';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
-import { USE_MOCK_FORGOT, mockForgotPassword } from './forgot-password.mock';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 /** Thời gian chờ mặc định trước khi được gửi lại (giây) */
@@ -81,10 +80,8 @@ export class ForgotPassword implements OnInit {
 
   private send(email: string, onSuccess: () => void): void {
     if (this.loading()) return;
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có POST /api/auth/forgot-password
-    const request$: Observable<ForgotPasswordResponse> = USE_MOCK_FORGOT
-      ? mockForgotPassword(email)
-      : this.auth.forgotPassword(email);
+    // TODO: my-server chưa gửi email thật (dịch vụ email) — API luôn trả 200
+    const request$: Observable<ForgotPasswordResponse> = this.auth.forgotPassword(email);
 
     this.loading.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

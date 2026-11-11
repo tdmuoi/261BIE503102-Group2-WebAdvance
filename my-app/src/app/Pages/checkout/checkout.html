@@ -165,7 +165,11 @@
               }
             </div>
             @if (voucher(); as v) {
-              <p class="voucher-help is-ok"><img src="images/auth/check-circle-sm.svg" alt="" width="14" height="14" />Đã áp dụng: {{ v.description }}</p>
+              @if (totals().voucherError; as ve) {
+                <p class="voucher-help is-error"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ ve }}</p>
+              } @else {
+                <p class="voucher-help is-ok"><img src="images/auth/check-circle-sm.svg" alt="" width="14" height="14" />Đã áp dụng: {{ v.description }}</p>
+              }
             } @else if (voucherField.error(); as err) {
               <p class="voucher-help is-error"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
             } @else if (voucherField.checking()) {
@@ -179,7 +183,11 @@
               <div><dt>Giảm combo</dt><dd class="is-discount">−{{ totals().comboDiscount | vnd }}</dd></div>
             }
             @if (voucher(); as v) {
-              <div><dt>Giảm giá ({{ v.code }})</dt><dd class="is-discount">−{{ totals().discount | vnd }}</dd></div>
+              @if (totals().voucherError) {
+                <div><dt>Mã {{ v.code }}</dt><dd class="is-muted">Chưa đủ điều kiện</dd></div>
+              } @else if (v.type !== 'freeship') {
+                <div><dt>Giảm giá ({{ v.code }})</dt><dd class="is-discount">−{{ totals().discount | vnd }}</dd></div>
+              }
             }
             @if (hasPhysical()) {
               <div><dt>Phí vận chuyển</dt><dd>{{ totals().shipping ? (totals().shipping | vnd) : 'Miễn phí' }}</dd></div>

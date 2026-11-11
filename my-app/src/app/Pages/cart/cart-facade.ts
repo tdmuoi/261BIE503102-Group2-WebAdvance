@@ -1,15 +1,14 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Observable, catchError, map, of } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
 import { VoucherResult } from '../../models/account';
 import { CatalogBook } from '../../models/book';
+import { AccountService } from '../../services/account-service';
 import { BookService } from '../../services/book-service';
 import { CartItem, CartService } from '../../services/cart-service';
 import { ComboService } from '../../services/combo-service';
-import { ComboTotals, USE_MOCK_VOUCHER, mockValidateVoucher } from './pricing';
+import { ComboTotals } from './pricing';
 
 /** PHẢI trùng STORAGE_KEY trong services/cart-service.ts (file của bạn khác, không sửa) */
 const CART_KEY = 'lightbook.cart';
@@ -50,7 +49,7 @@ const VARIANT = { new: 'Sách mới', used: 'Sách cũ', ebook: 'Sách điện t
 export class CartFacade {
   private readonly cart = inject(CartService);
   private readonly bookService = inject(BookService);
-  private readonly http = inject(HttpClient);
+  private readonly account = inject(AccountService);
   private readonly comboService = inject(ComboService);
 
   /** null = đang tải danh mục */
@@ -63,7 +62,7 @@ export class CartFacade {
   );
 
   private readonly deselected = signal<string[]>(readSession<string[]>(DESELECTED_KEY, []));
-  readonly voucher = signal<VoucherResult | null>(readSession<VoucherResult | null>(VOUCHER_KEY, null));
+  readonly voucher = signal<VoucherResult | null>(validVoucher(readSession<VoucherResult | null>(VOUCHER_KEY, null)));
 
   readonly loading = computed(() => this.catalog() === null);
 
@@ -141,11 +140,18 @@ export class CartFacade {
     this.comboService.add({ name, bookIds: books.map((b) => b._id), freeship });
   }
 
+  /** Kiểm tra mã với các sách đang chọn (server đọc mã trong collection vouchers, cần đăng nhập) */
   validateVoucher(code: string): Observable<VoucherResult> {
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có POST /api/vouchers/validate
-    return USE_MOCK_VOUCHER
-      ? mockValidateVoucher(code)
-      : this.http.post<VoucherResult>(`${environment.apiUrl}/vouchers/validate`, { code: code.trim().toUpperCase() });
+    return this.account.applyVoucher({
+      code: code.trim().toUpperCase(),
+      items: this.selectedLines().map((l) => ({ bookId: l.bookId, quantity: l.quantity })),
+      combos: this.combosForOrder(),
+    });
+  }
+
+  /** Combo gửi kèm khi kiểm tra mã / đặt hàng để server tính giảm combo giống giỏ hàng */
+  combosForOrder(): { bookIds: string[]; freeship: boolean }[] {
+    return this.comboService.combos().map((c) => ({ bookIds: c.bookIds, freeship: c.freeship }));
   }
 
   setVoucher(voucher: VoucherResult | null): void {
@@ -194,6 +200,11 @@ function toLine(item: CartItem, book: CatalogBook | undefined, selected: boolean
     bestseller: (book?.soldCount ?? 0) >= 100,
     selected,
   };
+}
+
+/** Mã lưu từ bản cũ (chỉ có "percent") thì bỏ, người dùng nhập lại */
+function validVoucher(v: VoucherResult | null): VoucherResult | null {
+  return v && typeof v.code === 'string' && ['percent', 'fixed', 'freeship'].includes(v.type) ? v : null;
 }
 
 function readSession<T>(key: string, fallback: T): T {

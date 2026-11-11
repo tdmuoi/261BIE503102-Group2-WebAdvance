@@ -1,8 +1,9 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
 
+import { AccountService, EbookProgress } from '../../services/account-service';
 import { AuthService } from '../../services/auth-service';
 import { ToastService } from '../../services/toast-service';
 import { ShelfStore, normalizeText } from '../account/shelf-store';
@@ -67,6 +68,7 @@ export class EbookReader {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly shelf = inject(ShelfStore);
+  private readonly account = inject(AccountService);
   private readonly toast = inject(ToastService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
@@ -143,25 +145,75 @@ export class EbookReader {
   constructor() {
     this.shelf.load(this.destroyRef);
 
-    // Mở sách: đọc tiến độ đã lưu (hoặc trang đang đọc ở tủ sách)
+    // Mở sách: hiện ngay bản nháp trên máy (hoặc trang đang đọc ở tủ sách), rồi lấy bản lưu trên server
     effect(() => {
       const e = this.ebook();
       if (!e) return;
       untracked(() => {
         const s = loadState(e.bookId, e.progress >= 100 ? 1 : e.page || 1);
         this.state.set({ ...s, page: clamp(s.page, 1, e.totalPages || 140) });
+        this.account
+          .getEbookProgress(e.bookId)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({ next: (remote) => this.applyRemote(remote), error: () => undefined });
       });
     });
 
-    // Lưu tiến độ mỗi khi đổi trang / đánh dấu / ghi chú
+    // Lưu tiến độ mỗi khi đổi trang / đánh dấu / ghi chú: nháp localStorage ngay, server sau 0,8 giây
     effect(() => {
       const s = this.state();
       const e = untracked(() => this.ebook());
-      // TODO: thay bằng API — PUT /api/account/ebooks/:id/progress
-      if (s && e) saveState(e.bookId, s).subscribe();
+      if (!s || !e) return;
+      saveState(e.bookId, s);
+      untracked(() => this.queueSync());
     });
+    this.destroyRef.onDestroy(() => this.flushSync());
 
     effect(() => saveSettings(this.settings()));
+  }
+
+  // ---------------- Đồng bộ tiến độ với server ----------------
+  private syncTimer: ReturnType<typeof setTimeout> | null = null;
+  private synced: string | null = null;
+
+  /** Bản trên server mới hơn bản nháp (vd. đọc ở máy khác) thì dùng bản server */
+  private applyRemote(remote: EbookProgress): void {
+    const e = this.ebook();
+    const local = this.state();
+    if (!e || !local) return;
+    const remoteNewer = !!remote.lastReadAt && (!local.lastReadAt || remote.lastReadAt > local.lastReadAt);
+    if (!remoteNewer) return;
+    const next: ReaderState = {
+      page: clamp(remote.page || 1, 1, e.totalPages || 140),
+      bookmarks: remote.bookmarks ?? [],
+      notes: (remote.notes ?? []).map((n, i) => ({ id: n.id || `n-${i}`, page: n.page, quote: n.quote ?? '', text: n.text ?? '' })),
+      highlights: remote.highlights ?? [],
+      lastReadAt: remote.lastReadAt ?? null,
+    };
+    this.synced = JSON.stringify(this.progressBody(next));
+    this.state.set(next);
+  }
+
+  private progressBody(s: ReaderState): EbookProgress {
+    return { page: s.page, totalPages: this.total(), bookmarks: s.bookmarks, notes: s.notes, highlights: s.highlights };
+  }
+
+  private queueSync(): void {
+    if (this.syncTimer) clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => this.flushSync(), 800);
+  }
+
+  private flushSync(): void {
+    if (this.syncTimer) clearTimeout(this.syncTimer);
+    this.syncTimer = null;
+    const e = this.ebook();
+    const s = this.state();
+    if (!e || !s || !this.auth.isLoggedIn()) return;
+    const body = this.progressBody(s);
+    const key = JSON.stringify(body);
+    if (key === this.synced) return;
+    this.synced = key;
+    this.account.saveEbookProgress(e.bookId, body).subscribe({ error: () => (this.synced = null) });
   }
 
   // ---------------- Điều hướng ----------------

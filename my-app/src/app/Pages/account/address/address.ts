@@ -6,15 +6,6 @@ import { Observable } from 'rxjs';
 import { Address as AddressModel, AddressRequest, AddressType, Province } from '../../../models/account';
 import { AccountService } from '../../../services/account-service';
 import { ToastService } from '../../../services/toast-service';
-import {
-  USE_MOCK_ADDRESS,
-  mockCreateAddress,
-  mockDeleteAddress,
-  mockGetAddresses,
-  mockGetProvinces,
-  mockSetDefaultAddress,
-  mockUpdateAddress,
-} from './address.mock';
 
 const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*[\p{L}]$/u;
 const PHONE_PATTERN = /^(0|\+84)(\s?\d){9}$/;
@@ -74,8 +65,7 @@ export class Address implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/locations
-    (USE_MOCK_ADDRESS ? mockGetProvinces() : this.account.getLocations())
+    this.account.getLocations()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: (list) => this.provinces.set(list), error: () => this.provinces.set([]) });
     // Đổi tỉnh thì chọn lại phường
@@ -86,8 +76,7 @@ export class Address implements OnInit {
 
   load(): void {
     this.status.set('loading');
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/account/addresses
-    (USE_MOCK_ADDRESS ? mockGetAddresses() : this.account.getAddresses())
+    this.account.getAddresses()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (list) => {
@@ -145,23 +134,20 @@ export class Address implements OnInit {
     const v = this.form.getRawValue();
     const body: AddressRequest = { ...v, fullName: v.fullName.trim(), phone: v.phone.replace(/\s/g, ''), street: v.street.trim() };
     const id = this.editingId();
-    // TODO: thay bằng API — bỏ nhánh mock khi có /api/account/addresses
-    const request$ = id
-      ? USE_MOCK_ADDRESS ? mockUpdateAddress(id, body) : this.account.updateAddress(id, body)
-      : USE_MOCK_ADDRESS ? mockCreateAddress(body) : this.account.createAddress(body);
+    const request$ = id ? this.account.updateAddress(id, body) : this.account.createAddress(body);
     this.run(request$, id ? 'Đã cập nhật địa chỉ' : 'Đã thêm địa chỉ mới', () => this.resetForm());
   }
 
   remove(address: AddressModel): void {
     if (!confirm(`Xoá địa chỉ "${fullAddress(address)}"?`)) return;
-    this.run(USE_MOCK_ADDRESS ? mockDeleteAddress(address._id) : this.account.deleteAddress(address._id), 'Đã xoá địa chỉ', () => {
+    this.run(this.account.deleteAddress(address._id), 'Đã xoá địa chỉ', () => {
       if (this.editingId() === address._id) this.resetForm();
     });
   }
 
   setDefault(address: AddressModel): void {
     this.run(
-      USE_MOCK_ADDRESS ? mockSetDefaultAddress(address._id) : this.account.setDefaultAddress(address._id),
+      this.account.setDefaultAddress(address._id),
       'Đã đặt làm địa chỉ mặc định',
     );
   }
@@ -175,9 +161,9 @@ export class Address implements OnInit {
         this.toast.show(message);
         after?.();
       },
-      error: () => {
+      error: (err: { error?: { message?: string } }) => {
         this.saving.set(false);
-        this.toast.show('Chưa lưu được, vui lòng thử lại.');
+        this.toast.show(err?.error?.message ?? 'Chưa lưu được, vui lòng thử lại.');
       },
     });
   }

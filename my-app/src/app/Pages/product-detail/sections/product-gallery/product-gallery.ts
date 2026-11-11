@@ -1,6 +1,7 @@
-import { Component, computed, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal } from '@angular/core';
 
 import { BookImage, CatalogBook } from '../../../../models/book';
+import { WishlistService } from '../../../../services/wishlist-service';
 
 /**
  * Ảnh lớn + badge giảm giá + nút yêu thích, bên dưới là ảnh nhỏ có nhãn (Figma "Gallery" 873:5445).
@@ -24,6 +25,13 @@ export class ProductGallery {
   /** Đổi sách thì quay về ảnh đầu */
   protected readonly selected = linkedSignal({ source: this.images, computation: () => 0 });
 
-  /** Chưa có API danh sách yêu thích — chỉ đổi trạng thái tại chỗ như book-card */
-  protected readonly liked = signal(false);
+  private readonly wishlist = inject(WishlistService);
+
+  /** Yêu thích lưu qua WishlistService (đăng nhập thì lưu theo tài khoản) — đồng bộ với trang Wishlist */
+  protected readonly liked = computed(() => this.wishlist.has(this.book()._id));
+
+  protected toggleLike(): void {
+    const b = this.book();
+    this.wishlist.toggle({ _id: b._id, title: b.title, image: b.image, price: b.price });
+  }
 }

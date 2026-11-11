@@ -9,7 +9,7 @@
   }
 
   <button class="gallery-like" type="button" [class.is-active]="liked()" [attr.aria-pressed]="liked()"
-          [attr.aria-label]="'Yêu thích ' + item.title" (click)="liked.set(!liked())">
+          [attr.aria-label]="'Yêu thích ' + item.title" (click)="toggleLike()">
     <img src="images/icons/heart-outline.svg" alt="" width="20" height="20" />
   </button>
 </div>

@@ -51,7 +51,7 @@
 
 .items { display: flex; flex-direction: column; gap: var(--space-16); margin: 0; padding: 0; list-style: none; }
 .item { display: flex; align-items: center; gap: var(--space-14); }
-.cover { width: 54px; height: 78px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; box-shadow: var(--shadow-offset-sm); }
+.cover { width: 54px; height: 78px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; }
 .item-text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }
 .item-text b { font: 800 14px/normal var(--font-sans); color: var(--color-text-primary); }
 .item-price { font: 800 14px/normal var(--font-sans); white-space: nowrap; }

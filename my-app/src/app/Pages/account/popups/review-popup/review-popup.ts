@@ -3,7 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { AccountService } from '../../../../services/account-service';
 import { ToastService } from '../../../../services/toast-service';
-import { USE_MOCK_REVIEWS, mockSubmitReview } from './review.mock';
 
 /** Sách được đánh giá */
 export interface ReviewTarget {
@@ -117,11 +116,8 @@ export class ReviewPopup implements OnDestroy {
     };
     this.sending.set(true);
     this.error.set(null);
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có POST /api/reviews
-    const request$ = USE_MOCK_REVIEWS
-      ? mockSubmitReview({ ...body, photoCount: this.photos().length })
-      : this.account.submitReview(body, this.photos().map((p) => p.file));
-    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    // TODO: ảnh đính kèm chưa gửi lên — my-server chưa có chỗ lưu ảnh đánh giá
+    this.account.submitReview(body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.sending.set(false);
         this.toast.show('Cảm ơn bạn đã đánh giá!');

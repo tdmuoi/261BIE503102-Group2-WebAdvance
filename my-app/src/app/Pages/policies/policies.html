@@ -1,0 +1,34 @@
+<div class="policies container">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a routerLink="/">Trang chủ</a>
+    <img src="images/shop/chevron-sm.svg" alt="" width="14" height="14" />
+    <span aria-current="page">Chính sách</span>
+  </nav>
+
+  <header class="head">
+    <span class="tag">✦ Lightbook</span>
+    <h1 class="title"><span class="h1">Chính sách</span> <span class="accent-h1">our promises.</span></h1>
+    <p class="body-lead sub">Những cam kết của Lightbook về dữ liệu cá nhân, thanh toán và đổi trả khi bạn mua sách.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Các chính sách">
+      @for (p of policies; track p.id) {
+        <a [routerLink]="[]" [fragment]="p.id">{{ p.title }}</a>
+      }
+    </nav>
+
+    <div class="docs">
+      @for (p of policies; track p.id; let i = $index) {
+        <section class="doc" [id]="p.id" [attr.aria-labelledby]="p.id + '-title'">
+          <span class="doc-no">0{{ i + 1 }}</span>
+          <h2 class="doc-title" [id]="p.id + '-title'">{{ p.title }}</h2>
+          @for (para of p.paragraphs; track $index) {
+            <p class="doc-text">{{ para }}</p>
+          }
+        </section>
+      }
+      <p class="contact">Cần hỗ trợ thêm? Liên hệ <a href="mailto:hello@lightbook.vn">hello@lightbook.vn</a>.</p>
+    </div>
+  </div>
+</div>

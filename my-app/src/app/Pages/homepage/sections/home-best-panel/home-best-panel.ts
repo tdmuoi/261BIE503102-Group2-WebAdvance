@@ -1,6 +1,7 @@
-import { Component, input, linkedSignal } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 
 import { BookView } from '../../../../models/book';
+import { WishlistService } from '../../../../services/wishlist-service';
 
 /** Panel chi tiết bên phải section "Bán chạy tuần này" */
 @Component({
@@ -14,6 +15,13 @@ export class HomeBestPanel {
   /** Thứ hạng trong top 5 */
   readonly rank = input.required<number>();
 
-  /** Trạng thái yêu thích; đổi sách thì bỏ chọn */
-  protected readonly liked = linkedSignal({ source: this.book, computation: () => false });
+  private readonly wishlist = inject(WishlistService);
+
+  /** Yêu thích lưu qua WishlistService (đăng nhập thì lưu theo tài khoản) — đồng bộ với trang Wishlist */
+  protected readonly liked = computed(() => this.wishlist.has(this.book()._id));
+
+  protected toggleLike(): void {
+    const b = this.book();
+    this.wishlist.toggle({ _id: b._id, title: b.title, image: b.image, price: b.price });
+  }
 }

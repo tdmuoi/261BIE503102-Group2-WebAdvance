@@ -22,7 +22,7 @@
 .item { display: flex; align-items: center; gap: var(--space-14); padding-block: var(--space-16); }
 .item + .item { border-top: 1px solid var(--color-border-divider); }
 .item:first-child { padding-top: 0; }
-.cover { width: 56px; height: 80px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; box-shadow: var(--shadow-offset-sm); }
+.cover { width: 56px; height: 80px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; }
 .text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: var(--space-6); }
 .text p { margin: 0; }
 .item-title { font: 800 14px/normal var(--font-sans); }

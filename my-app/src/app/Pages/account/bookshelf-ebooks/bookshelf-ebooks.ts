@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 
 import { ShelfStore, normalizeText } from '../shelf-store';
-import { LibraryEbook, lastReadLabel, readLabel } from './bookshelf.mock';
+import { LibraryEbook, lastReadLabel, readLabel } from './library';
 
 type EbookFilter = 'all' | 'reading' | 'unread' | 'done';
 

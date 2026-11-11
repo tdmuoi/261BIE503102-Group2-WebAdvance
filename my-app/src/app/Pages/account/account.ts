@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -6,8 +6,6 @@ import { filter, map } from 'rxjs';
 import { AccountService } from '../../services/account-service';
 import { AuthService } from '../../services/auth-service';
 import { ToastService } from '../../services/toast-service';
-import { USE_MOCK_ACCOUNT, mockGetProfile } from './account.mock';
-import { USE_MOCK_NOTIFICATIONS, mockGetNotifications } from './notifications/notifications.mock';
 
 interface NavItem {
   label: string;
@@ -40,7 +38,7 @@ export function shortNameOf(name: string): string {
 @Component({
   selector: 'app-account',
   standalone: false,
-  styleUrl: './account.css',
+  styleUrls: ['./account.css', './popups/popup.css'],
   templateUrl: './account.html',
 })
 export class Account implements OnInit {
@@ -84,23 +82,27 @@ export class Account implements OnInit {
   }
 
   loadProfile(): void {
-    const user = this.auth.user();
-    if (!user) return;
+    if (!this.auth.user()) return;
     this.account.setProfileError(false);
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/account/profile
-    const request$ = USE_MOCK_ACCOUNT ? mockGetProfile(user) : this.account.getProfile();
-    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.account.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (profile) => this.account.setProfile(profile),
-      error: () => this.account.setProfileError(true),
+      error: () => {
+        this.account.setProfileError(true);
+        if (!this.auth.isLoggedIn()) this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
+      },
     });
     // Số thông báo chưa đọc cho badge ở menu bên
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/account/notifications
-    (USE_MOCK_NOTIFICATIONS ? mockGetNotifications('all', 1) : this.account.getNotifications('all', 1))
+    this.account
+      .getNotifications('all', 1)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: (res) => this.account.setUnreadCount(res.unread), error: () => this.account.setUnreadCount(0) });
   }
 
+  /** Hộp xác nhận trước khi đăng xuất */
+  readonly confirmingLogout = signal(false);
+
   logout(): void {
+    this.confirmingLogout.set(false);
     this.auth.logout();
     this.account.setProfile(null);
     this.account.setUnreadCount(0);

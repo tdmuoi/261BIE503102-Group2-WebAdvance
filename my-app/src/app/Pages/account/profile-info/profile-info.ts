@@ -1,20 +1,14 @@
 import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
-import { Observable, forkJoin, map, of } from 'rxjs';
+import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { AccountProfile, Gender, UpdateProfileRequest } from '../../../models/account';
 import { AccountService } from '../../../services/account-service';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
 import { Account, initialsOf } from '../account';
-import {
-  USE_MOCK_ACCOUNT,
-  mockChangePassword,
-  mockDeleteAvatar,
-  mockUpdateProfile,
-  mockUploadAvatar,
-} from '../account.mock';
+import { shrinkImage } from './shrink-image';
 
 const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*[\p{L}]$/u;
 /** Số di động Việt Nam, cho phép gõ có dấu cách: 0909 123 268 */
@@ -234,19 +228,16 @@ export class ProfileInfo {
     };
     const pw = this.passwordForm.getRawValue();
 
-    // TODO: thay bằng API — bỏ các nhánh mock khi my-server có /api/account/*
-    const id = profile._id;
-    const steps: Observable<Partial<AccountProfile>>[] = [
-      USE_MOCK_ACCOUNT ? mockUpdateProfile(id, body) : this.account.updateProfile(body),
-    ];
+    const steps: Observable<Partial<AccountProfile>>[] = [this.account.updateProfile(body)];
     if (this.avatarChange instanceof File) {
-      steps.push((USE_MOCK_ACCOUNT ? mockUploadAvatar(id, this.avatarChange) : this.account.uploadAvatar(this.avatarChange)));
+      // Thu nhỏ ảnh ở trình duyệt rồi gửi dạng data URL (server chưa có chỗ lưu file)
+      const file = this.avatarChange;
+      steps.push(shrinkImage(file).pipe(switchMap((dataUrl) => this.account.uploadAvatar(dataUrl))));
     } else if (this.avatarChange === null) {
-      steps.push((USE_MOCK_ACCOUNT ? mockDeleteAvatar(id) : this.account.deleteAvatar()).pipe(map(() => ({ avatar: null }))));
+      steps.push(this.account.deleteAvatar().pipe(map(() => ({ avatar: null }))));
     }
     if (pw.newPassword) {
-      const req = { currentPassword: pw.currentPassword, newPassword: pw.newPassword };
-      steps.push(USE_MOCK_ACCOUNT ? mockChangePassword(id, req) : this.account.changePassword(req));
+      steps.push(this.account.changePassword({ currentPassword: pw.currentPassword, newPassword: pw.newPassword }));
     }
 
     this.saving.set(true);
@@ -262,13 +253,15 @@ export class ProfileInfo {
           if (user) this.auth.updateUser({ ...user, fullName: next.fullName, phone: next.phone, avatar: next.avatar });
           this.toast.show('Đã lưu thay đổi');
         },
-        error: (err: { status?: number; error?: { field?: string } }) => {
+        error: (err: { status?: number; error?: { field?: string; message?: string } }) => {
           this.saving.set(false);
           if (err?.error?.field === 'currentPassword') {
             this.passwordForm.setErrors({ ...(this.passwordForm.errors ?? {}), wrongCurrent: true });
             return;
           }
-          this.toast.show(err?.status === 0 ? 'Không kết nối được máy chủ. Vui lòng thử lại.' : 'Lưu chưa thành công. Vui lòng thử lại.');
+          this.toast.show(
+            err?.status === 0 ? 'Không kết nối được máy chủ. Vui lòng thử lại.' : (err?.error?.message ?? 'Lưu chưa thành công. Vui lòng thử lại.'),
+          );
         },
       });
   }

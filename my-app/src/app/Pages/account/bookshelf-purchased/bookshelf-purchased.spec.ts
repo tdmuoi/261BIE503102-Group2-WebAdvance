@@ -4,7 +4,7 @@ import { RouterModule, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { BookService } from '../../../services/book-service';
-import { resetMockOrders } from '../orders/orders.mock';
+import { provideFakeCustomerApi, signInForTest } from '../../../testing/fake-customer-api';
 import { BookshelfPurchased } from './bookshelf-purchased';
 
 describe('BookshelfPurchased', () => {
@@ -14,11 +14,11 @@ describe('BookshelfPurchased', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    resetMockOrders();
+    signInForTest();
     await TestBed.configureTestingModule({
       declarations: [BookshelfPurchased],
       imports: [RouterModule],
-      providers: [provideRouter([]), { provide: BookService, useValue: { getCatalog: () => of({ books: [], authors: [], categories: [] }) } }],
+      providers: [provideRouter([]), provideFakeCustomerApi(), { provide: BookService, useValue: { getCatalog: () => of({ books: [], authors: [], categories: [] }) } }],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(BookshelfPurchased);

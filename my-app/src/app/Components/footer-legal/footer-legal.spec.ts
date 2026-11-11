@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterModule, provideRouter } from '@angular/router';
 
 import { FooterLegal } from './footer-legal';
 
@@ -7,23 +8,19 @@ describe('FooterLegal', () => {
   let el: HTMLElement;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ declarations: [FooterLegal] }).compileComponents();
+    await TestBed.configureTestingModule({ declarations: [FooterLegal], imports: [RouterModule], providers: [provideRouter([])] }).compileComponents();
     fixture = TestBed.createComponent(FooterLegal);
     el = fixture.nativeElement;
-    fixture.detectChanges();
+    await fixture.whenStable();
   });
 
-  it('có 4 link: Privacy Policy, Terms of Service, Instagram, Facebook (không còn Substack)', () => {
+  it('có 3 link chính sách + Instagram, Facebook', () => {
     const labels = Array.from(el.querySelectorAll('.footer-legal li')).map((li) => li.textContent?.trim());
-    expect(labels).toEqual(['Privacy Policy', 'Terms of Service', 'Instagram', 'Facebook']);
+    expect(labels).toEqual(['Privacy Policy', 'Payment Policy', 'Purchase & Returns', 'Instagram', 'Facebook']);
   });
 
-  it('bấm Privacy Policy mở pop-up, bấm Đã hiểu thì đóng', () => {
-    (el.querySelector('.footer-legal button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(el.querySelector('.modal h2')?.textContent).toContain('Chính sách bảo mật');
-    (el.querySelector('.ok') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(el.querySelector('.modal')).toBeNull();
+  it('link chính sách mở trang /policies đúng mục', () => {
+    const hrefs = Array.from(el.querySelectorAll('.footer-legal a')).slice(0, 3).map((a) => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/policies#bao-mat', '/policies#thanh-toan', '/policies#doi-tra']);
   });
 });

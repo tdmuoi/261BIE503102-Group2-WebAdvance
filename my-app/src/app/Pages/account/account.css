@@ -70,3 +70,8 @@
   .account { flex-direction: column; align-items: stretch; }
   .sidebar { flex-basis: auto; }
 }
+
+/* Hộp xác nhận đăng xuất (khung chung ở popups/popup.css) */
+.logout-modal { max-width: 420px; }
+.logout-text { margin: 0; font: 400 14px/1.5 var(--font-sans); color: var(--color-text-body); }
+.logout-actions { display: flex; justify-content: flex-end; gap: var(--space-10); }

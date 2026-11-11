@@ -5,6 +5,7 @@ import { RouterModule, provideRouter } from '@angular/router';
 import { AccountProfile } from '../../../models/account';
 import { AccountService } from '../../../services/account-service';
 import { AuthService } from '../../../services/auth-service';
+import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { ToastService } from '../../../services/toast-service';
 import { SharedModule } from '../../../shared/shared-module';
 import { ProfileInfo, parseBirthday, passwordRules } from './profile-info';
@@ -28,7 +29,8 @@ describe('ProfileInfo', () => {
       providers: [
         provideRouter([]),
         { provide: ToastService, useValue: toast },
-        { provide: AuthService, useValue: { user: () => null, token: null, updateUser: vi.fn() } },
+        provideFakeCustomerApi(),
+        { provide: AuthService, useValue: { user: () => null, token: 'f'.repeat(64), updateUser: vi.fn() } },
       ],
     }).compileComponents();
     TestBed.inject(AccountService).setProfile(profile);

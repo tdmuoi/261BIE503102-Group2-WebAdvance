@@ -1,13 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { FakeDb, fakeCustomerApi, signInForTest } from '../../../../testing/fake-customer-api';
 import { ReviewPopup } from './review-popup';
 
 describe('ReviewPopup', () => {
   let fixture: ComponentFixture<ReviewPopup>;
   let component: ReviewPopup;
+  let db: FakeDb;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ declarations: [ReviewPopup] }).compileComponents();
+    signInForTest();
+    const api = fakeCustomerApi();
+    db = api.db;
+    await TestBed.configureTestingModule({ declarations: [ReviewPopup], providers: [api.providers] }).compileComponents();
     fixture = TestBed.createComponent(ReviewPopup);
     fixture.componentRef.setInput('book', { bookId: 'b1', title: 'Kitchen', image: null, author: 'Banana Yoshimoto', meta: 'Sách mới · mua 18/10/2026' });
     component = fixture.componentInstance;
@@ -37,6 +42,7 @@ describe('ReviewPopup', () => {
     component.submit();
     vi.advanceTimersByTime(700);
     expect(sent).toHaveBeenCalledWith({ bookId: 'b1', rating: 4 });
+    expect(db.ratings['b1']).toBe(4);
     expect(closed).toHaveBeenCalled();
   });
 

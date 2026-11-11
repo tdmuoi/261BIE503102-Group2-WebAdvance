@@ -4,6 +4,7 @@ import { Router, RouterModule, provideRouter } from '@angular/router';
 
 import { AccountService } from '../../../services/account-service';
 import { AuthService } from '../../../services/auth-service';
+import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { Notifications, timeLabel } from './notifications';
 
 describe('Notifications', () => {
@@ -15,7 +16,7 @@ describe('Notifications', () => {
     await TestBed.configureTestingModule({
       declarations: [Notifications],
       imports: [RouterModule],
-      providers: [provideRouter([]), { provide: AuthService, useValue: { token: null } }],
+      providers: [provideRouter([]), provideFakeCustomerApi(), { provide: AuthService, useValue: { token: 'f'.repeat(64) } }],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(Notifications);

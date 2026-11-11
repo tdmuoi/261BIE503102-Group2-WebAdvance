@@ -2,9 +2,9 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule, provideRouter } from '@angular/router';
 
-import { resetMockOrders } from '../orders/orders.mock';
+import { provideFakeCustomerApi, signInForTest } from '../../../testing/fake-customer-api';
 import { BookshelfEbooks } from './bookshelf-ebooks';
-import { lastReadLabel, readLabel } from './bookshelf.mock';
+import { lastReadLabel, readLabel } from './library';
 
 describe('BookshelfEbooks', () => {
   let fixture: ComponentFixture<BookshelfEbooks>;
@@ -13,11 +13,11 @@ describe('BookshelfEbooks', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    resetMockOrders();
+    signInForTest();
     await TestBed.configureTestingModule({
       declarations: [BookshelfEbooks],
       imports: [RouterModule],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), provideFakeCustomerApi()],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(BookshelfEbooks);

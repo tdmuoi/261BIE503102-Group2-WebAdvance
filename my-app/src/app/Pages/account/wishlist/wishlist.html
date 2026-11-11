@@ -25,6 +25,10 @@
 
   @if (loading()) {
     <app-status-card tone="loading" message="Đang tải wishlist…" />
+  } @else if (loadError()) {
+    <app-status-card tone="error" title="Chưa tải được wishlist" message="Vui lòng kiểm tra kết nối rồi thử lại.">
+      <button type="button" class="btn-outline" (click)="retry()">Thử lại</button>
+    </app-status-card>
   } @else if (cards().length) {
     <div class="bar">
       <p class="bar-text">

@@ -21,3 +21,6 @@
 @media (max-width: 600px) {
   .field-row, .success-actions { flex-direction: column; }
 }
+
+/* Link chính sách trong ô đồng ý (mở tab mới để không mất dữ liệu form) */
+.policy-link { color: var(--color-text-primary); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }

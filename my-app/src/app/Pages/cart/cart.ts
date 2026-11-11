@@ -92,6 +92,24 @@ export class Cart {
     this.voucherField.clear();
   }
 
+  /**
+   * "Xem Flash Sale": về trang chủ rồi cuộn tới phần Flash Sale. Phần này chỉ có sau khi trang chủ tải xong sách,
+   * nên chờ phần tử #flashsale xuất hiện (tối đa 8 giây) rồi mới cuộn.
+   */
+  goFlashSale(event: Event): void {
+    event.preventDefault();
+    this.router.navigate(['/'], { fragment: 'flashsale' }).then(() => {
+      const started = Date.now();
+      const timer = setInterval(() => {
+        const el = document.getElementById('flashsale');
+        if (el || Date.now() - started > 8000) {
+          clearInterval(timer);
+          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    });
+  }
+
   checkout(): void {
     if (this.selected().length) this.router.navigateByUrl('/checkout');
   }

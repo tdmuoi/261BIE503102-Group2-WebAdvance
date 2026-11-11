@@ -191,6 +191,10 @@ app.use('/api', newsletterRoutes(() => database));
 const librarianRoutes = require('./routes/librarian');
 app.use('/api', librarianRoutes(() => database));
 
+// API web khách hàng: đăng nhập, tài khoản, đơn hàng, mã giảm giá, wishlist (xem routes/customer.js)
+const customerRoutes = require('./routes/customer');
+app.use('/api', customerRoutes(() => database));
+
 // Kết nối database trước khi mở server
 async function startServer() {
   try {

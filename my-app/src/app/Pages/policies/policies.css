@@ -1,0 +1,33 @@
+.policies { display: flex; flex-direction: column; gap: var(--space-32); padding-block: var(--space-24) var(--space-80); }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); font: 400 12px/20px var(--font-sans); color: var(--color-text-secondary); }
+.crumbs a { color: inherit; text-decoration: none; }
+.crumbs [aria-current] { font-weight: 700; color: var(--color-text-primary); }
+.head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-12); }
+.title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-14); margin: 0; }
+.sub { max-width: 640px; margin: 0; color: var(--color-text-body); }
+
+.layout { display: grid; grid-template-columns: 260px 1fr; align-items: start; gap: var(--space-40); }
+.toc {
+  position: sticky; top: var(--space-24); display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-12);
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-18);
+}
+.toc a { padding: var(--space-10) var(--space-12); border-radius: var(--radius-12); font: 700 14px/1.3 var(--font-sans); color: var(--color-text-primary); text-decoration: none; }
+.toc a:hover { background: var(--color-tint-mint); }
+
+.docs { display: flex; flex-direction: column; gap: var(--space-24); }
+.doc {
+  scroll-margin-top: var(--space-24); display: flex; flex-direction: column; gap: var(--space-12); padding: 28px 32px;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-22);
+}
+.doc-no { font: 700 12px/1 var(--font-sans); letter-spacing: 1px; color: var(--color-text-accent); }
+.doc-title { margin: 0; font: 800 24px/1.2 var(--font-display); letter-spacing: -0.24px; }
+.doc-text { margin: 0; font: 400 15px/1.7 var(--font-sans); color: var(--color-text-body); text-align: justify; }
+.contact { margin: 0; font: 400 14px/1.5 var(--font-sans); color: var(--color-text-secondary); }
+.contact a { color: var(--color-text-primary); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; gap: var(--space-20); }
+  .toc { position: static; flex-direction: row; flex-wrap: wrap; }
+  .doc { padding: 22px 20px; }
+  .doc-text { text-align: left; }
+}

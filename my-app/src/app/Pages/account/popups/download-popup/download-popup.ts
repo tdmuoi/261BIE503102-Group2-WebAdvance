@@ -2,7 +2,7 @@ import { Component, OnDestroy, computed, inject, input, output, signal } from '@
 
 import { AuthService } from '../../../../services/auth-service';
 import { ToastService } from '../../../../services/toast-service';
-import { EbookFormat, LibraryEbook } from '../../bookshelf-ebooks/bookshelf.mock';
+import { EbookFormat, LibraryEbook } from '../../bookshelf-ebooks/library';
 
 export const FORMAT_OPTIONS: { value: EbookFormat; desc: string }[] = [
   { value: 'EPUB', desc: 'Chữ tự co giãn, hợp đọc trên điện thoại' },

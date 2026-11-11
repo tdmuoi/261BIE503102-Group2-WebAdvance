@@ -11,7 +11,7 @@
 }
 .shelf-row { display: flex; align-items: center; gap: var(--space-16); padding: var(--space-14) var(--space-16) var(--space-14) var(--space-14); }
 .shelf-row + .shelf-row { border-top: 1px solid color-mix(in srgb, var(--neutral-ink) 8%, transparent); }
-.cover { width: 56px; height: 80px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; box-shadow: var(--shadow-offset-sm); }
+.cover { width: 56px; height: 80px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; }
 .text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 5px; }
 .text p { margin: 0; }
 .title { font: 800 15px/normal var(--font-sans); }

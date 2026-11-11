@@ -21,7 +21,7 @@
   display: flex; align-items: center; gap: var(--space-14); padding: var(--space-12);
   background: var(--green-50); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-16);
 }
-.book-cover { width: 52px; height: 74px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; box-shadow: var(--shadow-offset-sm); }
+.book-cover { width: 52px; height: 74px; flex: none; object-fit: cover; border: var(--border-default) solid var(--color-border-strong); border-radius: 5px; }
 .book-text { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 3px; }
 .book-title { margin: 0; font: 800 15px/normal var(--font-sans); }
 .book-author { margin: 0; font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }

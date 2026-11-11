@@ -4,7 +4,7 @@ import { catchError, map, of } from 'rxjs';
 
 import { CatalogBook } from '../../../models/book';
 import { BookService } from '../../../services/book-service';
-import { readLabel } from '../bookshelf-ebooks/bookshelf.mock';
+import { readLabel } from '../bookshelf-ebooks/library';
 import { BuyAgainTarget } from '../popups/buy-again-drawer/buy-again-drawer';
 import { ReviewTarget } from '../popups/review-popup/review-popup';
 import { PurchasedBook, ShelfStore, normalizeText } from '../shelf-store';

@@ -1,13 +1,10 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import { ItemFormat, Order } from '../../models/account';
 import { AccountService } from '../../services/account-service';
 import { WishlistService } from '../../services/wishlist-service';
-import { LibraryEbook, USE_MOCK_EBOOKS, mockGetEbooks } from './bookshelf-ebooks/bookshelf.mock';
-import { USE_MOCK_ORDERS, mockGetOrders } from './orders/orders.mock';
-import { USE_MOCK_REVIEWS, mockGetMyRatings } from './popups/review-popup/review.mock';
-import { seedDemoWishlist } from './wishlist/wishlist.mock';
+import { LibraryEbook } from './bookshelf-ebooks/library';
 
 /** Một cuốn trong "Sách đã mua" */
 export interface PurchasedBook {
@@ -59,12 +56,10 @@ export class ShelfStore {
 
   load(destroyRef?: DestroyRef): void {
     this.status.set('loading');
-    seedDemoWishlist(); // chỉ ghi khi đang dùng dữ liệu mẫu và người dùng chưa có wishlist
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/account/orders, /ebooks, /reviews
     const sub = forkJoin({
-      orders: USE_MOCK_ORDERS ? mockGetOrders() : this.account.getOrders(),
-      ebooks: USE_MOCK_EBOOKS ? mockGetEbooks() : this.account.getEbooks<LibraryEbook>(),
-      ratings: USE_MOCK_REVIEWS ? mockGetMyRatings() : this.account.getMyRatings(),
+      orders: this.account.getOrders(),
+      ebooks: this.account.getEbooks<LibraryEbook>(),
+      ratings: this.account.getMyRatings().pipe(catchError(() => of<Record<string, number>>({}))),
     }).subscribe({
       next: ({ orders, ebooks, ratings }) => {
         this.orders.set(orders);

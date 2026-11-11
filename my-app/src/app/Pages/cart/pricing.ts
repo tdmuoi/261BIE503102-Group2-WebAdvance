@@ -1,6 +1,3 @@
-import { Observable, delay, of, switchMap, throwError, timer } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
-
 import { ShippingMethod, VoucherResult } from '../../models/account';
 
 /** Freeship cho đơn sách giấy từ 500.000đ (chỉ áp dụng Giao tiêu chuẩn) */
@@ -29,6 +26,8 @@ export interface Totals {
   /** Còn thiếu bao nhiêu để được freeship (0 nếu đã đủ) */
   freeshipRemaining: number;
   freeshipProgress: number;
+  /** Mã đang áp dụng nhưng đơn chưa đủ điều kiện (ví dụ chưa đạt đơn tối thiểu) */
+  voucherError: string | null;
 }
 
 /** Giảm combo đã tính sẵn (ComboService.discountFor) */
@@ -49,11 +48,22 @@ export function computeTotals(
   const physicalSubtotal = physical.reduce((s, l) => s + l.price * l.quantity, 0);
   const hasPhysical = physical.length > 0;
   const comboDiscount = Math.min(combo.amount, subtotal);
-  const comboFreeship = method === 'standard' && combo.freeship;
+  // Mã giảm giá tính trên số tiền sau khi đã trừ combo (cách tính giống my-server/routes/customer-pricing.js)
+  const base = subtotal - comboDiscount;
+  const voucherError = voucher && base < voucher.minOrderValue ? `Mã chỉ áp dụng cho đơn từ ${voucher.minOrderValue.toLocaleString('vi-VN')}đ` : null;
+  let discount = 0;
+  if (voucher && !voucherError) {
+    if (voucher.type === 'percent') {
+      discount = Math.round((base * voucher.value) / 100);
+      if (voucher.maxDiscount && voucher.maxDiscount > 0) discount = Math.min(discount, voucher.maxDiscount);
+    } else if (voucher.type === 'fixed') {
+      discount = Math.min(voucher.value, base);
+    }
+  }
+  const voucherFreeship = !!voucher && !voucherError && voucher.type === 'freeship' && method === 'standard';
+  const comboFreeship = method === 'standard' && (combo.freeship || voucherFreeship);
   const freeship = comboFreeship || (method === 'standard' && physicalSubtotal >= FREESHIP_MIN);
   const shipping = !hasPhysical || freeship ? 0 : SHIPPING_FEES[method];
-  // Mã giảm giá tính trên số tiền sau khi đã trừ combo
-  const discount = voucher ? Math.round(((subtotal - comboDiscount) * voucher.percent) / 100) : 0;
   return {
     itemCount: lines.length,
     bookCount: lines.reduce((s, l) => s + l.quantity, 0),
@@ -65,16 +75,6 @@ export function computeTotals(
     hasPhysical,
     freeshipRemaining: comboFreeship ? 0 : Math.max(0, FREESHIP_MIN - physicalSubtotal),
     freeshipProgress: comboFreeship ? 100 : Math.min(100, Math.round((physicalSubtotal / FREESHIP_MIN) * 100)),
+    voucherError,
   };
-}
-
-// TODO: thay bằng API — my-server chưa có POST /api/vouchers/validate
-export const USE_MOCK_VOUCHER = true;
-const MOCK_VOUCHERS: VoucherResult[] = [{ code: 'LIGHTBOOK10', percent: 10, description: 'giảm 10% cho đơn đầu tiên' }];
-
-export function mockValidateVoucher(code: string): Observable<VoucherResult> {
-  const found = MOCK_VOUCHERS.find((v) => v.code === code.trim().toUpperCase());
-  return found
-    ? of(found).pipe(delay(300))
-    : timer(300).pipe(switchMap(() => throwError(() => new HttpErrorResponse({ status: 404, error: { message: 'Mã giảm giá không hợp lệ hoặc đã hết hạn' } }))));
 }

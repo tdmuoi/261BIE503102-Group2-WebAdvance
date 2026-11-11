@@ -5,21 +5,30 @@
     <span class="hero-line">we pick <span class="hero-highlight">the books</span></span>
     <span class="hero-line">so you can <span class="hero-serif">simply</span> read.</span>
   </h1>
-  <p class="hero-sub">Lightbook là hiệu sách độc lập ở Sài Gòn — nơi mỗi cuốn trên kệ đều được một người đọc thật sự chọn, đọc và giới thiệu.</p>
+  <p class="hero-sub">Lightbook giúp mọi độc giả tìm được cuốn sách phù hợp với mình mà không lo rào cản chi phí — từ sách mới, sách cũ tuyển chọn đến kho ebook, cùng Thủ thư AI gợi ý theo sở thích của bạn.</p>
+  <ul class="hero-pillars" aria-label="Lightbook có gì">
+    @for (p of pillars; track p.label) {
+      <li class="hero-pillar" [attr.data-tone]="p.tone">{{ p.label }}</li>
+    }
+  </ul>
+  <div class="hero-actions">
+    <a class="btn btn-primary" routerLink="/books">Khám phá sách <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" /></a>
+    <a class="btn btn-secondary" routerLink="/book-buyback">Thanh lý sách cũ</a>
+  </div>
   <span class="sticker sticker--since" aria-hidden="true">🍒 since 2019</span>
   <span class="sticker sticker--community" aria-hidden="true">✦ Lightbook Community</span>
 </section>
 
 <app-marquee [items]="marquee" />
 
-<!-- Câu chuyện -->
+<!-- Sứ mệnh & Tầm nhìn (Content 1.docx) -->
 <section class="section story container">
   <div class="story-text">
-    <span class="tag">✦ Câu chuyện của chúng tôi</span>
-    <h2 class="title"><span class="h1">Bắt đầu từ một kệ sách</span> <span class="accent-h1">and a lot of tea.</span></h2>
-    <p class="body-lg">Lightbook ra đời từ một căn phòng 30m² trên đường Cộng Hòa, nơi vài người bạn mê sách mang những cuốn mình yêu thích đến để đổi, để mượn và để giới thiệu cho nhau.</p>
-    <p class="body-lg">Chúng tôi không cố bán thật nhiều sách. Chúng tôi muốn mỗi cuốn rời kệ đều tìm đúng người đọc — vì vậy mọi đầu sách đều được đội ngũ đọc trước, viết vài dòng giới thiệu bằng tay và xếp theo tâm trạng thay vì theo thể loại.</p>
-    <p class="body-lg">Hôm nay Lightbook có cả hiệu sách, website và một cộng đồng hơn 12.000 độc giả — nhưng tinh thần vẫn vậy: reading made simple.</p>
+    <span class="tag">✦ Sứ mệnh &amp; Tầm nhìn</span>
+    <h2 class="title"><span class="h1">Sứ mệnh &amp; Tầm nhìn</span> <span class="accent-h1">why we read.</span></h2>
+    @for (p of mission; track $index) {
+      <p class="body-lg">{{ p }}</p>
+    }
   </div>
   <div class="timeline">
     <p class="label-eyebrow eyebrow">Hành trình</p>
@@ -37,11 +46,11 @@
   </div>
 </section>
 
-<!-- Sứ mệnh -->
+<!-- Giá trị -->
 <section class="values-section">
   <div class="container section">
     <header class="section-head section-head--center">
-      <span class="tag">✦ Sứ mệnh</span>
+      <span class="tag">✦ Giá trị</span>
       <h2 class="title"><span class="h1">Điều chúng tôi tin</span> <span class="accent-h1">what we believe</span></h2>
       <p class="body-lead sub">Bốn lời hứa nhỏ mà Lightbook giữ với mỗi độc giả.</p>
     </header>
@@ -86,8 +95,6 @@
         <span class="member-avatar" [attr.data-tone]="m.tone">{{ m.initials }}</span>
         <p class="title-card-lg">{{ m.name }}</p>
         <p class="member-role">{{ m.role }}</p>
-        <p class="body-quote member-quote">“{{ m.quote }}”</p>
-        <p class="label-small">Đang đọc: {{ m.reading }}</p>
       </article>
     }
   </div>
@@ -118,9 +125,9 @@
           <li><span class="check"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>{{ b }}</li>
         }
       </ul>
-      <a class="btn btn-primary cta-btn" routerLink="/register">
+      <button type="button" class="btn btn-primary cta-btn" (click)="openJoin()" aria-haspopup="dialog">
         Tham gia miễn phí <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
-      </a>
+      </button>
     </div>
     <div class="cta-covers" aria-hidden="true">
       <img class="cover cover--left" src="images/about/cover-left.png" alt="" width="223" height="289" />
@@ -130,3 +137,36 @@
     </div>
   </div>
 </section>
+
+@if (joinOpen()) {
+  <div class="join-overlay" (click)="closeJoin()">
+    <section class="join-modal" role="dialog" aria-modal="true" aria-labelledby="join-title" (click)="$event.stopPropagation()">
+      <button type="button" class="join-close" (click)="closeJoin()" aria-label="Đóng"><img src="images/account/x-sm.svg" alt="" width="12" height="12" /></button>
+      @if (joinState() === 'done' || joinState() === 'duplicate') {
+        <h2 id="join-title" class="join-title">{{ joinState() === 'done' ? 'Đăng ký thành công!' : 'Bạn đã có trong cộng đồng' }}</h2>
+        <p class="join-text">
+          {{ joinState() === 'done' ? 'Lightbook sẽ gửi bản tin sách mới vào mỗi thứ Năm.' : 'Email này đã đăng ký nhận bản tin trước đó.' }}
+          Tạo tài khoản để nhận mã giảm 10% cho đơn đầu tiên.
+        </p>
+        <div class="join-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeJoin()">Để sau</button>
+          <a class="btn btn-primary" routerLink="/register" (click)="closeJoin()">Tạo tài khoản</a>
+        </div>
+      } @else {
+        <h2 id="join-title" class="join-title">Tham gia Lightbook Community</h2>
+        <p class="join-text">Nhập email để nhận bản tin sách mới mỗi thứ Năm và thông tin Author Talk sớm nhất.</p>
+        <form class="join-form" (submit)="$event.preventDefault(); submitJoin()" novalidate>
+          <label class="join-label" for="join-email">Email</label>
+          <input id="join-email" class="join-input" type="email" autocomplete="email" placeholder="ban@email.com"
+            [value]="joinEmail()" (input)="onJoinEmail($event)" [attr.aria-invalid]="!!joinError()" aria-describedby="join-error" />
+          @if (joinError(); as err) {
+            <p id="join-error" class="join-error" role="alert">{{ err }}</p>
+          }
+          <button type="submit" class="btn btn-primary join-submit" [disabled]="joinState() === 'sending'">
+            {{ joinState() === 'sending' ? 'Đang gửi…' : 'Đăng ký nhận bản tin' }}
+          </button>
+        </form>
+      }
+    </section>
+  </div>
+}

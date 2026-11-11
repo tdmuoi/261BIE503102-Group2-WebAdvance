@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule, provideRouter } from '@angular/router';
 
+import { HttpClient } from '@angular/common/http';
+
 import { AuthService } from '../../../services/auth-service';
+import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { AuthArt } from '../auth-art/auth-art';
 import { Login } from './login';
 
@@ -13,11 +16,11 @@ describe('Login', () => {
   let el: HTMLElement;
 
   beforeEach(async () => {
-    auth = { isLoggedIn: () => false, setSession: vi.fn(), login: vi.fn() };
+    auth = { isLoggedIn: () => false, setSession: vi.fn(), login: vi.fn((body: object) => TestBed.inject(HttpClient).post('/api/auth/login', body)) };
     await TestBed.configureTestingModule({
       declarations: [Login, AuthArt],
       imports: [ReactiveFormsModule, RouterModule],
-      providers: [provideRouter([]), { provide: AuthService, useValue: auth }],
+      providers: [provideRouter([]), provideFakeCustomerApi(), { provide: AuthService, useValue: auth }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Login);
@@ -75,7 +78,7 @@ describe('Login', () => {
     component.form.setValue({ identifier: 'demo@lightbook.vn', password: 'lightbook123', remember: false });
     component.submit();
     vi.advanceTimersByTime(700);
-    expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ token: 'mock-token' }), false);
+    expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ token: 'f'.repeat(64) }), false);
     expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
   });
 });

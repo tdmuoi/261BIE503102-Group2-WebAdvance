@@ -5,7 +5,7 @@
       <img [appTrimCover]="item.image" [alt]="item.title" loading="lazy" />
     </a>
     <button class="book-like" type="button" [class.is-active]="liked()" [attr.aria-pressed]="liked()"
-            [attr.aria-label]="'Yêu thích ' + item.title" (click)="liked.set(!liked())">
+            [attr.aria-label]="'Yêu thích ' + item.title" (click)="toggleLike()">
       <img src="images/icons/heart-medium.svg" alt="" width="20" height="18" />
     </button>
   </div>

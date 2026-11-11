@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -59,8 +59,28 @@ export class AuthService {
     this.session.set(res);
   }
 
+  /**
+   * Đăng xuất: báo server huỷ token (không chờ kết quả), xoá phiên và dữ liệu riêng của người này
+   * lưu trên trình duyệt (tiến độ đọc ebook...) để người đăng nhập sau không thấy.
+   */
   logout(): void {
+    const token = this.token;
+    if (token) {
+      this.http
+        .post(`${this.baseUrl}/logout`, {}, { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) })
+        .subscribe({ error: () => undefined });
+    }
+    this.clearLocal();
+  }
+
+  /** Server trả 401 (token hết hạn / bị huỷ): xoá phiên, không gọi lại server */
+  expire(): void {
+    if (this.session()) this.clearLocal();
+  }
+
+  private clearLocal(): void {
     clearStorage();
+    clearUserData();
     this.session.set(null);
   }
 
@@ -93,6 +113,21 @@ function clearStorage(): void {
     } catch {
       // ignore
     }
+  }
+}
+
+/** Khoá localStorage chứa dữ liệu riêng của người đang đăng nhập */
+const USER_DATA_PREFIXES = ['lightbook.reader.'];
+const USER_DATA_KEEP = ['lightbook.reader.settings'];
+
+function clearUserData(): void {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && !USER_DATA_KEEP.includes(key) && USER_DATA_PREFIXES.some((p) => key.startsWith(p))) localStorage.removeItem(key);
+    }
+  } catch {
+    // ignore
   }
 }
 

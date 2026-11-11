@@ -9,7 +9,6 @@ import { ToastService } from '../../../services/toast-service';
 import { WishlistItem, WishlistService } from '../../../services/wishlist-service';
 import { CartFacade } from '../../cart/cart-facade';
 import { ShelfStore, normalizeText } from '../shelf-store';
-import { DEMO_DETAILS } from './wishlist.mock';
 
 export interface WishlistCard {
   bookId: string;
@@ -49,7 +48,8 @@ export class Wishlist implements OnInit {
     ),
     { initialValue: null },
   );
-  readonly loading = computed(() => this.catalog() === null);
+  readonly loading = computed(() => this.catalog() === null || this.wishlist.status() === 'loading');
+  readonly loadError = computed(() => this.wishlist.status() === 'error');
 
   /** Ghép wishlist với danh mục để có giá hiện tại, giảm giá, tác giả */
   readonly cards = computed<WishlistCard[]>(() => {
@@ -64,6 +64,10 @@ export class Wishlist implements OnInit {
 
   ngOnInit(): void {
     this.shelf.load(this.destroyRef);
+  }
+
+  retry(): void {
+    this.wishlist.reload();
   }
 
   remove(card: WishlistCard): void {
@@ -89,17 +93,16 @@ export class Wishlist implements OnInit {
 }
 
 function toCard(item: WishlistItem, book: CatalogBook | undefined): WishlistCard {
-  const demo = DEMO_DETAILS[item.bookId];
   const price = book?.price ?? item.price;
-  const originalPrice = book?.originalPrice ?? demo?.originalPrice ?? price;
+  const originalPrice = book?.originalPrice ?? item.originalPrice ?? price;
   return {
     bookId: item.bookId,
     title: book?.title ?? item.title,
-    author: book?.authorName ?? demo?.author ?? '',
+    author: book?.authorName ?? item.author ?? '',
     image: book?.image ?? item.image,
     price,
     originalPrice,
-    discountPercent: book?.discountPercent ?? (originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0),
-    type: book?.type,
+    discountPercent: book?.discountPercent ?? item.discountPercent ?? (originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0),
+    type: book?.type ?? item.type,
   };
 }

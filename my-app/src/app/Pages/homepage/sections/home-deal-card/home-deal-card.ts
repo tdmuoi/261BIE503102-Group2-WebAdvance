@@ -1,6 +1,7 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 
 import { BookView } from '../../../../models/book';
+import { WishlistService } from '../../../../services/wishlist-service';
 
 /** Thẻ sách giảm giá trong section Flash Sale */
 @Component({
@@ -14,5 +15,13 @@ export class HomeDealCard {
   /** Màu nền ô ảnh: mint | yellow | pink */
   readonly tint = input('mint');
 
-  protected readonly liked = signal(false);
+  private readonly wishlist = inject(WishlistService);
+
+  /** Yêu thích lưu qua WishlistService (đăng nhập thì lưu theo tài khoản) — đồng bộ với trang Wishlist */
+  protected readonly liked = computed(() => this.wishlist.has(this.deal()._id));
+
+  protected toggleLike(): void {
+    const b = this.deal();
+    this.wishlist.toggle({ _id: b._id, title: b.title, image: b.image, price: b.price });
+  }
 }

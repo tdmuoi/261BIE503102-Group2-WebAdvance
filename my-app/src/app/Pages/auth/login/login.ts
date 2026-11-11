@@ -7,7 +7,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LoginError, LoginMethod, LoginRequest } from '../../../models/user';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
-import { USE_MOCK_LOGIN, mockLogin } from './login.mock';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 /** Số di động Việt Nam: 0xxxxxxxxx hoặc +84xxxxxxxxx */
@@ -90,8 +89,7 @@ export class Login implements OnInit {
 
     const { identifier, password, remember } = this.form.getRawValue();
     const body: LoginRequest = { identifier: identifier.trim(), type: this.method(), password, remember };
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có POST /api/auth/login
-    const request$ = USE_MOCK_LOGIN ? mockLogin(body) : this.auth.login(body);
+    const request$ = this.auth.login(body);
 
     this.loading.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

@@ -4,7 +4,7 @@ import { RouterModule, provideRouter } from '@angular/router';
 
 import { VndPipe } from '../../../pipes/vnd-pipe';
 import { Orders } from './orders';
-import { resetMockOrders } from './orders.mock';
+import { provideFakeCustomerApi, signInForTest } from '../../../testing/fake-customer-api';
 
 describe('Orders', () => {
   let fixture: ComponentFixture<Orders>;
@@ -13,11 +13,11 @@ describe('Orders', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    resetMockOrders();
+    signInForTest();
     await TestBed.configureTestingModule({
       declarations: [Orders, VndPipe],
       imports: [RouterModule],
-      providers: [provideRouter([])],
+      providers: [provideRouter([]), provideFakeCustomerApi()],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(Orders);

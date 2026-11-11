@@ -134,11 +134,13 @@
           <label class="checkbox" [class.checkbox--error]="termsError()">
             <input type="checkbox" formControlName="terms" [attr.aria-invalid]="termsError()" />
             <span class="checkbox-box"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>
-            Tôi đồng ý với Điều khoản sử dụng &amp; Chính sách bảo mật
+            <span>Tôi đồng ý với <a class="policy-link" routerLink="/policies" fragment="doi-tra" target="_blank">Chính sách mua hàng &amp; đổi trả</a>,
+              <a class="policy-link" routerLink="/policies" fragment="thanh-toan" target="_blank">Chính sách thanh toán</a> và
+              <a class="policy-link" routerLink="/policies" fragment="bao-mat" target="_blank">Chính sách bảo mật</a></span>
           </label>
           @if (termsError()) {
             <p class="field-helper field-helper--error">
-              <img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />Bạn cần đồng ý với điều khoản để tiếp tục
+              <img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />Bạn cần đồng ý với các chính sách để tiếp tục
             </p>
           }
           <label class="checkbox">

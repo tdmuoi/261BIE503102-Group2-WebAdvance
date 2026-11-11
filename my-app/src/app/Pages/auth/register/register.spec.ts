@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, provideRouter } from '@angular/router';
 
+import { HttpClient } from '@angular/common/http';
+
 import { AuthService } from '../../../services/auth-service';
+import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { AuthArt } from '../auth-art/auth-art';
 import { Register } from './register';
 
@@ -25,11 +28,11 @@ describe('Register', () => {
     } as never);
 
   beforeEach(async () => {
-    auth = { isLoggedIn: () => false, setSession: vi.fn(), register: vi.fn() };
+    auth = { isLoggedIn: () => false, setSession: vi.fn(), register: vi.fn((body: object) => TestBed.inject(HttpClient).post('/api/auth/register', body)) };
     await TestBed.configureTestingModule({
       declarations: [Register, AuthArt],
       imports: [ReactiveFormsModule, RouterModule],
-      providers: [provideRouter([]), { provide: AuthService, useValue: auth }],
+      providers: [provideRouter([]), provideFakeCustomerApi(), { provide: AuthService, useValue: auth }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Register);
@@ -49,7 +52,7 @@ describe('Register', () => {
     await fixture.whenStable();
     // Họ tên, email, mật khẩu, nhập lại, điều khoản (SĐT không bắt buộc)
     expect(el.querySelector('.auth-alert-title')?.textContent).toContain('Còn 5 trường cần sửa');
-    expect(el.textContent).toContain('Bạn cần đồng ý với điều khoản để tiếp tục');
+    expect(el.textContent).toContain('Bạn cần đồng ý với các chính sách để tiếp tục');
   });
 
   it('kiểm tra mật khẩu: độ dài, chữ + số, nhập lại khớp', () => {
@@ -93,9 +96,9 @@ describe('Register', () => {
     component.submit();
     vi.advanceTimersByTime(700);
     vi.useRealTimers();
-    expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ token: 'mock-token' }), true);
+    expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ token: 'f'.repeat(64) }), true);
     await fixture.whenStable();
-    expect(el.textContent).toContain('LIGHTBOOK10');
+    expect(el.textContent).toContain('WELCOME10');
     expect(el.textContent).toContain('mai.tran@gmail.com');
   });
 });

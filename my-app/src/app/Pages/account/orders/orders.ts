@@ -1,14 +1,12 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import { Order, OrderItem, OrderStatus, PaymentMethod } from '../../../models/account';
-import { AccountService } from '../../../services/account-service';
+import { AccountService, BuybackRequest } from '../../../services/account-service';
 import { ToastService } from '../../../services/toast-service';
 import { BuyAgainTarget } from '../popups/buy-again-drawer/buy-again-drawer';
 import { ReviewTarget } from '../popups/review-popup/review-popup';
-import { USE_MOCK_REVIEWS, mockGetMyRatings } from '../popups/review-popup/review.mock';
-import { BuybackRequest, USE_MOCK_ORDERS, mockCancelOrder, mockGetBuybacks, mockGetOrders } from './orders.mock';
 
 export type OrderTab = 'all' | 'pending' | 'shipping' | 'delivered' | 'cancelled' | 'buyback';
 
@@ -94,11 +92,11 @@ export class Orders implements OnInit {
 
   load(): void {
     this.status.set('loading');
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/account/orders, /reviews, /buybacks
     forkJoin({
-      orders: USE_MOCK_ORDERS ? mockGetOrders() : this.account.getOrders(),
-      ratings: USE_MOCK_REVIEWS ? mockGetMyRatings() : this.account.getMyRatings(),
-      buybacks: mockGetBuybacks(),
+      orders: this.account.getOrders(),
+      ratings: this.account.getMyRatings(),
+      // Tab "Thanh lý" lỗi thì vẫn hiện đơn hàng
+      buybacks: this.account.getBuybacks().pipe(catchError(() => of<BuybackRequest[]>([]))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -156,8 +154,7 @@ export class Orders implements OnInit {
     if (order.status !== 'pending' || this.cancelling()) return;
     if (!confirm(`Huỷ đơn #${order.orderCode}? Thao tác này không hoàn tác được.`)) return;
     this.cancelling.set(order._id);
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có PUT /api/account/orders/:id/cancel
-    (USE_MOCK_ORDERS ? mockCancelOrder(order._id) : this.account.cancelOrder(order._id)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.account.cancelOrder(order._id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.cancelling.set(null);
         this.orders.update((list) => list.map((o) => (o._id === updated._id ? updated : o)));

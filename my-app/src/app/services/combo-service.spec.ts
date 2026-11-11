@@ -47,7 +47,7 @@ describe('ComboService', () => {
   it('computeTotals trừ combo trước, mã giảm giá tính trên phần còn lại, combo tự chọn freeship', () => {
     const totals = computeTotals(
       [{ price: 100000, quantity: 1, ebook: false }, { price: 100000, quantity: 1, ebook: false }],
-      { code: 'LIGHTBOOK10', percent: 10, description: '' },
+      { code: 'LIGHTBOOK10', type: 'percent', value: 10, maxDiscount: null, minOrderValue: 0, description: '' },
       'standard',
       { amount: 20000, freeship: true },
     );

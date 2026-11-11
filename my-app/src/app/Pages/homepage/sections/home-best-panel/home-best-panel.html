@@ -30,7 +30,7 @@
         <a class="panel-btn" routerLink="/cart">Thêm vào giỏ</a>
         <a class="panel-btn" [routerLink]="['/product-detail', current._id]">Mua ngay</a>
         <button class="panel-like" type="button" [class.is-active]="liked()" [attr.aria-pressed]="liked()"
-                aria-label="Yêu thích" (click)="liked.set(!liked())">
+                aria-label="Yêu thích" (click)="toggleLike()">
           <img src="images/icons/wishlist-button.svg" alt="" width="36" height="36" />
         </button>
       </div>

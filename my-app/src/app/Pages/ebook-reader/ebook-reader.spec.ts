@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 
 import { User } from '../../models/user';
 import { AuthService } from '../../services/auth-service';
-import { resetMockOrders } from '../account/orders/orders.mock';
+import { provideFakeCustomerApi } from '../../testing/fake-customer-api';
 import { EbookReader, splitMarks } from './ebook-reader';
 import { buildChapters, remainingLabel } from './ebook-reader.mock';
 
@@ -17,13 +17,13 @@ describe('EbookReader', () => {
 
   async function setup(id: string) {
     localStorage.clear();
-    resetMockOrders();
     await TestBed.configureTestingModule({
       declarations: [EbookReader],
       imports: [RouterModule],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { user } },
+        provideFakeCustomerApi(),
+        { provide: AuthService, useValue: { user, isLoggedIn: () => !!user(), token: 'f'.repeat(64) } },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id })) } },
       ],
       schemas: [NO_ERRORS_SCHEMA],
@@ -33,7 +33,9 @@ describe('EbookReader', () => {
     component = fixture.componentInstance;
     el = fixture.nativeElement;
     fixture.detectChanges();
-    vi.advanceTimersByTime(500);
+    vi.advanceTimersByTime(500); // tủ sách
+    fixture.detectChanges();
+    vi.advanceTimersByTime(500); // tiến độ đã lưu trên server
     fixture.detectChanges();
   }
 
@@ -43,7 +45,7 @@ describe('EbookReader', () => {
   });
 
   it('mở "Kitchen" đúng Figma: trang 58/140, Chương 3, đánh dấu trang 23, 47 và ghi chú trang 58', async () => {
-    await setup('mock-kitchen-ebook');
+    await setup('kitchen-ebook');
     expect(component.status()).toBe('ready');
     expect(component.page()).toBe(58);
     expect(component.current().chapter.title).toBe('Chương 3');
@@ -54,7 +56,7 @@ describe('EbookReader', () => {
   });
 
   it('lật trang, nhảy chương, đánh dấu trang và lưu tiến độ', async () => {
-    await setup('mock-kitchen-ebook');
+    await setup('kitchen-ebook');
     component.next();
     expect(component.page()).toBe(59);
     component.goTo(component.chapters()[4].startPage);
@@ -62,13 +64,13 @@ describe('EbookReader', () => {
     component.toggleBookmark();
     expect(component.bookmarked()).toBe(true);
     fixture.detectChanges();
-    const saved = JSON.parse(localStorage.getItem('lightbook.reader.mock-kitchen-ebook') ?? '{}');
+    const saved = JSON.parse(localStorage.getItem('lightbook.reader.kitchen-ebook') ?? '{}');
     expect(saved.page).toBe(80);
     expect(saved.bookmarks).toContain(80);
   });
 
   it('tuỳ chỉnh: cỡ chữ, nền tối, cuộn dọc hiện cả chương', async () => {
-    await setup('mock-kitchen-ebook');
+    await setup('kitchen-ebook');
     component.setSetting('fontSize', 20);
     component.toggleDark();
     component.setSetting('mode', 'scroll');

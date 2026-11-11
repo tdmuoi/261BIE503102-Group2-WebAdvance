@@ -7,7 +7,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { RegisterError, RegisterRequest } from '../../../models/user';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
-import { USE_MOCK_REGISTER, mockRegister } from './register.mock';
 
 const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*[\p{L}]$/u;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -134,8 +133,7 @@ export class Register implements OnInit {
       password: v.password,
       newsletter: v.newsletter,
     };
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có POST /api/auth/register
-    const request$ = USE_MOCK_REGISTER ? mockRegister(body) : this.auth.register(body);
+    const request$ = this.auth.register(body);
 
     this.loading.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

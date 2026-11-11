@@ -39,10 +39,12 @@ export class VoucherState {
           this.facade.setVoucher(v);
           this.input.set(v.code);
         },
-        error: (err: { error?: { message?: string } }) => {
+        error: (err: { status?: number; error?: { message?: string } }) => {
           this.checking.set(false);
           this.facade.setVoucher(null);
-          this.error.set(err?.error?.message ?? 'Mã giảm giá không hợp lệ');
+          // Mã giảm giá gắn với tài khoản (lượt dùng mỗi người) nên cần đăng nhập
+          if (err?.status === 401) this.error.set('Vui lòng đăng nhập để dùng mã giảm giá');
+          else this.error.set(err?.error?.message ?? 'Mã giảm giá không hợp lệ');
         },
       });
   }

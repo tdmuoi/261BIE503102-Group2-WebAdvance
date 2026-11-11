@@ -5,12 +5,6 @@ import { Router } from '@angular/router';
 import { AccountNotification, NotificationIcon, NotificationType } from '../../../models/account';
 import { AccountService } from '../../../services/account-service';
 import { ToastService } from '../../../services/toast-service';
-import {
-  USE_MOCK_NOTIFICATIONS,
-  mockGetNotifications,
-  mockMarkAllRead,
-  mockMarkRead,
-} from './notifications.mock';
 
 type Filter = NotificationType | 'all';
 
@@ -99,11 +93,7 @@ export class Notifications implements OnInit {
   load(more = false): void {
     if (more) this.loadingMore.set(true);
     else this.status.set('loading');
-    // TODO: thay bằng API — bỏ nhánh mock khi my-server có GET /api/account/notifications
-    const request$ = USE_MOCK_NOTIFICATIONS
-      ? mockGetNotifications(this.filter(), this.page())
-      : this.account.getNotifications(this.filter(), this.page());
-    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.account.getNotifications(this.filter(), this.page()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.items.set(res.items);
         this.total.set(res.total);
@@ -131,7 +121,7 @@ export class Notifications implements OnInit {
     // Cập nhật giao diện ngay, gọi API sau
     this.items.update((list) => list.map((x) => (x._id === n._id ? { ...x, read: true } : x)));
     this.account.setUnreadCount(this.unread() - 1);
-    (USE_MOCK_NOTIFICATIONS ? mockMarkRead(n._id) : this.account.markNotificationRead(n._id))
+    this.account.markNotificationRead(n._id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ error: () => this.load() });
   }
@@ -140,7 +130,7 @@ export class Notifications implements OnInit {
     if (!this.unread()) return;
     this.items.update((list) => list.map((x) => ({ ...x, read: true })));
     this.account.setUnreadCount(0);
-    (USE_MOCK_NOTIFICATIONS ? mockMarkAllRead() : this.account.markAllNotificationsRead())
+    this.account.markAllNotificationsRead()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.toast.show('Đã đánh dấu tất cả là đã đọc'),

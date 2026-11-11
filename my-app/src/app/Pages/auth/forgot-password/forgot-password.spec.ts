@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap, RouterModule, provideRouter } from '@angular/router';
 
+import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { AuthArt } from '../auth-art/auth-art';
 import { ForgotPassword } from './forgot-password';
 
@@ -16,6 +17,7 @@ describe('ForgotPassword', () => {
       imports: [ReactiveFormsModule, RouterModule],
       providers: [
         provideRouter([]),
+        provideFakeCustomerApi(),
         { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(query) } } },
       ],
     }).compileComponents();

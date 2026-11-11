@@ -4,6 +4,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, provideRouter } from '@angular/router';
 
 import { AuthService } from '../../../services/auth-service';
+import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { ToastService } from '../../../services/toast-service';
 import { Address, formatPhone, fullAddress } from './address';
 
@@ -21,7 +22,8 @@ describe('Address', () => {
       providers: [
         provideRouter([]),
         { provide: ToastService, useValue: toast },
-        { provide: AuthService, useValue: { token: null } },
+        provideFakeCustomerApi(),
+        { provide: AuthService, useValue: { token: 'f'.repeat(64) } },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();

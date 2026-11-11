@@ -1,13 +1,33 @@
-import { Component } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+import { EngagementService, NEWSLETTER_DUPLICATE_STATUS } from '../../services/engagement-service';
+import { MISSION_VISION } from '../policies/policy-content';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Trang Về Lightbook — nội dung tĩnh lấy đúng theo Figma "Pages/about-us · Về Lightbook" */
 @Component({
   selector: 'app-about-us',
   standalone: false,
-  styleUrls: ['./about-us.css', './about-us-sections.css'],
+  styleUrls: ['./about-us.css', './about-us-sections.css', './about-join.css', './about-hero.css'],
   templateUrl: './about-us.html',
 })
 export class AboutUs {
+  private readonly engagement = inject(EngagementService);
+  private readonly destroyRef = inject(DestroyRef);
+  /** Đoạn "Sứ Mệnh & Tầm Nhìn" lấy từ Content 1.docx */
+  readonly mission = MISSION_VISION;
+
+  /** Các mảng chính của Lightbook (theo Sứ mệnh trong Content 1.docx) — hiện ở phần đầu trang */
+  readonly pillars = [
+    { label: 'Sách mới', tone: 'pink' },
+    { label: 'Sách cũ tuyển chọn', tone: 'yellow' },
+    { label: 'Ebook', tone: 'mint' },
+    { label: 'Thủ thư AI tư vấn', tone: 'white' },
+  ];
+
   readonly marquee = [
     'READING MADE SIMPLE',
     'HANDPICKED INDIE TITLES',
@@ -39,10 +59,10 @@ export class AboutUs {
 
   // Chữ viết tắt giữ đúng như Figma (Figma đang để LA / QM chưa khớp tên — xem báo cáo)
   readonly team = [
-    { initials: 'LA', tone: 'pink', name: 'Thùy Dung', role: 'Người sáng lập · Chọn sách', quote: 'Tôi tin mỗi người đều có một cuốn sách đang chờ mình.', reading: 'Kitchen' },
-    { initials: 'MT', tone: 'mint', name: 'Mai Anh', role: 'Biên tập viên · Review sách', quote: 'Viết review như viết thư cho một người bạn.', reading: 'The Roman' },
-    { initials: 'QM', tone: 'yellow', name: 'Khánh Hằng', role: 'Phụ trách góc Đọc chậm', quote: 'Đọc chậm là cách tôi nghỉ ngơi.', reading: 'Bố Con Cá Gai' },
-    { initials: 'NL', tone: 'pink', name: 'H Nhiên Kpor', role: 'Cộng đồng & sự kiện', quote: 'Author Talk là nơi sách bước ra khỏi trang giấy.', reading: 'Yêu – Being in Love' },
+    { initials: 'LA', tone: 'pink', name: 'Thùy Dung', role: 'Người sáng lập · Chọn sách' },
+    { initials: 'MT', tone: 'mint', name: 'Mai Anh', role: 'Biên tập viên · Review sách' },
+    { initials: 'QM', tone: 'yellow', name: 'Khánh Hằng', role: 'Phụ trách góc Đọc chậm' },
+    { initials: 'NL', tone: 'pink', name: 'H Nhiên Kpor', role: 'Cộng đồng & sự kiện' },
   ];
 
   readonly partners = [
@@ -61,4 +81,49 @@ export class AboutUs {
     'Ưu tiên giữ chỗ Lightbook Author Talk',
     'Tích điểm đổi bookmark & quà tặng tác giả',
   ];
+
+  // ---------------- Pop-up "Tham gia miễn phí": đăng ký nhận bản tin (POST /api/newsletter) ----------------
+  readonly joinOpen = signal(false);
+  readonly joinEmail = signal('');
+  readonly joinState = signal<'idle' | 'sending' | 'done' | 'duplicate'>('idle');
+  readonly joinError = signal<string | null>(null);
+
+  openJoin(): void {
+    this.joinOpen.set(true);
+    this.joinState.set('idle');
+    this.joinError.set(null);
+  }
+
+  closeJoin(): void {
+    this.joinOpen.set(false);
+  }
+
+  onJoinEmail(event: Event): void {
+    this.joinEmail.set((event.target as HTMLInputElement).value);
+    this.joinError.set(null);
+  }
+
+  submitJoin(): void {
+    const email = this.joinEmail().trim();
+    if (this.joinState() === 'sending') return;
+    if (!EMAIL_PATTERN.test(email)) {
+      this.joinError.set('Email chưa đúng định dạng');
+      return;
+    }
+    this.joinState.set('sending');
+    this.engagement
+      .subscribeNewsletter(email, 'news')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.joinState.set('done'),
+        error: (err: unknown) => {
+          if (err instanceof HttpErrorResponse && err.status === NEWSLETTER_DUPLICATE_STATUS) {
+            this.joinState.set('duplicate');
+            return;
+          }
+          this.joinState.set('idle');
+          this.joinError.set(err instanceof HttpErrorResponse && err.status === 0 ? 'Không kết nối được máy chủ, vui lòng thử lại' : 'Chưa đăng ký được, vui lòng thử lại');
+        },
+      });
+  }
 }

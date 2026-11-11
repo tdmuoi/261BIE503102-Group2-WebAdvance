@@ -1,8 +1,5 @@
-import { Observable, delay, of } from 'rxjs';
-
-// TODO: thay bằng API — my-server chưa có nội dung ebook (GET /api/account/ebooks/:id/content)
-// và chưa lưu tiến độ/đánh dấu (PUT /api/account/ebooks/:id/progress). Khi backend xong: đổi USE_MOCK_READER = false.
-export const USE_MOCK_READER = true;
+// TODO: thay bằng API — my-server chưa có nội dung ebook (GET /api/account/ebooks/:id/content), trang đang hiện nội dung minh hoạ.
+// Tiến độ / đánh dấu / ghi chú đã lưu trên server (PUT /api/account/ebooks/:bookId/progress), localStorage chỉ là bản nháp.
 
 export interface Chapter {
   index: number;
@@ -49,7 +46,7 @@ export function mockGetPage(chapters: Chapter[], page: number): ReaderPage {
   return { number: page, chapter: chapterOf(chapters, page), heading: SAMPLE_HEADING, paragraphs: SAMPLE_PARAGRAPHS };
 }
 
-// ---------------- Tiến độ, đánh dấu, ghi chú, tô sáng (lưu localStorage khi chưa có API) ----------------
+// ---------------- Tiến độ, đánh dấu, ghi chú, tô sáng (server + bản nháp localStorage) ----------------
 
 export interface ReaderNote {
   id: string;
@@ -87,50 +84,29 @@ export const FONT_SIZE_MAX = 24;
 const stateKey = (bookId: string) => `lightbook.reader.${bookId}`;
 const SETTINGS_KEY = 'lightbook.reader.settings';
 
-/** Dữ liệu mẫu đúng Figma cho "Kitchen": đang ở trang 58, đánh dấu trang 23, 47, ghi chú trang 58 */
-function seedState(bookId: string, page: number): ReaderState {
-  if (bookId !== 'mock-kitchen-ebook') return { page: Math.max(1, page), bookmarks: [], notes: [], highlights: [], lastReadAt: null };
-  const quote = 'Khi đọc, người dùng có thể bôi đen một câu để tô sáng, thêm ghi chú hoặc tra từ.';
-  return {
-    page: 58,
-    bookmarks: [23, 47],
-    notes: [{ id: 'n-seed', page: 58, quote, text: '' }],
-    highlights: [{ page: 58, text: quote }],
-    lastReadAt: null,
-  };
+function emptyState(page: number): ReaderState {
+  return { page: Math.max(1, page), bookmarks: [], notes: [], highlights: [], lastReadAt: null };
 }
 
-/** startPage: trang đang đọc theo tủ sách (dùng khi chưa từng mở trình đọc) */
+/** Bản nháp trên trình duyệt (xoá khi đăng xuất). startPage: trang đang đọc theo tủ sách */
 export function loadState(bookId: string, startPage = 1): ReaderState {
   try {
     const raw = localStorage.getItem(stateKey(bookId));
-    if (raw) return { ...seedState(bookId, startPage), ...(JSON.parse(raw) as Partial<ReaderState>) };
+    if (raw) return { ...emptyState(startPage), ...(JSON.parse(raw) as Partial<ReaderState>) };
   } catch {
     // bỏ qua
   }
-  return seedState(bookId, startPage);
+  return emptyState(startPage);
 }
 
-export function saveState(bookId: string, state: ReaderState): Observable<void> {
+export function saveState(bookId: string, state: ReaderState): void {
   try {
     localStorage.setItem(stateKey(bookId), JSON.stringify(state));
   } catch {
     // bỏ qua
   }
-  return of(undefined).pipe(delay(0));
 }
 
-/** Tiến độ đã lưu — tủ sách dùng để hiện % và "đọc lần cuối" */
-export function savedProgress(bookId: string): Pick<ReaderState, 'page' | 'lastReadAt'> | null {
-  try {
-    const raw = localStorage.getItem(stateKey(bookId));
-    if (!raw) return null;
-    const s = JSON.parse(raw) as Partial<ReaderState>;
-    return typeof s.page === 'number' ? { page: s.page, lastReadAt: s.lastReadAt ?? null } : null;
-  } catch {
-    return null;
-  }
-}
 
 export function loadSettings(): ReaderSettings {
   try {
