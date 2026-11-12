@@ -105,11 +105,13 @@ test("Settings HTTP: auth, permissions, CSRF, safe projection, validation and ve
   const auth = createAuth(() => db);
   const app = express();
   app.use(express.json());
+  app.use('/api', settingsRoutes.publicRoutes(() => db));
   app.use(
     "/api/admin/settings",
     settingsRoutes(() => db),
   );
   app.post("/api/admin/auth/login", auth.cors, auth.login);
+  app.use((error, _req, res, _next) => res.status(error.status || 500).json({ message: error.message }));
   const server = app.listen(0, "127.0.0.1");
   await new Promise((resolve) => server.once("listening", resolve));
   t.after(() => new Promise((resolve) => server.close(resolve)));
@@ -164,6 +166,8 @@ test("Settings HTTP: auth, permissions, CSRF, safe projection, validation and ve
   assert.equal(data.values.freePreviewLimit, 10);
   assert.equal(data.values.storeName, "");
   assert.equal(data.paymentMethods[0].configured, true);
+  assert.equal(data.paymentMethods[0].connected, false);
+  assert.equal(data.paymentMethods[0].verified, false);
   assert.equal(data.paymentMethods[2].configured, null);
   assert.ok(!JSON.stringify(data).includes("secret-never-return"));
   assert.ok(!projection.privatePaymentKey);
@@ -200,6 +204,13 @@ test("Settings HTTP: auth, permissions, CSRF, safe projection, validation and ve
     { carriers: ["UNKNOWN"] },
     { formats: ["PDF", "PDF"] },
     { currency: "USD" },
+    { language: 'French' },
+    { timezone: 'UTC' },
+    { hotline: '++++++' },
+    { hotline: '1234567890123456' },
+    { logoUrl: 'https://?' },
+    { logoUrl: 'https://user:password@example.test/logo.png' },
+    { logoUrl: '/\\evil.test/logo.png' },
   ])
     assert.equal(
       (await request(undefined, "PATCH", { revision, changes })).status,
@@ -250,6 +261,13 @@ test("Settings HTTP: auth, permissions, CSRF, safe projection, validation and ve
   assert.deepEqual(docs[0].aboutUsContent, { sections: ["untouched"] });
   assert.equal(docs[0].vnpayConnected, true);
   assert.equal(docs[0].encryptionLevel, "Existing");
+  const publicResponse = await request('/api/settings');
+  assert.equal(publicResponse.status, 200);
+  const publicData = await publicResponse.json();
+  assert.equal(publicData.storeName, 'Book shop');
+  assert.deepEqual(publicData.shipping, { standardFee: 25000, expressFee: 45000, freeShippingThreshold: 500000 });
+  for (const secret of ['privatePaymentKey', 'updatedBy', 'roles', 'paymentMethods', 'vnpayConnected', 'watermarkText'])
+    assert.equal(Object.hasOwn(publicData, secret), false, secret);
   assert.equal(
     (
       await request(undefined, "PATCH", {
@@ -261,5 +279,19 @@ test("Settings HTTP: auth, permissions, CSRF, safe projection, validation and ve
   );
   docs.push({ ...docs[0] });
   assert.equal((await request()).status, 409);
+  assert.equal((await request('/api/settings')).status, 503);
+  docs.pop();
   assert.equal(writes, 1);
+  docs[0].updatedAt = new Date(Date.now() + 10000);
+  const futureRevision = docs[0].updatedAt.toISOString();
+  const monotonic = await request(undefined, 'PATCH', { revision: futureRevision, changes: { hotline: '+84 901 234 567', logoUrl: '/images/logo.png' } });
+  assert.equal(monotonic.status, 200);
+  assert.ok(Date.parse((await monotonic.json()).revision) > Date.parse(futureRevision));
+  assert.equal((await request(undefined, 'PATCH', { revision: futureRevision, changes: { slogan: 'Stale writer' } })).status, 409);
+  docs[0].isDemo = true;
+  const demoWrites = writes;
+  assert.equal((await request()).status, 200);
+  assert.equal((await request(undefined, 'PATCH', { revision: docs[0].updatedAt.toISOString(), changes: { slogan: 'Cannot edit demo' } })).status, 409);
+  assert.equal(writes, demoWrites);
+  assert.equal((await request('/api/settings')).status, 503);
 });

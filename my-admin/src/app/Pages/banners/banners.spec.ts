@@ -56,7 +56,7 @@ describe('Banners', () => {
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelectorAll('.banner-card').length).toBe(3);
-    expect(el.querySelectorAll('section.group').length).toBe(3);
+    expect(el.querySelectorAll('section.group').length).toBe(4);
     expect(el.textContent).toContain('Hero trang chủ');
     expect(component.groups()[0].items.map((b) => b._id)).toEqual(['h1', 'h2']);
   });
@@ -121,6 +121,18 @@ describe('Banners', () => {
     expect(component.groups()[0].items.length).toBe(1);
     component.openEdit(bad); component.toggle(bad); component.move(bad, 1);
     expect(component.formOpen()).toBe(false); http.expectNone(r => r.method !== 'GET');
+  });
+
+  it('shows home_secondary as a separate position and identifies conflict fields and original dates', async () => {
+    const secondary = banner({ _id: 'secondary', position: 'home_secondary', link: '/book-buyback' });
+    const hero = banner({ _id: 'hero-conflict', contractIssues: ['startDate_alias_conflict'],
+      sourceSchedule: { startDate: '2026-10-03T17:00:00Z', startAt: '2026-10-04T09:41:13.104Z' } });
+    flushList([secondary, hero]);
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(component.groups().find(group => group.position === 'home_secondary')?.items).toEqual([secondary]);
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('hero-conflict'); expect(text).toContain('startDate khác startAt');
+    expect(text).toContain('2026-10-04T09:41:13.104Z');
   });
 
 });

@@ -141,6 +141,8 @@ module.exports = function buybackRoutes(getDb) {
       });
       if (!doc)
         return res.status(404).json({ message: "Không tìm thấy yêu cầu." });
+      if (doc.isDemo === true)
+        return res.status(409).json({ message: 'Phiếu demo chỉ được xem, không được thay đổi.' });
       if (
         !Object.hasOwn(body, "revision") ||
         body.revision !== present(doc).revision
@@ -181,6 +183,7 @@ module.exports = function buybackRoutes(getDb) {
       const result = await collection().updateOne(
         {
           _id: doc._id,
+          isDemo: { $ne: true },
           status: doc.status,
           updatedAt: Object.hasOwn(doc, "updatedAt")
             ? doc.updatedAt

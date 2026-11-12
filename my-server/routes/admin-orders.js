@@ -43,7 +43,7 @@ const PAYMENT_STATUSES = ['unpaid', 'paid', 'refunded'];
 const FLOW = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['shipping', 'cancelled'],
-  shipping: ['delivered', 'cancelled'],
+  shipping: ['delivered'],
   delivered: ['returned'],
   cancelled: [],
   returned: [],
@@ -132,7 +132,8 @@ function present(order, user = null) {
     paymentStatus: PAYMENT_STATUSES.includes(order.paymentStatus) ? order.paymentStatus : 'unpaid',
     status,
     // Đơn chỉ có ebook không cần giao hàng: xác nhận xong là "Đã giao"
-    nextStatuses: onlyEbooks && status === 'confirmed' ? ['delivered', 'cancelled'] : FLOW[status],
+    nextStatuses: (onlyEbooks && status === 'confirmed' ? ['delivered', 'cancelled'] : FLOW[status])
+      .filter((next) => next !== 'cancelled' || !order.paymentStatus || order.paymentStatus === 'unpaid'),
     statusHistory: Array.isArray(order.statusHistory) ? order.statusHistory : [],
     note: order.note ?? '',
     adminNote: order.adminNote ?? '',

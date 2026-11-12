@@ -3,7 +3,7 @@
   [subtitle]="isEdit ? 'Cập nhật thông tin, giá bán và tồn kho của sách.' : 'Điền thông tin sách. Các mục có dấu * là bắt buộc.'"
   [breadcrumbs]="[{ label: 'Kho sách', link: '/book-list' }, { label: 'Sách', link: '/book-list' }, { label: isEdit ? 'Sửa sách' : 'Thêm sách' }]">
   <a class="btn" routerLink="/book-list">Huỷ</a>
-  <button type="submit" form="book-form" class="btn btn-primary" [disabled]="saving() || loading() || notFound()">
+  <button type="submit" form="book-form" class="btn btn-primary" [disabled]="saving() || pdfBusy() || loading() || notFound()">
     {{ saving() ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Thêm sách' }}
   </button>
 </app-page-heading>
@@ -145,6 +145,20 @@
         </div>
       </section>
 
+      @if (form.bookType === 'ebook') {
+        <section class="card">
+          <h2 class="card-title">PDF Ebook</h2>
+          @if (!isEdit) { <p>Lưu sách trước, sau đó mở Sửa sách để upload PDF.</p> }
+          @else {
+            <p>{{ book()?.ebookFileId ? 'Đã có PDF liên kết. Upload mới chỉ thay liên kết sau khi xác minh đọc lại.' : 'Chưa có PDF liên kết.' }}</p>
+            <input type="file" name="ebookPdf" accept="application/pdf,.pdf" (change)="selectPdf($event)" [disabled]="!canUploadPdf || pdfBusy() || saving()" />
+            <p>PDF tối đa 10 MiB. Nội dung trả phí chỉ được đọc qua API kiểm tra quyền sở hữu và thanh toán.</p>
+            <button type="button" class="btn" (click)="uploadPdf()" [disabled]="!pdfFile || !canUploadPdf || pdfBusy() || saving()">{{ pdfBusy() ? 'Đang upload và xác minh…' : 'Upload PDF' }}</button>
+            @if (pdfError()) { <p role="alert">{{ pdfError() }}</p> }
+            @if (pdfMessage()) { <p role="status">{{ pdfMessage() }}</p> }
+          }
+        </section>
+      }
       <section class="card">
         <h2 class="card-title">Hiển thị</h2>
         <label class="switch-row">

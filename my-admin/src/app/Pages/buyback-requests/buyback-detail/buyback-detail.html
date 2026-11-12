@@ -13,7 +13,7 @@
     type="button"
     class="btn btn-danger detail-action"
     [disabled]="
-      saving() || !row() || (row()?.status !== 'pending' && row()?.status !== 'reviewing')
+      saving() || !row() || row()?.isDemo || (row()?.status !== 'pending' && row()?.status !== 'reviewing')
     "
     (click)="act('reject')"
   >
@@ -22,7 +22,7 @@
   <button
     type="button"
     class="btn btn-primary detail-action"
-    [disabled]="saving() || row()?.status !== 'pending'"
+    [disabled]="saving() || row()?.isDemo || row()?.status !== 'pending'"
     (click)="act('approve')"
   >
     Duyệt yêu cầu
@@ -39,7 +39,7 @@
           <h2 class="card-title">Thông tin sách thanh lý</h2>
           <p class="text-muted">
             Mã yêu cầu {{ request.code }}
-            <span *ngIf="request.isDemo">· Bản ghi isDemo trong database</span>
+            <span *ngIf="request.isDemo">· Phiếu demo chỉ được xem, không được thay đổi</span>
           </p>
         </div>
         <app-status-badge [status]="request.status" />
@@ -97,7 +97,7 @@
       </header>
       <form #valuation="ngForm" (ngSubmit)="act('quote', valuation)">
         <fieldset
-          [disabled]="saving() || request.status !== 'reviewing'"
+          [disabled]="saving() || request.isDemo || request.status !== 'reviewing'"
           style="border: 0; padding: 0; margin: 0"
         >
           <div class="price-grid">
@@ -140,7 +140,7 @@
         class="textarea"
         maxlength="2000"
         rows="3"
-        [disabled]="saving() || (request.status !== 'pending' && request.status !== 'reviewing')"
+        [disabled]="saving() || request.isDemo || (request.status !== 'pending' && request.status !== 'reviewing')"
         [ngModel]="note()"
         (ngModelChange)="note.set($event)"
       ></textarea>

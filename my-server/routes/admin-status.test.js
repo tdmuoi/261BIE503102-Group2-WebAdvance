@@ -15,7 +15,9 @@ function fixture({ ebook = false, missingBook = false } = {}) {
       items: [item], statusHistory: [], restocked: false }],
   };
   let writes = 0;
-  const matches = (doc, query) => Object.entries(query).every(([key, value]) => String(doc[key]) === String(value));
+  const matches = (doc, query) => Object.entries(query).every(([key, value]) =>
+    value && typeof value === 'object' && '$ne' in value ? String(doc[key]) !== String(value.$ne) :
+      value && typeof value === 'object' && '$exists' in value ? Object.hasOwn(doc, key) === value.$exists : String(doc[key]) === String(value));
   const db = {
     admin: () => ({ command: async () => ({ setName: 'isolated-fixture' }) }),
     collection: (name) => ({
@@ -83,6 +85,8 @@ test('Order status: COD delivery records paid and ends the session', async () =>
 });
 test('Returns: full receipt/restock and full refund update the linked order once', async () => {
   const f = fixture(); Object.assign(f.records.orders[0], { status: 'delivered', paymentStatus: 'paid' });
+  const at = new Date(Date.now() - 1000);
+  Object.assign(f.records.orders[0], { paidAt: at, paymentVerification: { source: 'cod_delivery', verifiedAt: at } });
   await transition(f.db, f.client, 'returns', f.returnId, { status: 'received', restock: true });
   assert.equal(f.records.books[0].stock, 5);
   assert.equal(f.records.orders[0].restocked, true);
@@ -127,4 +131,27 @@ test('Restock refuses unsafe integer overflow instead of corrupting inventory', 
     { status: 'cancelled', note: 'Fixture', restock: true }), (e) => e.status === 409);
   assert.equal(f.writes, 0);
   assert.equal(f.records.books[0].stock, Number.MAX_SAFE_INTEGER);
+});
+
+
+test('Shipping cannot cancel in presentation or mutation; paid pending orders require refunds', async () => {
+  const f = fixture(); f.records.orders[0].status = 'shipping';
+  assert.deepEqual(require('./admin-orders').present(f.records.orders[0]).nextStatuses, ['delivered']);
+  await assert.rejects(transition(f.db, f.client, 'orders', f.orderId,
+    { status: 'cancelled', note: 'Fixture', restock: true }), (e) => e.status === 409);
+  assert.equal(f.writes, 0);
+  f.records.orders[0].status = 'pending'; f.records.orders[0].paymentStatus = 'paid';
+  await assert.rejects(transition(f.db, f.client, 'orders', f.orderId,
+    { status: 'cancelled', note: 'Fixture' }), (e) => e.status === 409);
+  assert.equal(f.writes, 0);
+});
+test('COD delivery records server payment evidence and does not invent online settlement', async () => {
+  const f = fixture(); f.records.orders[0].status = 'shipping';
+  await transition(f.db, f.client, 'orders', f.orderId, { status: 'delivered' });
+  assert.equal(f.records.orders[0].paymentVerification.source, 'cod_delivery');
+  assert.equal(+f.records.orders[0].paidAt, +f.records.orders[0].paymentVerification.verifiedAt);
+  const online = fixture(); Object.assign(online.records.orders[0], { status: 'shipping', paymentMethod: 'momo' });
+  await transition(online.db, online.client, 'orders', online.orderId, { status: 'delivered' });
+  assert.equal(online.records.orders[0].paymentStatus, 'unpaid');
+  assert.equal(online.records.orders[0].paidAt, undefined);
 });

@@ -80,6 +80,10 @@ export class BuybackDetail implements OnInit, OnDestroy {
   act(action: 'approve' | 'reject' | 'quote', form?: NgForm) {
     const row = this.row();
     if (!row || this.loading() || this.saving()) return;
+    if (row.isDemo) {
+      this.error.set('Phiếu demo chỉ được xem, không được thay đổi.');
+      return;
+    }
     this.error.set('');
     this.message.set('');
     form?.control.markAllAsTouched();

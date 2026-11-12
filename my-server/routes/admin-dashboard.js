@@ -12,20 +12,21 @@
 //   - tính toán bằng JavaScript cho dễ đọc (dữ liệu đồ án nhỏ nên không ảnh hưởng tốc độ)
 // =====================================================================
 const express = require('express');
+const { verifiedPaymentDate } = require('../middleware/admin-safe-status');
 
 const COLLECTIONS = {
   books: ['books'],
   categories: ['categories'],
   orders: ['orders', 'order'],
-  users: ['accounts'],
+  users: ['users'],
+  accounts: ['accounts'],
   refunds: ['return_requests'],
 };
 
 // Trạng thái (đã bỏ dấu, viết thường, khoảng trắng -> _)
 const CANCELLED = ['cancelled', 'canceled', 'failed', 'da_huy', 'huy', 'that_bai'];
-const REFUND_PENDING = ['pending', 'requested', 'processing', 'reviewing', 'cho_xu_ly', 'dang_xu_ly', 'cho_duyet', 'cho_xac_nhan'];
+const REFUND_PENDING = ['pending', 'approved', 'received', 'requested', 'processing', 'reviewing', 'cho_xu_ly', 'dang_xu_ly', 'cho_duyet', 'cho_xac_nhan'];
 const ORDER_RETURN_PENDING = ['return_requested', 'returning', 'refund_requested', 'cho_tra_hang', 'yeu_cau_tra_hang'];
-const ADMIN_ROLES = ['admin', 'staff', 'manager', 'superadmin', 'quan_tri_vien'];
 
 const LOW_STOCK_THRESHOLD = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -100,8 +101,8 @@ async function buildDashboard(db, days, now = new Date()) {
     return name ? db.collection(name).find({}).toArray() : [];
   };
 
-  const [books, categories, orders, users, refunds] = await Promise.all(
-    ['books', 'categories', 'orders', 'users', 'refunds'].map(load),
+  const [books, categories, orders, users, refunds, accounts] = await Promise.all(
+    ['books', 'categories', 'orders', 'users', 'refunds', 'accounts'].map(load),
   );
 
   // Khoảng thời gian: [start, end) = N ngày gần nhất (tính cả hôm nay), kỳ trước = N ngày liền trước
@@ -111,22 +112,28 @@ async function buildDashboard(db, days, now = new Date()) {
   const inRange = (d, from, to) => d && d >= from && d < to;
 
   // ----- Đơn hàng -----
-  const realOrders = orders.filter((o) => o.isDemo !== true && o.userId != null);
+  const accountById = new Map(accounts.filter((a) => a.isDemo !== true).map((a) => [idString(a._id), a]));
+  const userById = new Map(users.filter((u) => u.isDemo !== true && accountById.get(idString(u.accountId))?.roleCode === 'CUSTOMER')
+    .map((u) => [idString(u._id), u]));
+  const realOrders = orders.filter((o) => o.isDemo !== true && userById.has(idString(o.userId)));
+  const realOrderById = new Map(realOrders.map((o) => [idString(o._id), o]));
   const validOrders = realOrders.filter((o) => !CANCELLED.includes(normalize(o.status)));
-  const paid = (o) => o.paymentStatus === 'paid';
+  const paymentDate = (order) => verifiedPaymentDate(order, now);
   const current = validOrders.filter((o) => inRange(docDate(o), start, end));
   const previous = validOrders.filter((o) => inRange(docDate(o), prevStart, start));
-  const revenue = current.filter(paid).reduce((s, o) => s + orderTotal(o), 0);
-  const prevRevenue = previous.filter(paid).reduce((s, o) => s + orderTotal(o), 0);
+  const settled = validOrders.filter((o) => inRange(paymentDate(o), start, end));
+  const revenue = settled.reduce((s, o) => s + orderTotal(o), 0);
+  const prevRevenue = validOrders.filter((o) => inRange(paymentDate(o), prevStart, start)).reduce((s, o) => s + orderTotal(o), 0);
 
   // ----- Khách hàng -----
-  const customers = users.filter((u) => u.roleCode === 'CUSTOMER');
+  const customers = accounts.filter((u) => u.isDemo !== true && u.roleCode === 'CUSTOMER');
   const newCustomers = customers.filter((u) => inRange(docDate(u), start, end)).length;
   const prevNewCustomers = customers.filter((u) => inRange(docDate(u), prevStart, start)).length;
 
   // ----- Yêu cầu trả hàng đang chờ -----
   const pendingReturns = refunds.length
-    ? refunds.filter((r) => r.isDemo !== true && r.userId != null && REFUND_PENDING.includes(normalize(r.status))).length
+    ? refunds.filter((r) => r.isDemo !== true && userById.has(idString(r.userId)) &&
+      idString(realOrderById.get(idString(r.orderId))?.userId) === idString(r.userId) && REFUND_PENDING.includes(normalize(r.status))).length
     : realOrders.filter((o) => ORDER_RETURN_PENDING.includes(normalize(o.status))).length;
 
   // ----- Biểu đồ doanh thu theo ngày -----
@@ -142,15 +149,18 @@ async function buildDashboard(db, days, now = new Date()) {
   for (const o of current) {
     const idx = chartIndex.get(dayKey(docDate(o)));
     if (idx === undefined) continue;
-    if (paid(o)) chart[idx].revenue += orderTotal(o);
     chart[idx].orders += 1;
+  }
+  for (const o of settled) {
+    const idx = chartIndex.get(dayKey(paymentDate(o)));
+    if (idx !== undefined) chart[idx].revenue += orderTotal(o);
   }
 
   // ----- Danh mục hot: số cuốn bán ra theo thể loại trong kỳ -----
   const categoryName = new Map(categories.map((c) => [idString(c._id), c.name]));
   const bookById = new Map(books.map((b) => [idString(b._id), b]));
   const sold = new Map();
-  for (const o of current.filter(paid)) {
+  for (const o of settled) {
     for (const it of orderItems(o)) {
       const book = bookById.get(idString(it.bookId ?? it.book ?? it.productId ?? it._id));
       const catId = idString(it.categoryId ?? book?.categoryId);
@@ -162,7 +172,7 @@ async function buildDashboard(db, days, now = new Date()) {
   if (sold.size === 0) {
     categoryBasis = 'books';
     for (const b of books) {
-      if (normalize(b.status) !== 'active' || !b.categoryId) continue;
+      if (b.isDemo === true || normalize(b.status) !== 'active' || !b.categoryId) continue;
       const catId = idString(b.categoryId);
       sold.set(catId, (sold.get(catId) || 0) + 1);
     }
@@ -175,17 +185,17 @@ async function buildDashboard(db, days, now = new Date()) {
   const hotCategories = top.map((c) => ({ ...c, percent: totalSold ? Math.round((c.value / totalSold) * 100) : 0 }));
 
   // ----- Đơn hàng gần đây -----
-  const userById = new Map(users.map((u) => [idString(u._id), u]));
   const recentOrders = [...realOrders]
     .sort((a, b) => (docDate(b)?.getTime() || 0) - (docDate(a)?.getTime() || 0))
     .slice(0, 5)
     .map((o) => {
       const user = userById.get(idString(o.userId ?? o.customerId ?? o.user));
+      const account = accountById.get(idString(user?.accountId));
       return {
         _id: idString(o._id),
         code: o.orderCode || o.code || '#' + idString(o._id).slice(-6).toUpperCase(),
         customerName: o.customer?.name || o.customerName || o.shippingAddress?.fullName || o.shipping?.fullName ||
-          user?.fullName || user?.name || user?.username || user?.email || 'Khách vãng lai',
+          user?.fullName || user?.name || user?.username || account?.email || 'Khách vãng lai',
         createdAt: docDate(o),
         total: orderTotal(o),
         status: o.status || '',
@@ -193,13 +203,14 @@ async function buildDashboard(db, days, now = new Date()) {
     });
 
   // ----- Tồn kho -----
-  const activeBooks = books.filter((b) => normalize(b.status) === 'active');
+  const activeBooks = books.filter((b) => b.isDemo !== true && normalize(b.status) === 'active');
   const lowStock = activeBooks
     .filter((b) => ['new', 'used'].includes(b.bookType) && Number.isSafeInteger(b.stock) && b.stock >= 0 && b.stock <= LOW_STOCK_THRESHOLD)
     .sort((a, b) => toNumber(a.stock) - toNumber(b.stock));
 
   return {
-    reportingPolicy: 'paid-nondemo-v1',
+    reportingPolicy: 'paid-verified-v2',
+    excludedUnverifiedPayments: realOrders.filter((o) => o.paymentStatus === 'paid' && !paymentDate(o)).length,
     period: { days, from: start, to: end },
     stats: {
       revenue: { value: revenue, change: percentChange(revenue, prevRevenue) },

@@ -57,6 +57,18 @@ describe('OrderDetail', () => {
     expect(component.steps().map((s) => s.done)).toEqual([true, false, false, false]);
   });
 
+  it('blocks shipping cancellation even when a stale API response advertises it', async () => {
+    await setup(); create(); component.orderId = 'o1';
+    http.expectOne(() => true).flush(makeOrder({ status: 'shipping', nextStatuses: ['delivered', 'cancelled'] }));
+    await fixture.whenStable();
+    expect(component.nextStatuses()).toEqual(['delivered']);
+    component.act('cancelled'); component.confirmPending();
+    expect(component.pending()).toBeNull();
+    http.expectNone((req) => req.method === 'PATCH');
+    const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.actions button'));
+    expect(buttons.some((button) => button.textContent?.includes('Huỷ đơn'))).toBe(false);
+  });
+
   it('xác nhận đơn gửi PATCH status và báo cho trang cha', async () => {
     await setup();
     create();

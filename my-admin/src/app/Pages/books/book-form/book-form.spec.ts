@@ -22,7 +22,7 @@ describe('BookForm', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: AdminAuthService, useValue: { withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } },
+        { provide: AdminAuthService, useValue: { user: { role: 'superadmin' }, withSession: <T>(request: (token: string) => Observable<T>) => request('test-csrf') } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(id ? { id } : {}) } } },
       ],
     }).compileComponents();
@@ -35,6 +35,31 @@ describe('BookForm', () => {
   }
 
   afterEach(() => http.verify());
+
+  it('uploads binary PDF separately with CSRF/revision, prevents double upload and only updates the verified link', async () => {
+    await setup('ebook-id');
+    http.expectOne(r => r.url.endsWith('/admin/books/ebook-id')).flush({ _id: 'ebook-id', title: 'Ebook', bookType: 'ebook', stock: 0,
+      updatedAt: '2026-11-12T12:00:00.000Z', ebookFileId: 'old-file' });
+    const file = new File(['%PDF-1.4\n' + 'x'.repeat(100)], 'fixture.pdf', { type: 'application/pdf' });
+    component.selectPdf({ target: { files: [file], value: '' } } as unknown as Event);
+    component.uploadPdf(); component.uploadPdf();
+    const request = http.expectOne(r => r.method === 'POST' && r.url.endsWith('/ebook-id/pdf'));
+    expect(request.request.body).toBe(file); expect(request.request.headers.get('X-Admin-CSRF')).toBe('test-csrf');
+    expect(request.request.headers.get('Content-Type')).toBe('application/pdf');
+    expect(request.request.params.get('revision')).toBe('2026-11-12T12:00:00.000Z');
+    expect(component.book()?.ebookFileId).toBe('old-file');
+    request.flush({ fileId: 'new-file', size: 109, sha256: 'verified', revision: '2026-11-12T12:00:01.000Z' });
+    expect(component.book()?.ebookFileId).toBe('new-file'); expect(component.pdfMessage()).toContain('xác minh');
+  });
+  it('rejects wrong file type and retains the old link after upload failure', async () => {
+    await setup('ebook-id');
+    http.expectOne(r => r.url.endsWith('/admin/books/ebook-id')).flush({ _id: 'ebook-id', title: 'Ebook', bookType: 'ebook', updatedAt: '2026-01-01', ebookFileId: 'old-file' });
+    component.selectPdf({ target: { files: [new File(['text'], 'wrong.txt', { type: 'text/plain' })], value: '' } } as unknown as Event);
+    component.uploadPdf(); http.expectNone(r => r.method === 'POST');
+    component.selectPdf({ target: { files: [new File(['%PDF-1.4\n' + 'x'.repeat(100)], 'fixture.pdf', { type: 'application/pdf' })], value: '' } } as unknown as Event);
+    component.uploadPdf(); http.expectOne(r => r.method === 'POST').flush({ message: 'Conflict' }, { status: 409, statusText: 'Conflict' });
+    expect(component.book()?.ebookFileId).toBe('old-file'); expect(component.pdfMessage()).toBe(''); expect(component.pdfBusy()).toBe(false);
+  });
 
   it('thêm mới: báo lỗi khi thiếu thông tin, không gọi API', async () => {
     await setup(null);

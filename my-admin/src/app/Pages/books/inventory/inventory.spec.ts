@@ -25,6 +25,7 @@ const book = (id: string, stock: number, extra: Record<string, unknown> = {}): A
   originalPrice: 100000,
   discountPercent: 0,
   stock,
+  bookType: 'new',
   status: 'active',
   isbn: null,
   createdAt: '2026-01-01',
@@ -46,12 +47,13 @@ const page = (
 });
 describe('Inventory with persisted BookService data', () => {
   let fixture: ComponentFixture<Inventory>;
-  const books = { getInventory: vi.fn() };
+  const books = { getInventory: vi.fn(), stockIn: vi.fn(), inventoryHistory: vi.fn() };
   const auth = {
     user: { role: 'superadmin', permissions: [] as { module: string; actions: string[] }[] },
     withSession: <T>(work: () => T) => work(),
   };
   beforeEach(async () => {
+    books.stockIn.mockReset(); books.inventoryHistory.mockReset().mockReturnValue(of({ items: [] }));
     books.getInventory
       .mockReset()
       .mockReturnValue(
@@ -104,6 +106,20 @@ describe('Inventory with persisted BookService data', () => {
     expect(inventory.status(inventory.rows()[0])).toBe('low');
     expect(inventory.status(inventory.rows()[1])).toBe('in');
     expect(inventory.threshold(inventory.rows()[2])).toBe(5);
+  });
+
+  it('excludes demo and unclassified rows and keeps stock-in disabled without any mutation request', async () => {
+    books.getInventory.mockReturnValue(of(page([book('physical', 4), book('demo', 999, { isDemo: true }),
+      book('unknown', 100, { bookType: undefined }), book('ebook', 200, { bookType: 'ebook' })])));
+    auth.user = { role: 'admin', permissions: [{ module: 'inventory', actions: ['view'] }] };
+    const inventory = await create();
+    expect(inventory.summary().total).toBe(4);
+    expect(inventory.rows().map(row => row._id)).toEqual(['physical']);
+    expect(inventory.excludedUnverified()).toBe(2); expect(inventory.excludedEbooks()).toBe(1);
+    const button = fixture.nativeElement.querySelector('.inventory-actions button') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    button.click();
+    expect(books.getInventory).toHaveBeenCalledOnce(); expect(inventory.rows()[0].stock).toBe(4);
   });
   it('reads every backend page before exposing totals', async () => {
     books.getInventory.mockImplementation(({ page: current }) =>
@@ -170,15 +186,50 @@ describe('Inventory with persisted BookService data', () => {
     expect(books.getInventory).not.toHaveBeenCalled();
     expect(inventory.error()).toContain('quyền');
   });
-  it('stock-in/history controls explain unsupported actions without changing quantities', async () => {
+  it('stock-in opens a real form without writing before confirmation; bulk stays unavailable', async () => {
     const inventory = await create();
     inventory.stockIn(inventory.rows()[0]);
-    expect(inventory.dialogOpen()).toBe(true);
-    expect(inventory.dialogMessage()).toContain('Chưa lưu');
+    expect(inventory.stockInBook()?._id).toBe('low');
+    expect(books.stockIn).not.toHaveBeenCalled();
     inventory.bulkStockIn();
     inventory.showHistory();
     expect(inventory.rows()[0].stock).toBe(3);
     expect(books.getInventory).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders persisted receipt rows in the table body and hides the empty state', async () => {
+    books.inventoryHistory.mockReturnValue(of({ items: [{ id: 'receipt', operationCode: 'IN-QA', bookId: 'low',
+      bookTitle: 'Book low', quantity: 2, stockBefore: 3, stockAfter: 5, actorName: 'QA Admin',
+      createdAt: '2026-11-12T12:00:00.000Z', note: 'QA receipt', revision: '2026-11-12T12:00:00.000Z' }] }));
+    await create();
+    const table = fixture.nativeElement.querySelector('.inventory-history table') as HTMLTableElement;
+    expect(table.querySelectorAll('thead th').length).toBe(6);
+    expect(table.querySelectorAll('thead td').length).toBe(0);
+    expect(table.querySelectorAll('tbody tr').length).toBe(1);
+    expect(table.querySelector('tbody')?.textContent).toContain('IN-QA');
+    expect(table.querySelector('tbody')?.textContent).toContain('QA receipt');
+    expect(table.querySelector('.inventory-empty')).toBeNull();
+  });
+
+  it('retries the same stock-in request/key, blocks double clicks and only confirms a real receipt', async () => {
+    const inventory = await create(); inventory.stockIn(inventory.rows()[0]); inventory.quantity = 2;
+    const pending = new Subject<any>(); books.stockIn.mockReturnValueOnce(pending);
+    inventory.submitStockIn(); inventory.submitStockIn();
+    expect(books.stockIn).toHaveBeenCalledOnce(); expect(inventory.receipt()).toBeNull();
+    const [body, key] = books.stockIn.mock.calls[0];
+    pending.error(new HttpErrorResponse({ status: 0 }));
+    books.stockIn.mockReturnValueOnce(of({ id: 'receipt', operationCode: 'IN-1', bookTitle: 'Book low', stockBefore: 3, stockAfter: 5 }));
+    inventory.submitStockIn();
+    expect(books.stockIn.mock.calls[1]).toEqual([body, key]);
+    expect(inventory.receipt()?.operationCode).toBe('IN-1'); expect(inventory.stockInBook()).toBeNull();
+  });
+  it('invalid quantity never writes; changing payload after an error uses a new key', async () => {
+    const inventory = await create(); inventory.stockIn(inventory.rows()[0]); inventory.quantity = 0;
+    inventory.submitStockIn(); expect(books.stockIn).not.toHaveBeenCalled();
+    books.stockIn.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 409 })));
+    inventory.quantity = 2; inventory.submitStockIn();
+    const key = books.stockIn.mock.calls[0][1]; inventory.quantity = 3; inventory.submitStockIn();
+    expect(books.stockIn.mock.calls[1][1]).not.toBe(key); expect(inventory.receipt()).toBeNull();
   });
   it('exports filtered CSV data and escapes spreadsheet formulas', async () => {
     books.getInventory.mockReturnValue(

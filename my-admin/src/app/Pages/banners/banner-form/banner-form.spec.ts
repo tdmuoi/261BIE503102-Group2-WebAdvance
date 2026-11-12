@@ -79,4 +79,15 @@ describe('BannerForm', () => {
     expect(toDateInput('invalid')).toBe('');
   });
 
+  it('accepts the secondary position but blocks malformed URLs, colours and excessive text before HTTP', () => {
+    component.position = 'home_secondary'; fixture.detectChanges();
+    Object.assign(component.form, { name: 'Secondary', title: 'Used books', link: '/books?type=used' });
+    expect(component.validate()).toEqual({});
+    Object.assign(component.form, { image: '//evil.test/image.png', link: 'https://?', bgColor: 'red', subtitle: 'x'.repeat(501) });
+    component.save();
+    expect(component.errors()).toHaveProperty('image'); expect(component.errors()).toHaveProperty('link');
+    expect(component.errors()).toHaveProperty('bgColor'); expect(component.errors()).toHaveProperty('subtitle');
+    http.expectNone(r => r.method === 'POST');
+  });
+
 });

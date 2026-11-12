@@ -27,6 +27,7 @@
           <select id="b-position" name="position" class="select" [(ngModel)]="form.position">
             @for (p of positions; track p) { <option [value]="p">{{ positionLabels[p] }}</option> }
           </select>
+          @if (errors().position) { <small class="error">{{ errors().position }}</small> }
         </div>
         <div class="field wide" [class.has-error]="errors().title">
           <label class="label" for="b-title">Tiêu đề trên banner</label>
@@ -36,6 +37,7 @@
         <div class="field wide">
           <label class="label" for="b-subtitle">Dòng phụ</label>
           <input id="b-subtitle" name="subtitle" class="input" [(ngModel)]="form.subtitle" />
+          @if (errors().subtitle) { <small class="error">{{ errors().subtitle }}</small> }
         </div>
         <div class="field wide" [class.has-error]="errors().image">
           <label class="label" for="b-image">Link ảnh (URL, nên 1440×480)</label>
@@ -56,6 +58,7 @@
                       (click)="form.bgColor = c" [attr.aria-label]="'Màu ' + c"></button>
             }
             <input type="color" name="bgColor" [(ngModel)]="form.bgColor" aria-label="Chọn màu nền khác" />
+            @if (errors().bgColor) { <small class="error">{{ errors().bgColor }}</small> }
           </div>
         </div>
         <div class="field">
@@ -66,11 +69,13 @@
             <button type="button" class="swatch" style="background:#1c1917" [class.is-active]="form.textColor === '#1c1917'"
                     (click)="form.textColor = '#1c1917'" aria-label="Chữ đen"></button>
             <input type="color" name="textColor" [(ngModel)]="form.textColor" aria-label="Chọn màu chữ khác" />
+            @if (errors().textColor) { <small class="error">{{ errors().textColor }}</small> }
           </div>
         </div>
         <div class="field">
           <label class="label" for="b-start">Ngày bắt đầu</label>
           <input id="b-start" name="startDate" type="date" class="input" [(ngModel)]="form.startDate" />
+          @if (errors().startDate) { <small class="error">{{ errors().startDate }}</small> }
         </div>
         <div class="field" [class.has-error]="errors().endDate">
           <label class="label" for="b-end">Ngày kết thúc</label>

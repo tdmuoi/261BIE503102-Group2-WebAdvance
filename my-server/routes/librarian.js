@@ -17,6 +17,7 @@
 // =====================================================================
 const express = require('express');
 const { GoogleGenAI, Type } = require('@google/genai');
+const { publicBook } = require('./customer');
 
 // Gói miễn phí giới hạn số lượt theo TỪNG model (vd gemini-2.5-flash chỉ 20 lượt/ngày),
 // nên model chính hết lượt hoặc quá tải thì chuyển sang model kế tiếp.
@@ -276,7 +277,7 @@ module.exports = function librarianRoutes(getDb) {
         .map((pick) => {
           const doc = byId.get(pick.id);
           return {
-            ...doc,
+            ...publicBook(doc),
             authorName: catalog.names.authorName.get(String(doc.authorId)) || '',
             categoryName: catalog.names.category.get(String(doc.categoryId))?.name || '',
             reason: pick.reason,

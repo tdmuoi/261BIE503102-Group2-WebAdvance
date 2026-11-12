@@ -122,7 +122,7 @@
                     name="hotline"
                     [(ngModel)]="v.hotline"
                     maxlength="30"
-                    pattern="[+()0-9 .\-]{6,30}"
+                    pattern="(?=(?:[^0-9]*[0-9]){6,15}[^0-9]*$)\+?[()0-9 .\-]+"
                     #hotline="ngModel"
                     placeholder="Số điện thoại hỗ trợ"
                   /><small *ngIf="hotline.invalid && hotline.touched" class="field-error"
@@ -186,7 +186,7 @@
             ></span>
             <div class="method-description">
               <h3>{{ method.name }}</h3>
-              <p>{{ method.description }}</p>
+              <p>{{ method.description }} · Chưa kết nối · Chưa xác minh nhà cung cấp</p>
             </div>
             <app-status-badge
               [label]="
@@ -277,7 +277,8 @@
             </button>
           </div>
           <p class="hint">
-            Lưu cấu hình vận chuyển; chưa thay đổi cách tính phí hay tạo vận đơn của Checkout.
+            Phí tiêu chuẩn và ngưỡng miễn phí được Backend áp dụng khi đặt đơn. Website cần kết nối
+            Settings để đồng bộ giá xem trước. Phí giao nhanh vẫn 45.000đ; chưa có API tạo vận đơn.
           </p>
         </section>
         <section class="card section" id="settings-ebook" aria-labelledby="ebook-title">

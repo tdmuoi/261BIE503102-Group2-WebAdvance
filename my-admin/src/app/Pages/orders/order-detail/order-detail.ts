@@ -45,6 +45,11 @@ export class OrderDetail {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly message = signal('');
+  readonly nextStatuses = computed(() => {
+    const o = this.order();
+    return (o?.nextStatuses ?? []).filter((next) => next !== 'cancelled' ||
+      (!!o && ['pending', 'confirmed'].includes(o.status) && o.paymentStatus === 'unpaid'));
+  });
 
   /** Ô nhập phụ: mã vận đơn khi giao, ghi chú nội bộ */
   trackingCode = '';
@@ -121,7 +126,7 @@ export class OrderDetail {
   // ---------- Chuyển trạng thái ----------
   act(next: OrderStatus): void {
     const o = this.order();
-    if (!o || this.saving() || !o.nextStatuses.includes(next)) return;
+    if (!o || this.saving() || !this.nextStatuses().includes(next)) return;
     if (!this.allowWrite(o)) return;
     if (next === 'returned') {
       void this.router.navigate(['/refunds']);
@@ -150,7 +155,7 @@ export class OrderDetail {
   private send(next: OrderStatus, note = ''): void {
     const o = this.order();
     if (!o || this.saving() || this.loading()) return;
-    if (!this.allowWrite(o) || !o.nextStatuses.includes(next)) return;
+    if (!this.allowWrite(o) || !this.nextStatuses().includes(next)) return;
     this.saving.set(true);
     this.writes.add(this.orderService
       .changeStatus(o._id, {

@@ -106,7 +106,7 @@ app.get('/api/books', async (req, res) => {
       .limit(limit)
       .toArray();
 
-    res.json(books);
+    res.json(books.map(customerRoutes.publicBook));
   } catch (error) {
     console.error('GET /api/books failed:', error.message);
 

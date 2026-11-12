@@ -3,7 +3,7 @@ import { EMPTY, Subscription, expand, reduce, timeout, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BookService } from '../../../services/book-service';
 import { AdminAuthService } from '../../../services/admin-auth-service';
-import { AdminBook, BookListResponse } from '../../../models/book';
+import { AdminBook, BookListResponse, InventoryReceipt, StockInRequest } from '../../../models/book';
 
 type StockFilter = 'all' | 'in' | 'low' | 'out';
 interface InventoryBook extends AdminBook {
@@ -11,6 +11,7 @@ interface InventoryBook extends AdminBook {
   location?: string;
   warehouse?: string;
   stockThreshold?: number;
+  isDemo?: boolean;
 
 }
 
@@ -24,6 +25,22 @@ export class Inventory implements OnInit, OnDestroy {
   private books = inject(BookService);
   private auth = inject(AdminAuthService);
   private request?: Subscription;
+  private writeRequest?: Subscription;
+  private historyRequest?: Subscription;
+  private attempt?: { owner: string; payload: string; key: string; body: StockInRequest };
+  readonly stockInBook = signal<InventoryBook | null>(null);
+  quantity: number | null = 1;
+  stockNote = '';
+  readonly stockSaving = signal(false);
+  readonly stockError = signal('');
+  readonly receipt = signal<InventoryReceipt | null>(null);
+  readonly history = signal<InventoryReceipt[]>([]);
+  readonly historyError = signal('');
+  readonly historyLoading = signal(false);
+  get canAdjust(): boolean {
+    const user = this.auth.user;
+    return user?.role === 'superadmin' || !!user?.permissions?.some(p => p.module === 'inventory' && p.actions.includes('adjust_inventory'));
+  }
   readonly rows = signal<InventoryBook[]>([]);
   readonly loading = signal(false);
   readonly loaded = signal(false);
@@ -34,6 +51,7 @@ export class Inventory implements OnInit, OnDestroy {
   readonly pageSize = 10;
   readonly defaultThreshold = signal(0);
   readonly excludedEbooks = signal(0);
+  readonly excludedUnverified = signal(0);
   readonly loadedAt = signal<Date | null>(null);
   readonly dialogOpen = signal(false);
   readonly dialogTitle = signal('');
@@ -78,9 +96,12 @@ export class Inventory implements OnInit, OnDestroy {
   );
   ngOnInit() {
     this.load();
+    this.loadHistory();
   }
   ngOnDestroy() {
     this.request?.unsubscribe();
+    this.writeRequest?.unsubscribe();
+    this.historyRequest?.unsubscribe();
   }
   load() {
     this.request?.unsubscribe();
@@ -146,9 +167,11 @@ export class Inventory implements OnInit, OnDestroy {
             return;
           }
           const items = all as InventoryBook[];
-          const physical = items.filter((row) => row.bookType !== 'ebook');
+          const physical = items.filter((row) => row.isDemo !== true && ['new', 'used'].includes(row.bookType ?? ''));
           this.rows.set(physical);
-          this.excludedEbooks.set(items.length - physical.length);
+          const ebooks = items.filter(row => row.isDemo !== true && row.bookType === 'ebook').length;
+          this.excludedEbooks.set(ebooks);
+          this.excludedUnverified.set(items.length - physical.length - ebooks);
           this.defaultThreshold.set(threshold!);
           this.loadedAt.set(new Date());
           this.loaded.set(true);
@@ -231,11 +254,39 @@ export class Inventory implements OnInit, OnDestroy {
     );
   }
   stockIn(row?: InventoryBook) {
-    this.dialogTitle.set(row ? 'Nhập thêm · ' + row.title : 'Tạo phiếu nhập kho');
-    this.dialogMessage.set(
-      'Chưa có API tạo phiếu nhập và cập nhật tồn kho kèm nhật ký. Chưa lưu phiếu hoặc thay đổi số lượng sách.',
-    );
-    this.dialogOpen.set(true);
+    if (!row || !this.canAdjust || this.stockSaving() || row.isDemo || !['new', 'used'].includes(row.bookType ?? '')) return;
+    this.stockInBook.set(row); this.quantity = 1; this.stockNote = ''; this.stockError.set(''); this.receipt.set(null);
+  }
+  closeStockIn() { if (!this.stockSaving()) this.stockInBook.set(null); }
+  submitStockIn() {
+    const row = this.stockInBook();
+    if (!row || !this.canAdjust || this.stockSaving()) return;
+    if (!Number.isSafeInteger(this.quantity) || this.quantity! < 1 || this.quantity! > 1000000 || this.stockNote.length > 500) {
+      this.stockError.set('Nhập số lượng nguyên từ 1 đến 1.000.000 và ghi chú tối đa 500 ký tự.'); return;
+    }
+    const body: StockInRequest = { bookId: row._id, quantity: this.quantity!, revision: row.updatedAt || null, note: this.stockNote.trim() };
+    const payload = JSON.stringify(body), owner = this.auth.user?._id || '';
+    if (!this.attempt || this.attempt.payload !== payload || this.attempt.owner !== owner)
+      this.attempt = { owner, payload, key: crypto.randomUUID(), body: JSON.parse(payload) };
+    this.stockSaving.set(true); this.stockError.set('');
+    this.writeRequest = this.books.stockIn(this.attempt.body, this.attempt.key).pipe(timeout(20000)).subscribe({
+      next: receipt => {
+        this.receipt.set(receipt); this.attempt = undefined; this.stockSaving.set(false); this.stockInBook.set(null);
+        this.load(); this.loadHistory();
+      },
+      error: e => {
+        this.stockSaving.set(false);
+        this.stockError.set(e.status === 409 ? 'Dữ liệu hoặc khóa thao tác đã thay đổi. Tải lại kho trước khi tạo yêu cầu mới.'
+          : e.error?.message || 'Chưa xác nhận nhập kho. Giữ nguyên thông tin và thử lại để tránh nhập trùng.');
+      },
+    });
+  }
+  loadHistory() {
+    this.historyRequest?.unsubscribe(); this.historyLoading.set(true); this.historyError.set('');
+    this.historyRequest = this.books.inventoryHistory().pipe(timeout(15000)).subscribe({
+      next: response => { this.history.set(response.items); this.historyLoading.set(false); },
+      error: () => { this.historyError.set('Không tải được lịch sử nhập kho.'); this.historyLoading.set(false); },
+    });
   }
   bulkStockIn() {
     this.dialogTitle.set('Nhập hàng loạt');
@@ -245,11 +296,7 @@ export class Inventory implements OnInit, OnDestroy {
     this.dialogOpen.set(true);
   }
   showHistory() {
-    this.dialogTitle.set('Lịch sử nhập / xuất kho');
-    this.dialogMessage.set(
-      'Backend chưa có API lịch sử kho. Không tạo phiếu hoặc lịch sử mẫu để thay thế dữ liệu thật.',
-    );
-    this.dialogOpen.set(true);
+    this.loadHistory();
   }
   exportCsv() {
     if (!this.loaded() || this.loading()) return;

@@ -96,6 +96,7 @@ export class Checkout implements OnInit {
   readonly placing = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly placed = signal<Order | null>(null);
+  private orderAttempt: { owner: string | null; payload: string; key: string; body: CreateOrderRequest } | null = null;
 
   constructor() {
     this.destroyRef.onDestroy(() => this.stopTimer());
@@ -141,7 +142,7 @@ export class Checkout implements OnInit {
   }
 
   placeOrder(): void {
-    if (this.placing() || !this.lines().length) return;
+    if (this.placing() || this.paying() || this.placed() || !this.lines().length) return;
     const address = this.addresses().find((a) => a._id === this.addressId()) ?? null;
     if (this.hasPhysical() && !address) {
       this.submitError.set('Vui lòng chọn hoặc thêm địa chỉ nhận hàng');
@@ -161,10 +162,17 @@ export class Checkout implements OnInit {
       note: this.note().trim(),
       combos: this.facade.combosForOrder(),
     };
+    const payload = JSON.stringify(body);
+    const owner = this.auth.user()?._id ?? null;
+    if (!this.orderAttempt || this.orderAttempt.owner !== owner || this.orderAttempt.payload !== payload) {
+      this.orderAttempt = { owner, payload, key: crypto.randomUUID(), body: JSON.parse(payload) };
+    }
+    const attempt = this.orderAttempt;
     this.placing.set(true);
     this.submitError.set(null);
-    this.account.createOrder(body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.account.createOrder(attempt.body, attempt.key).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (order) => {
+        this.orderAttempt = null;
         this.placing.set(false);
         // COD: xong luôn. MoMo / VNPay / chuyển khoản: mở bước quét mã thanh toán
         if (order.paymentMethod === 'cod') this.finish(order);

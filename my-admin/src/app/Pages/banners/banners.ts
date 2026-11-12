@@ -52,6 +52,15 @@ export class Banners {
   hasContractIssue(b: Banner): boolean {
     return !!b.contractIssues?.length || !this.positions.includes(b.position);
   }
+  issueLabel(issue: string): string {
+    const labels: Record<string, string> = {
+      unsupported_position: 'position chưa được hỗ trợ', startDate_alias_conflict: 'startDate khác startAt',
+      endDate_alias_conflict: 'endDate khác endAt', active_alias_conflict: 'Trạng thái active/isActive/status mâu thuẫn',
+      order_alias_conflict: 'order khác sortOrder', invalid_schedule: 'Ngày kết thúc trước ngày bắt đầu',
+      invalid_link: 'link không hợp lệ', invalid_image: 'image không hợp lệ', demo_read_only: 'Dữ liệu demo chỉ đọc',
+    };
+    return labels[issue] || issue.replace('_invalid', ' không hợp lệ');
+  }
 
   /** Các nhóm banner theo vị trí, đã lọc theo trạng thái */
   readonly groups = computed(() => {

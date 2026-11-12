@@ -1,6 +1,7 @@
 // Existing singleton in collection settings. No upsert, seed, index or secret exposure.
 const express = require("express");
 const createAuth = require("../middleware/admin-auth");
+const revisions = require('../middleware/admin-revision');
 const FIELDS = {
   storeName: ["storeName", "text", 120],
   slogan: ["slogan", "text", 240],
@@ -83,6 +84,7 @@ function present(doc) {
       description: "Không áp dụng cho Ebook",
     },
   ];
+  for (const method of paymentMethods) Object.assign(method, { connected: false, verified: false });
   return {
     id: String(doc._id),
     revision: revision(doc),
@@ -90,9 +92,9 @@ function present(doc) {
     paymentMethods,
     updatedBy:
       typeof doc.updatedBy?.name === "string" ? doc.updatedBy.name : null,
-    storageOnly: true,
+    storageOnly: false,
     notice:
-      "Cấu hình được lưu trong MongoDB. Checkout, giao diện cửa hàng và trình đọc Ebook hiện chưa sử dụng API Settings này. Trạng thái cổng thanh toán chỉ phản ánh cấu hình đã lưu, chưa xác minh kết nối nhà cung cấp.",
+      "Backend đặt đơn và kiểm tra voucher đã lấy phí giao tiêu chuẩn/ngưỡng miễn phí từ Settings. Website cần kết nối GET /api/settings để đồng bộ giá xem trước và thông tin cửa hàng. Thông số Ebook chỉ được lưu; chưa kết nối trình đọc. Cổng thanh toán chưa kết nối hoặc xác minh nhà cung cấp.",
     unsupported: [
       "payments",
       "email",
@@ -120,19 +122,21 @@ function validate(name, value) {
   if (
     typeof value !== "string" ||
     value.length > option ||
-    /[\u0000-\u001f]/.test(value)
+    /[\u0000-\u001f\u007f]/.test(value)
   )
     return false;
   if (name === "storeName" && !value.trim()) return false;
   if (kind === "email")
     return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  if (kind === "phone") return !value || /^[+()\d .-]{6,30}$/.test(value);
-  if (kind === "url")
-    return (
-      !value ||
-      /^https?:\/\/[^\s]+$/i.test(value) ||
-      /^\/(?!\/)[^\s]*$/.test(value)
-    );
+  if (kind === "phone") return !value || (/^\+?[()\d .-]+$/.test(value) && /^\d{6,15}$/.test(value.replace(/\D/g, '')));
+  if (kind === "url") {
+    if (!value) return true;
+    if (/\s|\\/.test(value)) return false;
+    if (/^\/(?!\/)/.test(value)) return true;
+    if (!/^https?:\/\//i.test(value)) return false;
+    try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !!url.hostname && !url.username && !url.password; }
+    catch { return false; }
+  }
   return true;
 }
 module.exports = function settingsRoutes(getDb) {
@@ -155,6 +159,7 @@ module.exports = function settingsRoutes(getDb) {
             _id: 1,
             updatedAt: 1,
             updatedBy: 1,
+            isDemo: 1,
             vnpayConnected: 1,
             momoConnected: 1,
             ...Object.fromEntries(
@@ -193,7 +198,8 @@ module.exports = function settingsRoutes(getDb) {
       )
         return res.status(400).json({ message: "Không có thay đổi hợp lệ." });
       const patch = {};
-      for (const [name, value] of Object.entries(changes)) {
+      for (const [name, raw] of Object.entries(changes)) {
+        const value = typeof raw === 'string' ? raw.trim() : raw;
         if (unsupported.has(name))
           return res.status(501).json({
             message:
@@ -208,6 +214,7 @@ module.exports = function settingsRoutes(getDb) {
       }
       const doc = await singleton(res);
       if (!doc) return;
+      if (doc.isDemo === true) return res.status(409).json({ message: 'Settings demo chỉ được xem; chưa lưu thay đổi.' });
       if (
         !Object.hasOwn(req.body, "revision") ||
         req.body.revision !== revision(doc)
@@ -215,7 +222,7 @@ module.exports = function settingsRoutes(getDb) {
         return res
           .status(409)
           .json({ message: "Cấu hình đã thay đổi. Tải lại trước khi lưu." });
-      patch.updatedAt = new Date();
+      patch.updatedAt = revisions.nextUpdatedAt(doc);
       patch.updatedBy = { id: req.admin._id, name: req.admin.fullName };
       const filter = {
         _id: doc._id,
@@ -244,6 +251,37 @@ module.exports = function settingsRoutes(getDb) {
           "Không lưu được cấu hình. Hãy tải lại để kiểm tra trước khi thử tiếp.",
       });
     }
+  });
+  return router;
+};
+
+// Shared read policy: never expose a raw settings document or integration secrets.
+async function publicSettings(db, session) {
+  const projection = Object.fromEntries(['_id', 'isDemo', 'storeName', 'slogan', 'supportEmail', 'hotline', 'logoUrl',
+    'language', 'currency', 'timezone', 'shipping.standardFee', 'shipping.freeShippingThreshold'].map(key => [key, 1]));
+  const docs = await db.collection('settings').find({}, { projection, session }).limit(2).toArray();
+  if (docs.length > 1 || docs[0]?.isDemo === true) throw Object.assign(new Error('Settings chưa có cấu hình duy nhất hợp lệ.'), { status: 503 });
+  const doc = docs[0] || {};
+  const values = {};
+  for (const name of ['storeName', 'slogan', 'supportEmail', 'hotline', 'logoUrl', 'language', 'currency', 'timezone']) {
+    const value = doc[name];
+    values[name] = value == null || value === '' ? '' : validate(name, value) ? value : '';
+  }
+  const shipping = { standardFee: 30000, expressFee: 45000, freeShippingThreshold: 500000 };
+  for (const [name, field] of [['shippingFee', 'standardFee'], ['freeShippingThreshold', 'freeShippingThreshold']]) {
+    const value = doc.shipping?.[field];
+    if (value == null) continue; // Keep existing checkout defaults until explicitly configured.
+    if (!validate(name, value)) throw Object.assign(new Error(`Settings ${name} chưa hợp lệ; chưa tính phí đơn hàng.`), { status: 503 });
+    shipping[field] = value;
+  }
+  return { ...values, shipping };
+}
+module.exports.publicSettings = publicSettings;
+module.exports.publicRoutes = function publicSettingsRoutes(getDb) {
+  const router = express.Router();
+  router.get('/settings', async (_req, res, next) => {
+    try { res.set('Cache-Control', 'no-store').json(await publicSettings(getDb())); }
+    catch (error) { next(error); }
   });
   return router;
 };

@@ -70,6 +70,13 @@ describe('Dashboard', () => {
     expect(el.querySelectorAll('.bar').length).toBe(2);
   });
 
+  it('shows exclusions for paid orders without verified settlement evidence', async () => {
+    http.expectOne(() => true).flush(mockData({ reportingPolicy: 'paid-verified-v2', excludedUnverifiedPayments: 3 }));
+    await fixture.whenStable();
+    expect(fixture.nativeElement.textContent).toContain('3 đơn ghi paid chưa có bằng chứng');
+    expect(fixture.nativeElement.textContent).not.toContain('Chưa xác minh cách loại đơn demo');
+  });
+
   it('cột cao nhất = 100%, đổi sang 30 ngày thì gọi lại API', async () => {
     http.expectOne(() => true).flush(mockData());
     expect(component.chartBars()[0].height).toBe(100);

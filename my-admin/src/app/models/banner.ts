@@ -1,5 +1,5 @@
 /** Vị trí đặt banner trên web khách */
-export type BannerPosition = 'hero' | 'flash_sale' | 'promo_strip';
+export type BannerPosition = 'hero' | 'flash_sale' | 'promo_strip' | 'home_secondary';
 
 /** live: đang hiển thị | scheduled: chưa tới ngày | expired: đã hết hạn | off: admin tắt */
 export type BannerState = 'live' | 'scheduled' | 'expired' | 'off';
@@ -7,6 +7,7 @@ export type BannerState = 'live' | 'scheduled' | 'expired' | 'off';
 /** Banner từ GET /api/admin/banners (my-server/routes/admin-banners.js) */
 export interface Banner {
   contractIssues?: string[];
+  sourceSchedule?: Record<string, string | null>;
   _id: string;
   /** Tên nội bộ để admin nhận biết, không hiện cho khách */
   name: string;
@@ -56,4 +57,14 @@ export const POSITION_LABELS: Record<BannerPosition, string> = {
   hero: 'Hero trang chủ',
   flash_sale: 'Flash Sale',
   promo_strip: 'Dải quảng cáo',
+  home_secondary: 'Banner phụ trang chủ',
 };
+
+export function validBannerUrl(value: string, image = false): boolean {
+  if (!value) return true;
+  if (value.length > 2000 || /[\s\\\u0000-\u001f\u007f]/.test(value)) return false;
+  if (/^\/(?!\/)/.test(value) || (image && /^images\//.test(value))) return true;
+  if (!/^https?:\/\//i.test(value)) return false;
+  try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !!url.hostname && !url.username && !url.password; }
+  catch { return false; }
+}

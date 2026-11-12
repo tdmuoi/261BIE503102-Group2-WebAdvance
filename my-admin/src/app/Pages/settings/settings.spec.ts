@@ -89,6 +89,9 @@ describe('Settings', () => {
     expect(fixture.componentInstance.values?.freePreviewLimit).toBe(10);
     expect(fixture.componentInstance.values?.shippingFee).toBeNull();
     expect(fixture.nativeElement.querySelectorAll('.switch:disabled').length).toBe(4);
+    expect(fixture.nativeElement.textContent).toContain('Đã cấu hình');
+    expect(fixture.nativeElement.textContent).toContain('Chưa kết nối');
+    expect(fixture.nativeElement.textContent).toContain('Chưa xác minh nhà cung cấp');
     expect(service.save).not.toHaveBeenCalled();
   });
   it('sends only changed fields with the original revision', () => {

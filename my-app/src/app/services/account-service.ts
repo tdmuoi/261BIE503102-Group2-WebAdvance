@@ -142,8 +142,11 @@ export class AccountService {
     return this.http.get<Order[]>(`${this.baseUrl}/orders`, { headers: this.headers() }).pipe(this.on401());
   }
 
-  createOrder(body: CreateOrderRequest): Observable<Order> {
-    return this.http.post<Order>(`${environment.apiUrl}/orders`, body, { headers: this.headers() }).pipe(this.on401());
+  createOrder(body: CreateOrderRequest, idempotencyKey: string): Observable<Order> {
+    const snapshot: CreateOrderRequest = JSON.parse(JSON.stringify(body));
+    return this.http.post<Order>(`${environment.apiUrl}/orders`, snapshot, {
+      headers: this.headers().set('Idempotency-Key', idempotencyKey),
+    }).pipe(this.on401());
   }
 
   /** Hỏi lại trạng thái đơn — dùng sau khi người dùng quét mã thanh toán online */

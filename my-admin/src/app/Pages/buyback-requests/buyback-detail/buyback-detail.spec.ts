@@ -85,6 +85,18 @@ describe('BuybackDetail', () => {
     expect(service.act).not.toHaveBeenCalled();
     expect(page.error()).toContain('Giá');
   });
+
+  it('keeps a demo readable and prevents all mutation actions', async () => {
+    const page = fixture.componentInstance;
+    page.row.set({ ...row, isDemo: true });
+    page.buybackPrice.set('50000'); page.note.set('Fixture reason');
+    for (const action of ['approve', 'reject', 'quote'] as const) page.act(action);
+    expect(service.act).not.toHaveBeenCalled();
+    expect(page.row()?.isDemo).toBe(true);
+    expect(page.error()).toContain('chỉ được xem');
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('fieldset').disabled).toBe(true);
+  });
   it('can save the persisted offer price without requiring an unsaved resale estimate', () => {
     const page = fixture.componentInstance;
     page.buybackPrice.set('50000');

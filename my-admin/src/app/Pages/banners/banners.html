@@ -17,7 +17,11 @@
   @if (unresolved().length) {
     <div class="flash flash-error" role="status">
       <p>{{ unresolved().length }} banner đang chờ thống nhất vị trí hoặc lịch hiển thị; chỉ đọc.</p>
-      @for (b of unresolved(); track b._id) { <p>{{ b.name }} · {{ b.position }} · {{ b.contractIssues?.join(', ') }}</p> }
+      @for (b of unresolved(); track b._id) {
+        <p><strong>{{ b.name }}</strong> · ID {{ b._id }} · {{ b.position }} · {{ b.link }}</p>
+        @for (issue of b.contractIssues; track issue) { <p>{{ issueLabel(issue) }}</p> }
+        @for (field of b.sourceSchedule | keyvalue; track field.key) { <small>{{ field.key }}: {{ field.value }} </small> }
+      }
     </div>
   }
   <section class="stats">

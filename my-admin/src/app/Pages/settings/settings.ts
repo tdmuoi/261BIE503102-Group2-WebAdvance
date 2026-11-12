@@ -176,7 +176,7 @@ export class Settings implements OnInit, OnDestroy {
           this.assign(data);
           this.saving = false;
           this.message =
-            'Đã lưu cấu hình trong MongoDB. Các hệ thống chưa tích hợp Settings chưa áp dụng thay đổi này.';
+            'Đã lưu cấu hình trong MongoDB. Backend đã kết nối phí vận chuyển; website cần lấy Settings để cập nhật giá xem trước.';
           form.form.markAsPristine();
           this.cdr.markForCheck();
         },

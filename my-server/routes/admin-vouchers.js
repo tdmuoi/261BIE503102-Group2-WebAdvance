@@ -6,6 +6,7 @@
 const express = require("express");
 const { ObjectId } = require("mongodb");
 const createAdminAuth = require("../middleware/admin-auth");
+const revisions = require('../middleware/admin-revision');
 
 const TYPES = ["percent", "amount", "shipping"];
 const STATES = ["active", "paused", "scheduled", "expired"];
@@ -453,6 +454,13 @@ module.exports = function adminVouchersRoutes(getDb, options) {
             message: "Voucher đã thay đổi. Tải lại bản mới trước khi lưu.",
           });
       const data = parseVoucher(req.body, existing.usedCount ?? 0);
+      const renamed = data.code !== existing.code;
+      if (renamed && ((existing.usedCount ?? 0) > 0 || await getDb().collection('orders').findOne({
+        $or: [{ voucherId: existing._id }, { voucherCode: { $regex: `^${escapeRegex(existing.code)}$`, $options: 'i' } }],
+      }))) return res.status(409).json({
+        message: 'Voucher đã có lịch sử sử dụng, kể cả đơn đã hủy. Không đổi mã; tạo ưu đãi khác nếu cần.',
+        errors: { code: 'Mã voucher đã sử dụng phải được giữ nguyên để bảo toàn liên kết đơn legacy.' },
+      });
       return await withCodeLock(data.code, async () => {
         if (await duplicate(data.code, existing._id))
           return res.status(409).json({
@@ -462,12 +470,14 @@ module.exports = function adminVouchersRoutes(getDb, options) {
         const result = await vouchers().updateOne(
           {
             _id: existing._id,
+            code: existing.code,
+            ...(renamed ? { usedCount: Object.hasOwn(existing, 'usedCount') ? existing.usedCount : { $exists: false } } : {}),
             updatedAt: Object.hasOwn(existing, "updatedAt")
               ? existing.updatedAt
               : { $exists: false },
             $expr: { $lte: [{ $ifNull: ["$usedCount", 0] }, data.limit] },
           },
-          { $set: { ...storage(data, existing), updatedAt: new Date() } },
+          { $set: { ...storage(data, existing), updatedAt: revisions.nextUpdatedAt(existing) } },
         );
         if (!result.matchedCount)
           return res.status(409).json({
@@ -504,11 +514,11 @@ module.exports = function adminVouchersRoutes(getDb, options) {
             "Voucher hết hạn hoặc hết lượt. Hãy sửa thời gian / giới hạn trước.",
         });
       const result = await vouchers().updateOne(
-        { _id: existing._id, ...statusFilters(now)[state] },
+        { _id: existing._id, ...statusFilters(now)[state], ...revisions.snapshot(existing) },
         {
           $set: {
             status: req.body.paused ? "inactive" : "active",
-            updatedAt: now,
+            updatedAt: revisions.nextUpdatedAt(existing),
           },
         },
       );

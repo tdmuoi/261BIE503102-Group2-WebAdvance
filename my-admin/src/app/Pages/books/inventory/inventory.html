@@ -13,9 +13,21 @@
       <path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5" /></svg
     >Xuất báo cáo
   </button>
-  <button type="button" class="btn btn-primary" disabled title="Chức năng tạo phiếu nhập kho chưa khả dụng">＋ Tạo phiếu nhập kho</button>
+  <button type="button" class="btn btn-primary" disabled title="Dùng nút Nhập thêm tại từng sách bên dưới">Chọn sách để nhập thêm</button>
 </app-page-heading>
-<p class="inventory-data-note" role="status">Hiện có thể theo dõi và xuất tồn kho. Tạo phiếu nhập kho và nhật ký nhập/xuất chưa khả dụng.</p>
+<p class="inventory-data-note" role="status">Nhập thêm từng sách vật lý; nhật ký và tồn kho được lưu cùng giao dịch. Nhập hàng loạt chưa hỗ trợ.</p>
+<p *ngIf="receipt() as r" role="status">Đã ghi {{ r.operationCode }} · {{ r.bookTitle }}: {{ r.stockBefore }} → {{ r.stockAfter }} cuốn.</p>
+<section class="card" *ngIf="stockInBook() as row" role="dialog" aria-modal="true" aria-label="Nhập thêm sách">
+  <h2>Nhập thêm · {{ row.title }}</h2>
+  <p>Tồn đã tải: {{ row.stock }} cuốn.</p>
+  <fieldset [disabled]="stockSaving()">
+    <label>Số lượng<input class="input" type="number" min="1" max="1000000" step="1" [(ngModel)]="quantity" /></label>
+    <label>Ghi chú<textarea class="input" maxlength="500" [(ngModel)]="stockNote"></textarea></label>
+    <p *ngIf="stockError()" role="alert">{{ stockError() }}</p>
+    <button type="button" class="btn btn-primary" (click)="submitStockIn()">{{ stockSaving() ? 'Đang nhập…' : 'Xác nhận nhập kho' }}</button>
+    <button type="button" class="btn" (click)="closeStockIn()">Đóng</button>
+  </fieldset>
+</section>
 <div class="inventory-stats">
   <app-stat-card
     label="Tổng tồn kho"
@@ -137,7 +149,7 @@
             {{ row.updatedAt ? (row.updatedAt | date: 'dd/MM/yyyy' : '+0700') : 'Chưa có' }}
           </td>
           <td class="inventory-actions">
-            <button type="button" class="btn btn-sm" (click)="stockIn(row)">＋ Nhập thêm</button>
+            <button type="button" class="btn btn-sm" [disabled]="!canAdjust || stockSaving() || loading()" (click)="stockIn(row)">＋ Nhập thêm</button>
           </td>
         </tr>
         <tr *ngIf="!loading() && !visible().length">
@@ -168,6 +180,7 @@
       >Đã tải {{ loadedAt() | date: 'HH:mm dd/MM/yyyy' : '+0700' }} · Loại
       {{ excludedEbooks() }} Ebook khỏi tồn kho vật lý.</span
     ><span>Ngưỡng riêng của sách; nếu chưa có dùng ngưỡng API {{ defaultThreshold() }}.</span
+    ><span *ngIf="excludedUnverified()">Loại {{ excludedUnverified() }} bản ghi demo hoặc chưa xác minh loại sách khỏi tổng kho vật lý.</span
     ><span *ngIf="summary().unknown"
       >{{ summary().unknown }} sách chưa có số tồn hợp lệ; tổng tồn chưa xác định.</span
     >
@@ -175,8 +188,8 @@
 </section>
 <section class="card inventory-history">
   <header>
-    <h2>Lịch sử nhập / xuất kho gần đây</h2>
-    <button type="button" class="btn" disabled title="Lịch sử nhập/xuất chưa khả dụng">Xem tất cả</button>
+    <h2>Lịch sử nhập thêm gần đây (30 thao tác)</h2>
+    <button type="button" class="btn" [disabled]="historyLoading()" (click)="loadHistory()">Tải lại</button>
   </header>
   <div class="inventory-table-scroll">
     <table class="table">
@@ -191,12 +204,16 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
+        <tr *ngFor="let entry of history()">
+          <td>{{ entry.operationCode }}</td><td>Nhập thêm</td><td>{{ entry.bookTitle }}</td>
+          <td class="num">+{{ entry.quantity }} ({{ entry.stockBefore }} → {{ entry.stockAfter }})</td>
+          <td>{{ entry.actorName }}</td><td>{{ entry.createdAt | date: 'HH:mm dd/MM/yyyy' : '+0700' }}<small>{{ entry.note }}</small></td>
+        </tr>
+        <tr *ngIf="!history().length">
           <td colspan="6" class="inventory-empty">
             <svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 4h16v16H4zM8 8h8m-8 4h8m-8 4h5" /></svg
-            ><strong>Chưa có API lịch sử nhập / xuất kho</strong>
-            <p>Nhật ký sẽ hiển thị khi quy trình kho được kết nối. Không dùng lịch sử mẫu.</p>
+            ><strong>{{ historyLoading() ? 'Đang tải nhật ký…' : historyError() || 'Chưa có thao tác nhập thêm.' }}</strong>
           </td>
         </tr>
       </tbody>

@@ -12,6 +12,7 @@ export interface AdminBook {
   discountPercent: number;
   bookType?: 'new' | 'used' | 'ebook';
   condition?: string | null;
+  ebookFileId?: string;
   stock: number;
   /** active: đang bán | hidden: ẩn khỏi web khách */
   status: 'active' | 'hidden' | string;
@@ -77,6 +78,13 @@ export interface Author {
   _id: string;
   name: string;
 }
+
+export interface StockInRequest { bookId: string; quantity: number; revision: string | null; note: string; }
+export interface InventoryReceipt {
+  id: string; operationCode: string; bookId: string; bookTitle: string; quantity: number;
+  stockBefore: number; stockAfter: number; actorName: string; createdAt: string; note: string; revision: string;
+}
+export interface PdfUploadResult { fileId: string; size: number; sha256: string; revision: string; }
 
 /** Lỗi validate server trả về: { message, errors: { title: '...', price: '...' } } */
 export type FieldErrors = Partial<Record<keyof BookPayload, string>>;

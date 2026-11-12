@@ -182,7 +182,7 @@ module.exports = function createAdminAuth(getDb, options = {}) {
         "Access-Control-Allow-Methods",
         "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
       );
-      res.set("Access-Control-Allow-Headers", "Content-Type, X-Admin-CSRF");
+      res.set("Access-Control-Allow-Headers", "Content-Type, X-Admin-CSRF, Idempotency-Key");
       return res.sendStatus(204);
     }
     next();

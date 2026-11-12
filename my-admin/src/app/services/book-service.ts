@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { AdminAuthService } from './admin-auth-service';
 import { environment } from '../../environments/environment';
-import { AdminBook, Author, BookListResponse, BookPayload, BookQuery, Category } from '../models/book';
+import { AdminBook, Author, BookListResponse, BookPayload, BookQuery, Category, InventoryReceipt, StockInRequest, PdfUploadResult } from '../models/book';
 
 /** Gọi API Quản lý sách — my-server/routes/admin-books.js */
 @Injectable({ providedIn: 'root' })
@@ -19,6 +19,17 @@ export class BookService {
 
   getInventory(query: BookQuery = {}): Observable<BookListResponse> {
     return this.listBooks(`${this.baseUrl}/inventory`, query);
+  }
+  stockIn(body: StockInRequest, key: string): Observable<InventoryReceipt> {
+    return this.auth.withSession(csrf => this.http.post<InventoryReceipt>(`${this.baseUrl}/inventory/stock-in`, body,
+      { withCredentials: true, headers: { 'X-Admin-CSRF': csrf, 'Idempotency-Key': key } }));
+  }
+  inventoryHistory(): Observable<{ items: InventoryReceipt[] }> {
+    return this.auth.withSession(() => this.http.get<{ items: InventoryReceipt[] }>(`${this.baseUrl}/inventory/history`, { withCredentials: true }));
+  }
+  uploadPdf(id: string, file: File, revision: string | null): Observable<PdfUploadResult> {
+    return this.auth.withSession(csrf => this.http.post<PdfUploadResult>(`${this.baseUrl}/${id}/pdf`, file,
+      { params: { revision: revision || '' }, withCredentials: true, headers: { 'Content-Type': 'application/pdf', 'X-Admin-CSRF': csrf } }));
   }
 
   private listBooks(url: string, query: BookQuery): Observable<BookListResponse> {

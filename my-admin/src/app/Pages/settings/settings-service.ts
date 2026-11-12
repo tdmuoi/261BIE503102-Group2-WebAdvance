@@ -27,7 +27,7 @@ export interface SystemSettings {
   revision: string | null;
   updatedBy: string | null;
   values: SettingsValues;
-  paymentMethods: { id: string; name: string; description: string; configured: boolean | null }[];
+  paymentMethods: { id: string; name: string; description: string; configured: boolean | null; connected?: boolean; verified?: boolean }[];
   notice: string;
   storageOnly: boolean;
   unsupported: string[];

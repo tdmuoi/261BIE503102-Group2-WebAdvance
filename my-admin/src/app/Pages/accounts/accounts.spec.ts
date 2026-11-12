@@ -329,6 +329,28 @@ describe('Accounts authenticated HTTP and UI', () => {
     expect(page.error()).toContain('Chưa có quy trình');
     http.expectNone((req) => req.method === 'POST');
   });
+
+  it('preserves existing dashboard export and content delete actions when saving another permission', async () => {
+    await admins();
+    const page = fixture.componentInstance, data = page.admins()!;
+    page.admins.set({ ...data, roles: { ...data.roles,
+      roles: data.roles.roles.map((role) => ({ ...role, revision: 'role-revision' })),
+      availableActions: { dashboard: ['view', 'export'], content: ['view', 'delete', 'update'] },
+      moduleActions: { r1: { dashboard: ['view', 'export'], content: ['view', 'delete'] } },
+    } });
+    page.beginPermissionEdit();
+    expect(page.dirtyModuleActions()).toEqual({});
+    page.setModuleAction('r1', 'content', 'update', true);
+    page.savePermissions(); page.confirmRolePermissions();
+    const request = http.expectOne(base + '/roles/r1/permissions');
+    expect(request.request.body.permissions).toEqual([
+      { module: 'dashboard', actions: ['view', 'export'] },
+      { module: 'content', actions: ['view', 'delete', 'update'] },
+    ]);
+    request.flush({ revision: 'new-revision' });
+    expect(page.roleActions('r1', 'dashboard')).toContain('Xuất');
+    expect(page.roleActions('r1', 'content')).toContain('Xóa');
+  });
   it('renders native module/actions without inventing full access', async () => {
     await ready();
     fixture.componentInstance.setTab('admins');

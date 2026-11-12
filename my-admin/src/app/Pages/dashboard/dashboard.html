@@ -21,8 +21,11 @@
 }
 
 @if (data(); as d) {
-  @if (d.reportingPolicy !== 'paid-nondemo-v1') {
+  @if (d.reportingPolicy !== 'paid-verified-v2') {
     <p class="card alert" role="status">Chưa xác minh cách loại đơn demo, đơn chưa thanh toán và tài khoản quản trị khỏi thống kê. Chưa dùng số liệu này để đối soát doanh thu.</p>
+  }
+  @if (d.excludedUnverifiedPayments) {
+    <p class="card alert" role="status">{{ d.excludedUnverifiedPayments }} đơn ghi paid chưa có bằng chứng thanh toán hợp lệ và thời điểm xác minh; chưa tính vào doanh thu.</p>
   }
   <!-- ===== 1. Thẻ số liệu ===== -->
   <section class="stats" [class.is-loading]="loading()">

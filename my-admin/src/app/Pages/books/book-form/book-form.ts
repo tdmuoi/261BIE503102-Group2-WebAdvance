@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { AdminBook, Author, BookPayload, Category, FieldErrors } from '../../../models/book';
 import { BookService } from '../../../services/book-service';
+import { AdminAuthService } from '../../../services/admin-auth-service';
 
 function emptyForm(): BookPayload {
   return {
@@ -42,6 +43,38 @@ function emptyForm(): BookPayload {
 export class BookForm {
   private readonly bookService = inject(BookService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AdminAuthService);
+  readonly pdfBusy = signal(false);
+  readonly pdfError = signal('');
+  readonly pdfMessage = signal('');
+  pdfFile: File | null = null;
+  get canUploadPdf(): boolean {
+    return this.auth.user?.role === 'superadmin' || !!this.auth.user?.permissions?.some(p => p.module === 'products' && p.actions.includes('update'));
+  }
+  selectPdf(event: Event) {
+    if (this.pdfBusy()) return;
+    const input = event.target as HTMLInputElement, file = input.files?.[0];
+    this.pdfFile = null; this.pdfError.set(''); this.pdfMessage.set('');
+    if (!file) return;
+    if (!/\.pdf$/i.test(file.name) || (file.type && file.type !== 'application/pdf') || file.size < 40 || file.size > 10 * 1024 * 1024) {
+      this.pdfError.set('Chọn file PDF hợp lệ, tối đa 10 MiB.'); input.value = ''; return;
+    }
+    this.pdfFile = file;
+  }
+  uploadPdf() {
+    const book = this.book(), file = this.pdfFile;
+    if (!book || book.bookType !== 'ebook' || !file || !this.canUploadPdf || this.pdfBusy() || this.saving() || this.deleting()) return;
+    this.pdfBusy.set(true); this.pdfError.set(''); this.pdfMessage.set('');
+    this.bookService.uploadPdf(book._id, file, book.updatedAt || null).subscribe({
+      next: result => {
+        this.book.set({ ...book, ebookFileId: result.fileId, updatedAt: result.revision });
+        this.pdfFile = null; this.pdfBusy.set(false); this.pdfMessage.set('Đã upload và xác minh PDF; liên kết sách đã cập nhật.');
+      },
+      error: error => { this.pdfBusy.set(false); this.pdfError.set(error.status === 409
+        ? 'Sách đã thay đổi. Tải lại trước khi upload; file cũ được giữ nguyên.'
+        : error.error?.message || 'Chưa xác nhận upload PDF. Tải lại sách để kiểm tra trước khi thử tiếp.'); },
+    });
+  }
 
   readonly bookId = inject(ActivatedRoute).snapshot.paramMap.get('id');
   readonly isEdit = !!this.bookId;
@@ -161,7 +194,7 @@ export class BookForm {
   }
 
   save(): void {
-    if (this.saving() || this.deleting() || this.loading() || this.notFound() || (this.isEdit && !this.book())) return;
+    if (this.saving() || this.deleting() || this.pdfBusy() || this.loading() || this.notFound() || (this.isEdit && !this.book())) return;
     const errors = this.validate();
     this.errors.set(errors);
     this.serverError.set('');
@@ -206,7 +239,7 @@ export class BookForm {
   }
 
   deleteBook(): void {
-    if (!this.bookId || this.saving() || this.deleting() || this.loading() || this.notFound()) return;
+    if (!this.bookId || this.saving() || this.deleting() || this.pdfBusy() || this.loading() || this.notFound()) return;
     this.deleting.set(true);
     this.bookService.deleteBook(this.bookId).subscribe({
       next: () => {

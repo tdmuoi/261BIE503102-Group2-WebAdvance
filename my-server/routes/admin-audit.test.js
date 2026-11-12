@@ -145,13 +145,14 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
         _id: new ObjectId(),
         code: "CONTENT_MANAGER",
         name: "Content",
-        permissions: [{ module: "content", actions: ["view"] }],
+        permissions: [{ module: "content", actions: ["view", "delete"] }],
       },
       {
         _id: new ObjectId(),
         code: "SALES_MANAGER",
         name: "Sales",
         permissions: [
+          { module: 'dashboard', actions: ['view', 'export'] },
           { module: "liquidation", actions: ["view", "approve", "reject"] },
         ],
       },
@@ -700,6 +701,9 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
     const role = data.roles.roles.find((role) => role.code === 'CONTENT_MANAGER');
     const root = data.roles.roles.find((role) => role.code === 'SUPER_ADMIN');
     assert.equal(role.editable, true); assert.equal(root.editable, false);
+    assert.equal(data.roles.roles.find((role) => role.code === 'SALES_MANAGER').editable, true);
+    assert.ok(data.roles.availableActions.dashboard.includes('export'));
+    assert.ok(data.roles.availableActions.content.includes('delete'));
     const original = records.roles.find((role) => role.code === 'CONTENT_MANAGER');
     const keys = Object.keys(original).sort();
     const permissions = [{ module: 'content', actions: ['view', 'create'] }, { module: 'accounts', actions: ['view'] }];
@@ -729,6 +733,23 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
     assert.equal(writes, after);
     assert.equal((await request(url, 'PUT', { permissions: [{ module: 'content', actions: ['view'] }], revision: result.revision })).status, 200);
     assert.equal((await readAsOther()).status, 403, 'Existing sessions must enforce revoked permissions immediately');
+  });
+  await t.test('Buyback demo stays readable and every supported mutation is rejected without writes', async () => {
+    const doc = records.liquidation[0];
+    doc.isDemo = true;
+    const original = JSON.stringify(doc), before = writes;
+    const detail = await request('/api/admin/buybacks/' + doc._id);
+    assert.equal(detail.status, 200);
+    assert.equal((await detail.json()).isDemo, true);
+    for (const [action, status] of [['approve', 'pending'], ['quote', 'reviewing'], ['reject', 'pending']]) {
+      doc.status = status;
+      const response = await request('/api/admin/buybacks/' + doc._id, 'PATCH', {
+        action, revision: doc.updatedAt.toISOString(), offerPrice: 10000, note: 'Fixture' });
+      assert.equal(response.status, 409);
+    }
+    assert.equal(writes, before);
+    doc.status = JSON.parse(original).status;
+    assert.equal(JSON.stringify(doc), original);
   });
   await t.test(
     "role permission changes, account locks, password revocation and idle expiry",

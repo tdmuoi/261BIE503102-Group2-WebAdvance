@@ -21,7 +21,7 @@ const { ObjectId } = require('mongodb');
 const revisions = require('../middleware/admin-revision');
 const transaction = require('../middleware/admin-transaction');
 
-const POSITIONS = ['hero', 'flash_sale', 'promo_strip'];
+const POSITIONS = ['hero', 'flash_sale', 'promo_strip', 'home_secondary'];
 const STATES = ['live', 'scheduled', 'expired', 'off'];
 const VN_OFFSET = '+07:00';
 
@@ -38,7 +38,7 @@ function cleanText(value) {
 
 /** 'YYYY-MM-DD' -> Date theo giờ VN; endOfDay = 23:59:59.999 */
 function parseDay(value, endOfDay = false) {
-  const text = cleanText(value).slice(0, 10);
+  const text = cleanText(value);
   if (!text) return null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return undefined;
   const d = new Date(`${text}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}${VN_OFFSET}`);
@@ -51,6 +51,27 @@ function toDate(value) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function safeUrl(value, image = false) {
+  if (!value) return true;
+  if (typeof value !== 'string' || value.length > 2000 || /[\s\\\u0000-\u001f\u007f]/.test(value)) return false;
+  if (/^\/(?!\/)/.test(value) || (image && /^images\//.test(value))) return true;
+  if (!/^https?:\/\//i.test(value)) return false;
+  try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !!url.hostname && !url.username && !url.password; }
+  catch { return false; }
+}
+function activeFields(doc, active) {
+  const set = {};
+  if (Object.hasOwn(doc, 'status')) set.status = active ? 'active' : 'inactive';
+  if (Object.hasOwn(doc, 'isActive')) set.isActive = active;
+  if (Object.hasOwn(doc, 'active') || !Object.keys(set).length) set.active = active;
+  return set;
+}
+const dayOf = value => toDate(value) && new Date(+toDate(value) + 7 * 3600000).toISOString().slice(0, 10);
+const orderFields = (doc, order) => ({
+  ...(Object.hasOwn(doc, 'sortOrder') ? { sortOrder: order } : {}),
+  ...(Object.hasOwn(doc, 'order') || !Object.hasOwn(doc, 'sortOrder') ? { order } : {}),
+});
+
 /** Chấp nhận vài tên field khác (nếu dữ liệu cũ đặt tên khác) và tính state */
 function present(doc, now = new Date()) {
   const active = doc.active ?? doc.isActive ?? (doc.status ? doc.status === 'active' : true);
@@ -60,6 +81,9 @@ function present(doc, now = new Date()) {
   if (!active) state = 'off';
   else if (startDate && startDate > now) state = 'scheduled';
   else if (endDate && endDate < now) state = 'expired';
+  const invalidDates = ['startDate', 'startAt', 'endDate', 'endAt'].filter(key => doc[key] != null && !toDate(doc[key]));
+  if (invalidDates.length || (startDate && endDate && endDate < startDate)) state = 'off';
+  const activeValues = [doc.active, doc.isActive, doc.status == null ? undefined : doc.status === 'active'].filter(v => v !== undefined);
 
   return {
     _id: String(doc._id),
@@ -71,41 +95,60 @@ function present(doc, now = new Date()) {
     bgColor: doc.bgColor ?? '#1c1917',
     textColor: doc.textColor ?? '#ffffff',
     position: doc.position ?? null,
-    order: Number.isFinite(doc.order) ? doc.order : 9999, // chưa có thứ tự thì xếp cuối
+    order: Number.isFinite(doc.order) ? doc.order : Number.isFinite(doc.sortOrder) ? doc.sortOrder : 9999,
     active: !!active,
     startDate,
     endDate,
     state,
     contractIssues: [!POSITIONS.includes(doc.position) ? 'unsupported_position' : null,
+      doc.isDemo === true ? 'demo_read_only' : null,
+      !safeUrl(doc.link ?? doc.url ?? '') ? 'invalid_link' : null,
+      !safeUrl(doc.image ?? doc.imageUrl ?? doc.img ?? '', true) ? 'invalid_image' : null,
+      activeValues.some(v => typeof v !== 'boolean') || new Set(activeValues).size > 1 ? 'active_alias_conflict' : null,
+      doc.order != null && doc.sortOrder != null && doc.order !== doc.sortOrder ? 'order_alias_conflict' : null,
+      ...['order', 'sortOrder'].filter(key => doc[key] != null && (!Number.isSafeInteger(doc[key]) || doc[key] < 0)).map(key => key + '_invalid'),
+      ...invalidDates.map(key => key + '_invalid'),
+      startDate && endDate && endDate < startDate ? 'invalid_schedule' : null,
       ...[['startDate', 'startAt'], ['endDate', 'endAt']].filter(([a, b]) => doc[a] != null && doc[b] != null && +new Date(doc[a]) !== +new Date(doc[b])).map(([a]) => a + '_alias_conflict')].filter(Boolean),
+    sourceSchedule: Object.fromEntries(['startDate', 'startAt', 'endDate', 'endAt'].filter(key => Object.hasOwn(doc, key)).map(key => [key, doc[key]])),
     createdAt: doc.createdAt ?? null,
     updatedAt: doc.updatedAt ?? null,
   };
 }
 
-function parseBanner(body) {
+function parseBanner(body, existing = null) {
   const errors = {};
   const name = cleanText(body.name);
   const title = cleanText(body.title);
   const image = cleanText(body.image);
   const link = cleanText(body.link);
-  const position = cleanText(body.position) || 'hero';
+  const position = cleanText(body.position);
   const bgColor = cleanText(body.bgColor) || '#1c1917';
   const textColor = cleanText(body.textColor) || '#ffffff';
-  const startDate = parseDay(body.startDate);
-  const endDate = parseDay(body.endDate, true);
+  let startDate = parseDay(body.startDate);
+  let endDate = parseDay(body.endDate, true);
+  // A date-only form must not round an existing timestamp when its day did not change.
+  for (const [canonical, alias] of [['startDate', 'startAt'], ['endDate', 'endAt']]) {
+    const stored = existing?.[canonical] ?? existing?.[alias];
+    if (stored != null && dayOf(stored) === body[canonical]) {
+      if (canonical === 'startDate') startDate = stored;
+      else endDate = stored;
+    }
+  }
 
   if (!name) errors.name = 'Vui lòng đặt tên banner';
   if (body.active !== undefined && typeof body.active !== 'boolean') errors.active = 'Trạng thái phải là boolean';
   if (!title && !image) errors.title = 'Cần có tiêu đề hoặc ảnh banner';
-  if (image && !/^(https?:\/\/|\/|images\/)/i.test(image)) errors.image = 'Link ảnh phải bắt đầu bằng http(s):// hoặc /';
-  if (link && !/^(https?:\/\/|\/)/i.test(link)) errors.link = 'Link phải bắt đầu bằng / (trang trong web) hoặc http(s)://';
+  if (!safeUrl(image, true)) errors.image = 'URL ảnh không hợp lệ; dùng http(s), / hoặc images/ và không chứa thông tin đăng nhập';
+  if (!safeUrl(link)) errors.link = 'URL điều hướng không hợp lệ; dùng đường dẫn / hoặc http(s), không dùng // hoặc thông tin đăng nhập';
+  for (const [key, limit] of [['name', 120], ['title', 240], ['subtitle', 500]])
+    if (cleanText(body[key]).length > limit || /[\u0000-\u001f\u007f]/.test(cleanText(body[key]))) errors[key] = `Tối đa ${limit} ký tự, không chứa ký tự điều khiển`;
   if (!POSITIONS.includes(position)) errors.position = 'Vị trí không hợp lệ';
   if (!/^#[0-9a-f]{6}$/i.test(bgColor)) errors.bgColor = 'Màu nền không hợp lệ';
   if (!/^#[0-9a-f]{6}$/i.test(textColor)) errors.textColor = 'Màu chữ không hợp lệ';
   if (startDate === undefined) errors.startDate = 'Ngày bắt đầu không hợp lệ';
   if (endDate === undefined) errors.endDate = 'Ngày kết thúc không hợp lệ';
-  if (startDate && endDate && endDate < startDate) errors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
+  if (startDate && endDate && +new Date(endDate) < +new Date(startDate)) errors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu';
 
   if (Object.keys(errors).length) throw new ValidationError(errors);
 
@@ -137,7 +180,7 @@ module.exports = function bannersRoutes(getDb) {
   const router = express.Router();
   const banners = () => getDb().collection('banners');
   const sortByOrder = (list) =>
-    list.sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.order - b.order);
+    list.sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.order - b.order || a._id.localeCompare(b._id));
 
   // ---------- Web khách ----------
   router.get('/banners', async (req, res) => {
@@ -145,7 +188,7 @@ module.exports = function bannersRoutes(getDb) {
       const now = new Date();
       const list = (await banners().find({}).toArray())
         .map((doc) => present(doc, now))
-        .filter((b) => b.state === 'live' && (!req.query.position || b.position === req.query.position));
+        .filter((b) => b.state === 'live' && !b.contractIssues.some(issue => ['invalid_link', 'invalid_image', 'demo_read_only', 'active_alias_conflict'].includes(issue)) && (!req.query.position || b.position === req.query.position));
       res.json(
         sortByOrder(list).map(({ _id, title, subtitle, image, link, bgColor, textColor, position }) => ({
           _id, title, subtitle, image, link, bgColor, textColor, position,
@@ -163,7 +206,11 @@ module.exports = function bannersRoutes(getDb) {
       const ids = req.params.id.toLowerCase() === 'reorder' ? req.body?.ids : [req.params.id];
       if (!Array.isArray(ids) || !ids.every(id => ObjectId.isValid(String(id)))) return res.status(400).json({ message: 'Invalid IDs' });
       const docs = await banners().find({ _id: { $in: ids.map(id => new ObjectId(String(id))) } }).toArray();
-      if (docs.some(doc => present(doc).contractIssues.length)) return res.status(409).json({ message: 'Banner contract requires team approval; read only' });
+      const blocked = docs.map(doc => present(doc)).filter(doc => doc.contractIssues.length);
+      if (blocked.length) return res.status(409).json({
+        message: blocked.map(doc => `Banner ${doc._id} (${doc.name}): ${doc.contractIssues.join(', ')}. Chỉ đọc; cần xác minh dữ liệu.`).join(' '),
+        records: blocked.map(doc => ({ id: doc._id, fields: doc.contractIssues, sourceSchedule: doc.sourceSchedule })),
+      });
       next();
     } catch { return res.status(503).json({ message: 'Cannot verify banner contract' }); }
   });
@@ -192,12 +239,15 @@ module.exports = function bannersRoutes(getDb) {
         const docs = await banners().find({ _id: { $in: ids.map((id) => new ObjectId(id)) } }, { session }).toArray();
         if (docs.length !== ids.length || new Set(docs.map((doc) => doc.position)).size !== 1 || docs.some((doc) => present(doc).contractIssues.length))
           throw Object.assign(new Error('Chỉ sắp xếp các banner còn tồn tại trong cùng một vị trí hợp lệ.'), { status: 409 });
+        const group = await banners().find({ position: docs[0].position }, { session }).toArray();
+        if (group.length !== ids.length || group.some(doc => present(doc).contractIssues.length))
+          throw Object.assign(new Error('Danh sách vị trí đã thay đổi hoặc có bản ghi cần đối soát. Tải lại toàn bộ nhóm trước khi sắp xếp.'), { status: 409 });
         const byId = new Map(docs.map((doc) => [String(doc._id), doc]));
         for (const id of ids) revisions.requireRevision({ revision: supplied[id] }, byId.get(id));
         for (const [index, id] of ids.entries()) {
           const doc = byId.get(id);
           const result = await banners().updateOne({ _id: doc._id, position: doc.position, ...revisions.snapshot(doc) },
-            { $set: { order: index + 1, updatedAt: revisions.nextUpdatedAt(doc) } }, { session });
+            { $set: { ...orderFields(doc, index + 1), updatedAt: revisions.nextUpdatedAt(doc) } }, { session });
           if (!result.matchedCount) throw revisions.conflict();
         }
       });
@@ -211,8 +261,12 @@ module.exports = function bannersRoutes(getDb) {
   router.post('/admin/banners', async (req, res) => {
     try {
       const data = parseBanner(req.body || {});
-      const last = await banners().find({ position: data.position }).sort({ order: -1 }).limit(1).toArray();
-      const doc = { ...data, order: (last[0]?.order ?? 0) + 1, createdAt: new Date(), updatedAt: new Date() };
+      const group = await banners().find({ position: data.position }).toArray();
+      const _id = new ObjectId();
+      const { active, startDate, endDate, ...fields } = data;
+      const doc = { _id, code: 'BN-' + String(_id).toUpperCase(), ...fields, status: active ? 'active' : 'inactive',
+        ...(startDate ? { startAt: startDate } : {}), ...(endDate ? { endAt: endDate } : {}),
+        sortOrder: Math.max(0, ...group.map(doc => present(doc).order)) + 1, createdAt: new Date(), updatedAt: new Date() };
       const result = await banners().insertOne(doc);
       res.status(201).json(present({ _id: result.insertedId, ...doc }));
     } catch (error) {
@@ -230,22 +284,32 @@ module.exports = function bannersRoutes(getDb) {
 
       revisions.requireRevision(req.body, existing);
 
-      const data = parseBanner(req.body || {});
+      const data = parseBanner(req.body || {}, existing);
       const update = { ...data, updatedAt: revisions.nextUpdatedAt(existing) };
+      delete update.active;
+      Object.assign(update, activeFields(existing, data.active));
+      const unset = {};
       // Preserve the date keys already used by this document; never create a
       // competing canonical field beside an existing legacy alias.
       for (const [canonical, alias] of [['startDate', 'startAt'], ['endDate', 'endAt']]) {
-        if (Object.hasOwn(existing, alias)) {
+        if (data[canonical] == null) {
+          delete update[canonical];
+          for (const key of [canonical, alias]) if (Object.hasOwn(existing, key)) unset[key] = '';
+        } else if (Object.hasOwn(existing, alias)) {
           update[alias] = data[canonical];
           if (!Object.hasOwn(existing, canonical)) delete update[canonical];
+        } else if (!Object.hasOwn(existing, canonical)) {
+          update[alias] = data[canonical];
+          delete update[canonical];
         }
       }
       // Đổi sang vị trí khác thì xếp xuống cuối vị trí mới
       if (data.position !== existing.position) {
-        const last = await banners().find({ position: data.position }).sort({ order: -1 }).limit(1).toArray();
-        update.order = (last[0]?.order ?? 0) + 1;
+        const group = await banners().find({ position: data.position }).toArray();
+        Object.assign(update, orderFields(existing, Math.max(0, ...group.map(doc => present(doc).order)) + 1));
       }
-      const result = await banners().updateOne({ _id, ...revisions.snapshot(existing) }, { $set: update });
+      const result = await banners().updateOne({ _id, ...revisions.snapshot(existing) },
+        { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) });
       if (!result.matchedCount) throw revisions.conflict();
       res.json(present(await banners().findOne({ _id })));
     } catch (error) {
@@ -263,7 +327,7 @@ module.exports = function bannersRoutes(getDb) {
       const existing = await banners().findOne({ _id });
       if (!existing) return res.status(404).json({ message: 'Không tìm thấy banner' });
       revisions.requireRevision(req.body, existing);
-      const result = await banners().updateOne({ _id, ...revisions.snapshot(existing) }, { $set: { active: req.body.active, updatedAt: revisions.nextUpdatedAt(existing) } });
+      const result = await banners().updateOne({ _id, ...revisions.snapshot(existing) }, { $set: { ...activeFields(existing, req.body.active), updatedAt: revisions.nextUpdatedAt(existing) } });
       if (!result.matchedCount) throw revisions.conflict();
       res.json(present(await banners().findOne({ _id })));
     } catch (error) {
@@ -289,3 +353,4 @@ module.exports = function bannersRoutes(getDb) {
 
   return router;
 };
+module.exports.present = present;

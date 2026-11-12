@@ -31,13 +31,13 @@
           }
         </ol>
 
-        @if (o.nextStatuses.length) {
-          @if (o.nextStatuses.includes('shipping')) {
+        @if (nextStatuses().length) {
+          @if (nextStatuses().includes('shipping')) {
             <label class="label" for="tracking">Mã vận đơn (nếu có)</label>
             <input id="tracking" class="input" [(ngModel)]="trackingCode" placeholder="VD: GHN123456789" />
           }
           <div class="actions">
-            @for (next of o.nextStatuses; track next) {
+            @for (next of nextStatuses(); track next) {
               <button type="button" class="btn"
                       [class.btn-primary]="actions[next].style === 'primary'" [class.btn-danger]="actions[next].style === 'danger'"
                       [disabled]="saving() || !order()?.userId || order()?.isDemo === true" (click)="act(next)">
@@ -139,7 +139,7 @@
               [placeholder]="pending() === 'cancelled' ? 'VD: Khách đổi ý, hết hàng...' : 'VD: Sách bị lỗi in'"></textarea>
     @if (reasonError()) { <small class="error">{{ reasonError() }}</small> }
     @if (pending() === 'cancelled' && order()?.items?.length) {
-      <label class="check"><input type="checkbox" [(ngModel)]="restock" [disabled]="order()?.onlyEbooks === true || !order()?.stockDeducted || order()?.restocked === true" /> Cộng lại số lượng sách vào tồn kho</label>
+      <p class="text-muted">Hệ thống tự hoàn tồn kho đã trừ và trả lượt voucher một lần khi hủy đơn.</p>
     }
   </div>
 </app-confirm-dialog>

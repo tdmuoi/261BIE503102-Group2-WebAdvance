@@ -1,9 +1,9 @@
 const { createHash } = require('node:crypto');
 const actions = {
-  dashboard: ['view'], products: ['view', 'create', 'update', 'delete'],
+  dashboard: ['view', 'export'], products: ['view', 'create', 'update', 'delete'],
   inventory: ['view', 'adjust_inventory'], orders: ['view', 'update', 'confirm', 'cancel', 'refund', 'export'],
   customers: ['view', 'update', 'export', 'block'], accounts: ['view', 'update'],
-  vouchers: ['view', 'create', 'update'], content: ['view', 'create', 'update', 'publish'],
+  vouchers: ['view', 'create', 'update'], content: ['view', 'create', 'update', 'delete', 'publish'],
   banners: ['view', 'create', 'update', 'delete'], liquidation: ['view', 'approve', 'reject'],
   settings: ['view', 'update'], categories: ['view', 'create', 'update', 'delete'],
 };

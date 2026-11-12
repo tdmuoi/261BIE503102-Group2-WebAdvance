@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, EventEmitter, HostListener, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { Banner, BannerErrors, BannerPayload, BannerPosition, POSITION_LABELS } from '../../../models/banner';
+import { Banner, BannerErrors, BannerPayload, BannerPosition, POSITION_LABELS, validBannerUrl } from '../../../models/banner';
 import { BannerService } from '../../../services/banner-service';
 
 /** ISO -> 'YYYY-MM-DD' theo giờ Việt Nam (cho <input type="date">) */
@@ -45,7 +45,7 @@ export class BannerForm implements OnInit {
   readonly imageBroken = signal(false);
 
   form: BannerPayload = {
-    name: '', title: '', subtitle: 'lightbooks.vn', image: '', link: '',
+    name: '', title: '', subtitle: '', image: '', link: '',
     bgColor: '#1c1917', textColor: '#ffffff', position: 'hero', active: true, startDate: '', endDate: '',
   };
 
@@ -81,8 +81,13 @@ export class BannerForm implements OnInit {
     const e: BannerErrors = {};
     if (!f.name.trim()) e.name = 'Vui lòng đặt tên banner';
     if (!f.title.trim() && !f.image.trim()) e.title = 'Cần có tiêu đề hoặc ảnh banner';
-    if (f.image.trim() && !/^(https?:\/\/|\/|images\/)/i.test(f.image.trim())) e.image = 'Link ảnh phải bắt đầu bằng http(s):// hoặc /';
-    if (f.link.trim() && !/^(https?:\/\/|\/)/i.test(f.link.trim())) e.link = 'Link phải bắt đầu bằng / hoặc http(s)://';
+    if (!validBannerUrl(f.image.trim(), true)) e.image = 'URL ảnh không hợp lệ; dùng http(s), / hoặc images/';
+    if (!validBannerUrl(f.link.trim())) e.link = 'URL điều hướng không hợp lệ; dùng / hoặc http(s), không dùng // hay thông tin đăng nhập';
+    if (!this.positions.includes(f.position)) e.position = 'Vị trí không hợp lệ';
+    for (const [key, limit] of [['name', 120], ['title', 240], ['subtitle', 500]] as const)
+      if (f[key].trim().length > limit || /[\u0000-\u001f\u007f]/.test(f[key].trim())) e[key] = `Tối đa ${limit} ký tự, không chứa ký tự điều khiển`;
+    if (!/^#[0-9a-f]{6}$/i.test(f.bgColor)) e.bgColor = 'Màu nền không hợp lệ';
+    if (!/^#[0-9a-f]{6}$/i.test(f.textColor)) e.textColor = 'Màu chữ không hợp lệ';
     for (const key of ['startDate', 'endDate'] as const) {
       const value = f[key];
       if (this.banner?.[key] && !Number.isFinite(Date.parse(this.banner[key]!)) && !value) e[key] = 'Ngày đã lưu không hợp lệ; cần xác minh trước khi lưu';

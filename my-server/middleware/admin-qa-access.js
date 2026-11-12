@@ -16,6 +16,12 @@ module.exports = function adminQaAccess(auth) {
     return auth.requireAdmin(req, res, () => {
       if (resource === "books" && pathname === "/books/inventory" && ["GET", "HEAD"].includes(req.method))
         return auth.requirePermission("inventory", "view")(req, res, next);
+      if (resource === 'books' && pathname === '/books/inventory/history' && ['GET', 'HEAD'].includes(req.method))
+        return auth.requirePermission('inventory', 'view')(req, res, next);
+      if (resource === 'books' && pathname === '/books/inventory/stock-in' && req.method === 'POST')
+        return auth.requirePermission('inventory', 'adjust_inventory')(req, res, next);
+      if (resource === 'books' && /^\/books\/[^/]+\/pdf$/.test(pathname))
+        return auth.requirePermission('products', ['GET', 'HEAD'].includes(req.method) ? 'view' : 'update')(req, res, next);
       let action = ["GET", "HEAD"].includes(req.method)
         ? "view"
         : req.method === "POST"

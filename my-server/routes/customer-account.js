@@ -3,14 +3,18 @@
 //   GET/PUT  /api/account/profile          PUT/DELETE /api/account/avatar   PUT /api/account/password
 //   GET/POST /api/account/addresses        PUT/DELETE /api/account/addresses/:id   PUT /api/account/addresses/:id/default
 //   GET /api/account/notifications?type=&page=   PUT /api/account/notifications/:id/read   PUT /api/account/notifications/read-all
-//   GET /api/account/ebooks   GET/PUT /api/account/ebooks/:bookId/progress
+//   GET /api/account/ebooks   PUT /api/account/ebooks/:bookId (explicit free claim)
+//   GET /api/account/ebooks/:bookId/content   GET/PUT /api/account/ebooks/:bookId/progress
 //   GET /api/account/reviews  POST /api/reviews   GET /api/books/:bookId/reviews (công khai)
 //   GET /api/account/buybacks
 // Collections: users, accounts, addresses, notifications, personalBooks, reviews, liquidation, orders
 // =====================================================================
 const express = require('express');
+const { ObjectId } = require('mongodb');
 const { hashPassword, verifyPassword, requireCustomer, toObjectId } = require('../middleware/customer-auth');
 const { publicUser } = require('./customer-auth');
+const { hasEbookEntitlement, freeEbookClaimId } = require('../middleware/admin-safe-status');
+const transaction = require('../middleware/admin-transaction');
 
 const PHONE_PATTERN = /^0\d{9}$/;
 const NOTIFICATION_PAGE = 6;
@@ -291,11 +295,59 @@ module.exports = function customerAccountRoutes(getDb) {
 
   // ---------------- Tủ sách ebook ----------------
   const personal = () => db().collection('personalBooks');
+  const bookIds = (id) => [toObjectId(String(id)), String(id)].filter(Boolean);
+  async function readablePersonal(req, bookId) {
+    const rows = await personal().find({ userId: req.customer.userId,
+      bookId: { $in: bookIds(bookId) }, isDemo: { $ne: true } }).toArray();
+    if (!rows.length) throw Object.assign(new Error('Ebook không có trong tủ sách của bạn'), { status: 404 });
+    for (const row of rows) if (await hasEbookEntitlement(db(), row)) return row;
+    throw Object.assign(new Error('Quyền đọc đã thu hồi hoặc chưa xác minh thanh toán; cần đối soát thủ công.'), { status: 403 });
+  }
+
+  // No suitable acquisition mutation existed: PUT is an idempotent explicit
+  // claim by the authenticated customer, never a payment or purchase event.
+  router.put('/account/ebooks/:bookId', auth, async (req, res, next) => {
+    try {
+      const bookId = toObjectId(req.params.bookId), body = req.body;
+      if (!bookId || (body !== undefined && (body === null || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length)))
+        return res.status(400).json({ message: 'Gửi ID sách hợp lệ và body rỗng; server tự xác minh giá và chủ sở hữu.' });
+      const failure = (status, message) => Object.assign(new Error(message), { status });
+      const claim = async session => {
+        const book = await db().collection('books').findOne({ _id: bookId, bookType: 'ebook', status: 'active', isDemo: { $ne: true } }, { session });
+        if (!book) throw failure(404, 'Không tìm thấy Ebook đang phát hành.');
+        if (book.price !== 0) throw failure(403, 'Chỉ nhận miễn phí Ebook có giá 0đ được server xác nhận.');
+        const rows = await personal().find({ userId: req.customer.userId, bookId: { $in: bookIds(bookId) } }, { session }).toArray();
+        if (rows.some(row => row.accessRevokedAt != null || row.accessRevokedOrderId != null))
+          throw failure(403, 'Quyền đọc đã bị thu hồi; không thể nhận lại qua API miễn phí.');
+        if (rows.some(row => row.isDemo === true)) throw failure(409, 'Dữ liệu demo chỉ được xem.');
+        for (const row of rows) if (await hasEbookEntitlement(db(), row, session)) return { row, created: false };
+        if (rows.length) throw failure(409, 'Quyền sở hữu cũ chưa được xác minh; cần đối soát, chưa thay đổi dữ liệu.');
+        const file = book.ebookFileId instanceof ObjectId && await db().collection('fs.files').findOne({
+          _id: book.ebookFileId, 'metadata.bookId': bookId, 'metadata.verified': true,
+        }, { session });
+        if (!file || !Number.isSafeInteger(file.length) || file.length < 1 || file.length > require('./admin-books').PDF_MAX_BYTES)
+          throw failure(409, 'Ebook chưa có PDF hợp lệ để nhận.');
+        const now = new Date();
+        const row = { _id: freeEbookClaimId(req.customer.userId, bookId), userId: req.customer.userId, bookId,
+          acquisitionType: 'free', acquisitionPrice: 0, readingStatus: 'unread', progressPercent: 0, page: 0,
+          bookmarks: [], notes: [], highlights: [], createdAt: now, updatedAt: now };
+        await personal().insertOne(row, { session });
+        return { row, created: true };
+      };
+      let result;
+      try { result = await transaction(db(), claim); }
+      catch (error) { if (error.code !== 11000) throw error; result = await transaction(db(), claim); }
+      res.status(result.created ? 201 : 200).json({ bookId: String(bookId), owned: true,
+        acquisitionType: result.row.acquisitionType || 'purchase', acquiredAt: iso(result.row.createdAt) });
+    } catch (error) { next(error); }
+  });
 
   router.get('/account/ebooks', auth, async (req, res, next) => {
     try {
-      const rows = await personal().find({ userId: req.customer.userId }).sort({ purchasedAt: -1 }).toArray();
-      const books = await db().collection('books').find({ _id: { $in: rows.map((r) => r.bookId) } }).toArray();
+      const stored = await personal().find({ userId: req.customer.userId, isDemo: { $ne: true } }).sort({ purchasedAt: -1 }).toArray();
+      const rows = [];
+      for (const row of stored) if (await hasEbookEntitlement(db(), row)) rows.push(row);
+      const books = await db().collection('books').find({ _id: { $in: rows.map((r) => toObjectId(String(r.bookId))).filter(Boolean) } }).toArray();
       const authorIds = books.map((b) => b.authorId).filter(Boolean);
       const authors = await db().collection('authors').find({ _id: { $in: authorIds } }, { projection: { name: 1 } }).toArray();
       const authorName = new Map(authors.map((a) => [String(a._id), a.name]));
@@ -310,7 +362,8 @@ module.exports = function customerAccountRoutes(getDb) {
             title: b.title || r.title || 'Sách điện tử',
             author: (b.authorId && authorName.get(String(b.authorId))) || (b.authorNames || []).join(', ') || '',
             image: b.image || r.image || '',
-            format: 'EPUB',
+            format: b.ebookFormat === 'pdf' ? 'PDF' : 'EPUB',
+            acquisitionType: r.acquisitionType || 'purchase',
             progress: Math.min(100, Math.round((page / totalPages) * 100)),
             page,
             totalPages,
@@ -328,17 +381,30 @@ module.exports = function customerAccountRoutes(getDb) {
   router.get('/account/ebooks/:bookId/progress', auth, async (req, res, next) => {
     try {
       const bookId = toObjectId(req.params.bookId);
-      const row = bookId ? await personal().findOne({ userId: req.customer.userId, bookId }) : null;
-      if (!row) return res.status(404).json({ message: 'Ebook không có trong tủ sách của bạn' });
+      if (!bookId) return res.status(404).json({ message: 'Ebook không có trong tủ sách của bạn' });
+      const row = await readablePersonal(req, bookId);
       res.json({ page: row.page || 1, bookmarks: row.bookmarks || [], notes: row.notes || [], highlights: row.highlights || [], lastReadAt: iso(row.lastReadAt) });
     } catch (error) {
       next(error);
     }
   });
 
+  router.get('/account/ebooks/:bookId/content', auth, async (req, res, next) => {
+    try {
+      const bookId = toObjectId(req.params.bookId);
+      if (!bookId) return res.status(404).json({ message: 'Không tìm thấy Ebook.' });
+      await readablePersonal(req, bookId);
+      const book = await db().collection('books').findOne({ _id: bookId, bookType: 'ebook', isDemo: { $ne: true } });
+      if (!book) return res.status(404).json({ message: 'Không tìm thấy Ebook.' });
+      await require('./admin-books').streamPdf(db(), book, req, res);
+    } catch (error) { next(error); }
+  });
+
   router.put('/account/ebooks/:bookId/progress', auth, async (req, res, next) => {
     try {
       const bookId = toObjectId(req.params.bookId);
+      if (!bookId) return res.status(404).json({ message: 'Ebook không có trong tủ sách của bạn' });
+      const row = await readablePersonal(req, bookId);
       const b = req.body || {};
       const page = Math.max(1, parseInt(b.page, 10) || 1);
       const clean = (list, max) => (Array.isArray(list) ? list.slice(0, max) : []);
@@ -350,8 +416,11 @@ module.exports = function customerAccountRoutes(getDb) {
         highlights: clean(b.highlights, 300).map((h) => ({ page: parseInt(h?.page, 10) || 1, text: text(h?.text).slice(0, 500) })),
         lastReadAt: new Date(),
       };
-      const result = bookId ? await personal().updateOne({ userId: req.customer.userId, bookId }, { $set: set }) : { matchedCount: 0 };
-      if (!result.matchedCount) return res.status(404).json({ message: 'Ebook không có trong tủ sách của bạn' });
+      const snapshot = Object.fromEntries(['orderId', 'orderCode', 'accessRevokedAt', 'accessRevokedOrderId', 'acquisitionType', 'acquisitionPrice'].map((key) =>
+        [key, Object.hasOwn(row, key) ? row[key] : { $exists: false }]));
+      const result = await personal().updateOne({ _id: row._id, userId: row.userId, bookId: row.bookId,
+        isDemo: { $ne: true }, ...snapshot }, { $set: set });
+      if (!result.matchedCount) return res.status(403).json({ message: 'Quyền đọc vừa thay đổi. Hãy tải lại tủ sách.' });
       res.json({ ok: true, lastReadAt: set.lastReadAt.toISOString() });
     } catch (error) {
       next(error);
