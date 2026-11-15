@@ -65,7 +65,7 @@
   }
   @default {
     @if (featured(); as author) {
-      <app-author-featured class="container" [author]="author" [event]="nextEvent()" (followed)="follow.follow(author.id, author.name)" />
+      <app-author-featured class="container" [author]="author" [event]="nextEvent()" [following]="follow.isFollowing(author.id)" (followed)="follow.toggle(author.id, author.name)" />
     }
 
     <section class="container al-all" id="all-authors">

@@ -1,0 +1,18 @@
+<dialog #dialog class="bs-dialog" aria-labelledby="bs-title" (close)="closed.emit()" (click)="onBackdrop($event)">
+  <span class="bs-icon" aria-hidden="true">✓</span>
+  <h3 id="bs-title" class="bs-title">Đã gửi yêu cầu thanh lý</h3>
+  @if (code()) {
+    <p class="bs-code">Mã phiếu: <strong>{{ code() }}</strong></p>
+  }
+  <p class="bs-text">
+    Lightbook sẽ liên hệ qua số điện thoại hoặc email {{ email() }} để xác nhận phiếu.
+    Bạn theo dõi trạng thái phiếu trong mục <strong>Thanh lý</strong> ở trang tài khoản nhé.
+  </p>
+  <div class="bs-actions">
+    <a class="bs-btn is-primary" routerLink="/account/orders" [queryParams]="{ tab: 'buyback' }" (click)="dialog.close()">
+      Theo dõi trong tài khoản&nbsp; →
+    </a>
+    <button class="bs-btn" type="button" (click)="restart.emit()">Tạo phiếu mới</button>
+  </div>
+  <button class="bs-close" type="button" aria-label="Đóng" (click)="dialog.close()">✕</button>
+</dialog>

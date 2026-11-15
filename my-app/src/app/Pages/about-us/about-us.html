@@ -112,7 +112,14 @@
   <ul class="partners">
     @for (p of partners; track p.name) {
       <li class="partner">
-        <span class="partner-mark" [attr.data-tone]="p.tone" [class.is-round]="p.round" [class.is-small]="p.small">{{ p.mark }}</span>
+        @let showLogo = p.logo && !brokenPhotos().has('logo:' + p.name);
+        <span class="partner-mark" [class.is-small]="p.mark.length > 2">
+          @if (showLogo) {
+            <img [src]="p.logo" [alt]="'Logo ' + p.name" [attr.data-fit]="p.fit" loading="lazy" (error)="markBroken('logo:' + p.name)" />
+          } @else {
+            {{ p.mark }}
+          }
+        </span>
         <span class="title-card-display">{{ p.name }}</span>
       </li>
     }

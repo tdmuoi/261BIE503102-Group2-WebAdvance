@@ -16,6 +16,8 @@ export class AuthorFeatured {
   /** Sự kiện sắp diễn ra gần nhất — null thì ẩn thẻ hồng */
   readonly event = input<LbEvent | null>(null);
 
+  /** Khách đang theo dõi tác giả này */
+  readonly following = input(false);
   readonly followed = output<void>();
 
   /** Bìa sách thật của tác giả (cuốn mới nhất có ảnh) */

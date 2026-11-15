@@ -160,7 +160,7 @@ function roundThousand(value: number): number {
 }
 
 export const DELIVERY_LABELS: Record<DeliveryMethod, string> = {
-  store: 'Mang đến chi nhánh',
+  store: 'Mang đến cửa hàng',
   post: 'Gửi qua bưu điện',
 };
 
@@ -169,10 +169,14 @@ export const PAYOUT_LABELS: Record<PayoutMethod, string> = {
   voucher: 'Voucher +10%',
 };
 
-/**
- * Kho nhận sách gửi qua bưu điện. Figma và DB chưa có địa chỉ kho riêng,
- * tạm dùng địa chỉ cửa hàng ở footer (442 Cộng Hòa) — cần xác nhận lại.
- */
+/** Lightbook chỉ có 1 cửa hàng (địa chỉ ở footer): khách mang sách đến thẩm định trực tiếp */
+export const STORE = {
+  name: 'Cửa hàng Lightbook',
+  address: '442 Cộng Hòa, Tân Bình, TP. Hồ Chí Minh',
+  hours: 'Mở cửa 8:00–20:00 hằng ngày',
+};
+
+/** Kho nhận sách gửi qua bưu điện (cùng địa chỉ cửa hàng) */
 export const WAREHOUSE = {
   name: 'Kho Lightbook Buyback',
   address: '442 Cộng Hòa, Tân Bình, TP. Hồ Chí Minh',

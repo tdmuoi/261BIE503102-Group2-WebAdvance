@@ -1,7 +1,7 @@
 /** Hạng tình trạng sách theo bảng định giá thu mua */
 export type ConditionGrade = 'like-new' | 'good' | 'fair';
 
-/** Cách khách giao sách cho Lightbook — chỉ có 2 cách: mang đến chi nhánh hoặc gửi bưu điện */
+/** Cách khách giao sách cho Lightbook: mang đến cửa hàng (chỉ có 1 cửa hàng) hoặc gửi bưu điện */
 export type DeliveryMethod = 'store' | 'post';
 
 /** Hình thức nhận tiền thanh lý */
@@ -38,14 +38,14 @@ export interface BuybackCustomer {
   returnAddress: string;
 }
 
-/** Nội dung phiếu thanh lý gửi lên server (ảnh gửi kèm riêng) */
+/** Nội dung phiếu thanh lý gửi lên server */
 export interface BuybackRequest {
   items: BuybackItem[];
   customer: BuybackCustomer;
   delivery: DeliveryMethod;
-  /** Bắt buộc khi delivery = 'store' */
-  branchId: string | null;
   payout: PayoutMethod;
+  /** Link ảnh sách đã tải lên Cloudinary (1–6 ảnh, bắt buộc) */
+  images: string[];
   /** Khoảng giá ước tính hiển thị cho khách lúc gửi (VNĐ) */
   estimate: { min: number; max: number };
 }
@@ -53,11 +53,4 @@ export interface BuybackRequest {
 /** Kết quả server trả về khi tạo phiếu */
 export interface BuybackResult {
   requestCode?: string;
-}
-
-/** Chi nhánh nhận sách trực tiếp */
-export interface Branch {
-  _id: string;
-  name: string;
-  address: string;
 }

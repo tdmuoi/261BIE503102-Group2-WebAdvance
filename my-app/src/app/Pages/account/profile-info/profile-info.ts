@@ -7,8 +7,8 @@ import { AccountProfile, Gender, UpdateProfileRequest } from '../../../models/ac
 import { AccountService } from '../../../services/account-service';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
+import { UploadService } from '../../../services/upload-service';
 import { Account, initialsOf } from '../account';
-import { shrinkImage } from './shrink-image';
 
 const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*[\p{L}]$/u;
 /** Số di động Việt Nam, cho phép gõ có dấu cách: 0909 123 268 */
@@ -79,6 +79,7 @@ function passwordGroupValidator(group: AbstractControl): ValidationErrors | null
 export class ProfileInfo {
   private readonly fb = inject(FormBuilder);
   private readonly account = inject(AccountService);
+  private readonly upload = inject(UploadService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
@@ -233,9 +234,9 @@ export class ProfileInfo {
 
     const steps: Observable<Partial<AccountProfile>>[] = [this.account.updateProfile(body)];
     if (this.avatarChange instanceof File) {
-      // Thu nhỏ ảnh ở trình duyệt rồi gửi dạng data URL (server chưa có chỗ lưu file)
+      // Tải ảnh lên Cloudinary, server chỉ lưu đường link
       const file = this.avatarChange;
-      steps.push(shrinkImage(file).pipe(switchMap((dataUrl) => this.account.uploadAvatar(dataUrl))));
+      steps.push(this.upload.uploadImage(file, 'avatar').pipe(switchMap((url) => this.account.uploadAvatar(url))));
     } else if (this.avatarChange === null) {
       steps.push(this.account.deleteAvatar().pipe(map(() => ({ avatar: null }))));
     }

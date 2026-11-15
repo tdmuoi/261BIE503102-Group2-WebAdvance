@@ -16,8 +16,12 @@
       <a class="btn btn-primary af-btn" [routerLink]="['/authors', author().id]">
         Xem trang tác giả <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
       </a>
-      <button type="button" class="btn btn-ghost" (click)="followed.emit()">
-        <img src="images/icons/plus.svg" alt="" width="20" height="20" /> Theo dõi
+      <button type="button" class="btn btn-ghost" [attr.aria-pressed]="following()" (click)="followed.emit()">
+        @if (following()) {
+          <img src="images/auth/check-circle-sm.svg" alt="" width="20" height="20" /> Đã theo dõi
+        } @else {
+          <img src="images/icons/plus.svg" alt="" width="20" height="20" /> Theo dõi
+        }
       </button>
     </div>
   </div>

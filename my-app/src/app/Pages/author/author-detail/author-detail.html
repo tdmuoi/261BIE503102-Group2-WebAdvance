@@ -45,8 +45,14 @@
             </div>
           </div>
           <div class="ad-actions">
-            <button type="button" class="btn btn-primary ad-follow" (click)="follow.follow(a.id, a.name)">
-              <img src="images/icons/plus-inverse.svg" alt="" width="20" height="20" /> Theo dõi tác giả
+            @let following = follow.isFollowing(a.id);
+            <button type="button" class="btn ad-follow" [class.btn-primary]="!following" [class.btn-ghost]="following"
+                    [attr.aria-pressed]="following" [disabled]="follow.isBusy(a.id)" (click)="follow.toggle(a.id, a.name)">
+              @if (following) {
+                <img src="images/auth/check-circle-sm.svg" alt="" width="20" height="20" /> Đã theo dõi
+              } @else {
+                <img src="images/icons/plus-inverse.svg" alt="" width="20" height="20" /> Theo dõi tác giả
+              }
             </button>
             <button type="button" class="btn btn-ghost" (click)="follow.share(a.name)">
               <img src="images/icons/share.svg" alt="" width="20" height="20" /> Chia sẻ

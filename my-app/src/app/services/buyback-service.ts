@@ -1,42 +1,30 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 
-import { Branch, BuybackRequest, BuybackResult } from '../models/buyback';
+import { environment } from '../../environments/environment';
+import { BuybackRequest, BuybackResult } from '../models/buyback';
+import { AuthService } from './auth-service';
 
 /**
- * my-server chưa có API thu mua sách và chi nhánh.
- * Backend thêm endpoint thì điền đường dẫn vào đây, không cần sửa chỗ khác.
+ * Phiếu thanh lý sách — POST /api/buyback-requests (cần đăng nhập).
+ * Ảnh sách tải lên Cloudinary trước (UploadService), phiếu chỉ gửi kèm đường link ảnh.
+ * Khách theo dõi phiếu ở Tài khoản › Quản lý đơn hàng › Thanh lý (GET /api/account/buybacks).
  */
-const ENDPOINTS: { submit: string | null; branches: string | null } = {
-  submit: null, // ví dụ `${environment.apiUrl}/buyback-requests` (import environment từ ../../environments/environment)
-  branches: null, // ví dụ `${environment.apiUrl}/branches`
-};
-
-/** Lỗi khi API chưa sẵn sàng — trang hiện thông báo riêng cho trường hợp này */
-export class BuybackUnavailableError extends Error {
-  constructor() {
-    super('Buyback API is not available yet');
-  }
-}
-
 @Injectable({ providedIn: 'root' })
 export class BuybackService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly baseUrl = `${environment.apiUrl}/buyback-requests`;
 
-  /** Chi nhánh nhận sách trực tiếp. Chưa có API thì trả danh sách rỗng */
-  getBranches(): Observable<Branch[]> {
-    if (!ENDPOINTS.branches) return of([]);
-    return this.http.get<Branch[]>(ENDPOINTS.branches);
-  }
-
-  /** Gửi phiếu thanh lý: nội dung phiếu dạng JSON trong field "request", ảnh trong field "photos" */
-  submitRequest(request: BuybackRequest, photos: File[]): Observable<BuybackResult> {
-    if (!ENDPOINTS.submit) return throwError(() => new BuybackUnavailableError());
-
-    const body = new FormData();
-    body.append('request', JSON.stringify(request));
-    photos.forEach((photo) => body.append('photos', photo, photo.name));
-    return this.http.post<BuybackResult>(ENDPOINTS.submit, body);
+  /**
+   * `idempotencyKey`: cố định cho một lần điền phiếu, bấm gửi lại (mạng chập chờn)
+   * thì server trả về đúng phiếu cũ thay vì tạo phiếu trùng.
+   */
+  submitRequest(request: BuybackRequest, idempotencyKey: string): Observable<BuybackResult> {
+    const token = this.auth.token;
+    let headers = new HttpHeaders({ 'Idempotency-Key': idempotencyKey });
+    if (token) headers = headers.set('Authorization', `Bearer ${token}`);
+    return this.http.post<BuybackResult>(this.baseUrl, request, { headers });
   }
 }

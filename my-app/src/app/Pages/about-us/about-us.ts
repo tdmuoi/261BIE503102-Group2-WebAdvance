@@ -65,22 +65,27 @@ export class AboutUs {
     { initials: 'NK', tone: 'pink', name: 'H Nhiên Kpor', role: 'Cộng đồng & sự kiện', photo: 'images/about/team/nhien-kpor.jpg' },
   ];
 
-  /** Ảnh đội ngũ tải lỗi thì hiện chữ viết tắt */
+  /** Ảnh đội ngũ / logo đối tác tải lỗi thì hiện chữ viết tắt */
   readonly brokenPhotos = signal(new Set<string>());
 
   markBroken(name: string): void {
     this.brokenPhotos.update((s) => new Set(s).add(name));
   }
 
-  readonly partners = [
-    { mark: 'TR', name: 'NXB Trẻ', tone: 'pink', round: true },
-    { mark: 'NN', name: 'Nhã Nam', tone: 'mint', round: false },
-    { mark: 'ĐA', name: 'Đông A', tone: 'yellow', round: true },
-    { mark: 'KĐ', name: 'NXB Kim Đồng', tone: 'pink-strong', round: false },
-    { mark: 'OP', name: 'Omega Plus', tone: 'mint', round: true },
-    { mark: 'AZ', name: 'AZ Việt Nam', tone: 'yellow-strong', round: false },
-    { mark: 'HNV', name: 'NXB Hội Nhà Văn', tone: 'pink', round: true, small: true },
-    { mark: 'PN', name: 'Phương Nam Book', tone: 'white', round: false },
+  /**
+   * Đối tác: logo lấy từ website chính thức của từng đơn vị (public/images/partners), hiện trong khung tròn.
+   * Chưa có logo (Đông A, NXB Hội Nhà Văn: chưa lấy được logo chính thức) hoặc ảnh lỗi thì hiện chữ viết tắt.
+   * fit: 'left' — logo ngang (NXB Trẻ) chỉ lấy phần biểu tượng bên trái; 'zoom' — ảnh nhiều lề trắng (AZ) phóng to.
+   */
+  readonly partners: { mark: string; name: string; logo?: string; fit?: 'left' | 'zoom' }[] = [
+    { mark: 'TR', name: 'NXB Trẻ', logo: 'images/partners/nxb-tre.png', fit: 'left' },
+    { mark: 'NN', name: 'Nhã Nam', logo: 'images/partners/nha-nam.png' },
+    { mark: 'ĐA', name: 'Đông A' },
+    { mark: 'KĐ', name: 'NXB Kim Đồng', logo: 'images/partners/nxb-kim-dong.png' },
+    { mark: 'OP', name: 'Omega Plus', logo: 'images/partners/omega-plus.png' },
+    { mark: 'AZ', name: 'AZ Việt Nam', logo: 'images/partners/az-viet-nam.jpg', fit: 'zoom' },
+    { mark: 'HNV', name: 'NXB Hội Nhà Văn' },
+    { mark: 'PN', name: 'Phương Nam Book', logo: 'images/partners/phuong-nam.jpg' },
   ];
 
   readonly benefits = [

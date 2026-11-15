@@ -42,7 +42,7 @@
       <h5 class="bb-done-next">Bước tiếp theo</h5>
       <ol class="bb-done-steps">
         @if (r.delivery === 'store') {
-          <li>Mang sách đến <strong>{{ r.branch ? r.branch.name + ' – ' + r.branch.address : 'chi nhánh đã chọn' }}</strong>{{ r.code ? ' và đọc mã phiếu cho nhân viên' : '' }}.</li>
+          <li>Mang sách đến <strong>{{ store.name }} – {{ store.address }}</strong> ({{ store.hours }}){{ r.code ? ' và đọc mã phiếu cho nhân viên' : '' }}.</li>
           <li>Nhân viên thẩm định trực tiếp và báo giá ngay tại quầy.</li>
         } @else {
           <li>Đóng gói sách:
@@ -59,7 +59,10 @@
         </li>
       </ol>
 
-      <button class="bb-btn is-primary" type="button" (click)="restart()">Thanh lý thêm sách khác</button>
+      <div class="bb-done-actions">
+        <a class="bb-btn" routerLink="/account/orders" [queryParams]="{ tab: 'buyback' }">Theo dõi trong tài khoản</a>
+        <button class="bb-btn is-primary" type="button" (click)="restart()">Thanh lý thêm sách khác</button>
+      </div>
     </section>
   } @else {
     @switch (step()) {
@@ -225,7 +228,13 @@
 
           @if (user()) {
             <div class="bb-account">
-              <span class="bb-account-avatar" aria-hidden="true">{{ initials() }}</span>
+              <span class="bb-account-avatar" aria-hidden="true">
+                @if (user()?.avatar; as avatar) {
+                  <img class="bb-account-photo" [src]="avatar" alt="" />
+                } @else {
+                  {{ initials() }}
+                }
+              </span>
               <div class="bb-account-text">
                 <p class="bb-account-name">Đã đăng nhập · {{ shortName() }}</p>
                 <p class="bb-account-sub">Thông tin bên dưới được điền sẵn từ tài khoản của bạn</p>
@@ -303,7 +312,7 @@
             <button class="bb-option" type="button" role="radio" [class.is-on]="method === 'store'"
                     [attr.aria-checked]="method === 'store'" (click)="setMethod('store')">
               <span class="bb-radio" aria-hidden="true"></span>
-              <span class="bb-option-title">Mang đến chi nhánh</span>
+              <span class="bb-option-title">Mang đến cửa hàng</span>
               <span class="bb-option-desc">Thẩm định trực tiếp, báo giá ngay tại quầy</span>
             </button>
             <button class="bb-option" type="button" role="radio" [class.is-on]="method === 'post'"
@@ -317,20 +326,9 @@
 
           @if (method === 'store') {
             <div class="bb-field">
-              <label class="bb-label" for="bb-branch">Chi nhánh</label>
-              @let branchError = error(s.branchId, 'branchId');
-              <div class="bb-select">
-                <select class="bb-input is-soft" id="bb-branch" [formControl]="s.branchId" [attr.aria-invalid]="branchError ? true : null">
-                  <option value="" disabled>{{ branches().length ? 'Chọn chi nhánh' : 'Chưa có danh sách chi nhánh' }}</option>
-                  @for (branch of branches(); track branch._id) {
-                    <option [value]="branch._id">{{ branch.name }} – {{ branch.address }}</option>
-                  }
-                </select>
-              </div>
-              @if (!branches().length) {
-                <p class="bb-hint">Danh sách chi nhánh đang được cập nhật. Bạn có thể chọn gửi qua bưu điện.</p>
-              }
-              @if (branchError) { <p class="bb-error">{{ branchError }}</p> }
+              <span class="bb-label">Địa chỉ cửa hàng</span>
+              <div class="bb-input is-soft bb-static">{{ store.name }} – {{ store.address }}</div>
+              <p class="bb-hint">{{ store.hours }}. Nhân viên thẩm định và báo giá ngay tại quầy.</p>
             </div>
           } @else if (method === 'post') {
             <div class="bb-field">
@@ -378,6 +376,12 @@
     @if (submitError()) {
       <p class="bb-alert" role="alert">{{ submitError() }}</p>
     }
+    @if (loginRequired() && !user()) {
+      <p class="bb-alert" role="alert">
+        Bạn cần đăng nhập để gửi phiếu thanh lý và theo dõi phiếu trong tài khoản.
+        <a class="bb-alert-link" routerLink="/login" [queryParams]="{ returnUrl: '/book-buyback' }">Đăng nhập</a>
+      </p>
+    }
 
     <div class="bb-foot">
       @if (step() === 1) {
@@ -394,9 +398,13 @@
         <button class="bb-btn is-primary" type="button" (click)="next()">Tiếp tục&nbsp; →</button>
       } @else {
         <button class="bb-btn is-primary" type="button" [disabled]="sending()" (click)="submit()">
-          {{ sending() ? 'Đang gửi…' : 'Gửi yêu cầu thanh lý' }}&nbsp; →
+          {{ sending() ? sendingLabel() : 'Gửi yêu cầu thanh lý' }}&nbsp; →
         </button>
       }
     </div>
   }
 </div>
+
+@if (receipt(); as r) {
+  <app-buyback-success [open]="successOpen()" [code]="r.code" [email]="r.email" (closed)="closeSuccess()" (restart)="restart()" />
+}

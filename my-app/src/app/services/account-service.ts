@@ -83,8 +83,9 @@ export class AccountService {
   }
 
   /** Ảnh đã thu nhỏ ở trình duyệt, gửi dạng data URL (server giới hạn ~90KB) */
-  uploadAvatar(dataUrl: string): Observable<{ avatar: string }> {
-    return this.http.put<{ avatar: string }>(`${this.baseUrl}/avatar`, { avatar: dataUrl }, { headers: this.headers() }).pipe(this.on401());
+  /** Lưu link ảnh đại diện đã tải lên Cloudinary (UploadService) */
+  uploadAvatar(url: string): Observable<{ avatar: string }> {
+    return this.http.put<{ avatar: string }>(`${this.baseUrl}/avatar`, { avatar: url }, { headers: this.headers() }).pipe(this.on401());
   }
 
   deleteAvatar(): Observable<void> {

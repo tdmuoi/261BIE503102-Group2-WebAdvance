@@ -101,7 +101,7 @@ export class ProductDetail {
       )
       .subscribe((result) => {
         this.catalog.set(result?.catalog ?? null);
-        this.book.set(result?.book ?? null);
+        this.book.set(result?.book ? withRating(result.book, result.reviews) : null);
         this.reviews.set(result?.reviews ?? []);
         if (!result) {
           this.state.set('error');
@@ -161,4 +161,11 @@ export class ProductDetail {
 
 function findBook(catalog: Catalog, slug: string): CatalogBook | null {
   return catalog.books.find((book) => book.slug === slug || book._id === slug) ?? null;
+}
+
+/** Số sao ở đầu trang: điểm trung bình và số lượt từ các đánh giá thật của độc giả */
+function withRating(book: CatalogBook, reviews: Review[]): CatalogBook {
+  if (!reviews.length) return book;
+  const average = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+  return { ...book, rating: Math.round(average * 10) / 10, reviewCount: reviews.length };
 }

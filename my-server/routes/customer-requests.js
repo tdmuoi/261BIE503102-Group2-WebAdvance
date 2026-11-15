@@ -5,6 +5,7 @@ const { createHash } = require('node:crypto');
 const { requireCustomer, toObjectId } = require('../middleware/customer-auth');
 const { verifiedPaymentDate } = require('../middleware/admin-safe-status');
 const demo = require('../middleware/demo-mode');
+const cloudinary = require('../middleware/cloudinary');
 const text = value => typeof value === 'string' ? value.trim() : '';
 const fail = (status,message) => Object.assign(new Error(message),{status});
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -35,13 +36,15 @@ module.exports = function customerRequests(getDb) {
       });
       for(const item of items)if(item.bookId && !await getDb().collection('books').findOne({_id:item.bookId,isDemo:{$ne:true}}))
         throw fail(400,'Sách tham chiếu không tồn tại. Có thể gửi sách tự nhập không kèm bookId.');
-      // Postal intake is the minimal existing workflow; no invented branch directory.
-      if(b.delivery!=='post'||!['bank','voucher'].includes(b.payout))throw fail(400,'Hiện nhận phiếu gửi bưu điện; chọn hình thức nhận tiền/voucher.');
+      // Lightbook chỉ có 1 cửa hàng (442 Cộng Hòa): mang sách đến cửa hàng hoặc gửi bưu điện về kho
+      if(!['store','post'].includes(b.delivery)||!['bank','voucher'].includes(b.payout))throw fail(400,'Chọn cách gửi sách và hình thức nhận tiền/voucher.');
       const phone=text(b.customer?.phone),address=text(b.customer?.returnAddress),province=text(b.customer?.province);
       if(!/^0\d{9}$/.test(phone)||!address||address.length>500||!province||province.length>100)throw fail(400,'Thông tin liên hệ/địa chỉ hoàn sách không hợp lệ.');
-      const images=b.images ?? [];
-      if(!Array.isArray(images)||images.length>6||images.some(v=>typeof v!=='string'||v.length>500||!/^\/(?![\/\\])[^\\]*$|^https:\/\/[^\s@\\]+$/.test(v)))throw fail(400,'Ảnh cần là URL đã tải lên, tối đa 6 ảnh.');
-      const canonical={items,phone,address,province,payout:b.payout,images};
+      // Ảnh sách bắt buộc (1–6 ảnh), đã tải lên Cloudinary trong thư mục của chính khách này
+      const images=b.images,delivery=b.delivery;
+      if(!Array.isArray(images)||!images.length||images.length>6||new Set(images).size!==images.length||
+        images.some(v=>!cloudinary.isOwnImageUrl(v,'buyback',req.customer.userId)))throw fail(400,'Cần 1–6 ảnh sách đã tải lên.');
+      const canonical={items,phone,address,province,delivery,payout:b.payout,images};
       const _id=new ObjectId(digest('buyback:'+req.customer.userId+':'+key).slice(0,24)),requestHash=digest(JSON.stringify(canonical));
       const collection=getDb().collection('liquidation');
       const view=row=>({_id:String(row._id),requestCode:row.requestCode,status:row.status,createdAt:row.createdAt});
@@ -51,7 +54,7 @@ module.exports = function customerRequests(getDb) {
       const now=new Date(),row={_id,requestCode:'BB-'+String(_id).toUpperCase(),userId:req.customer.userId,sellerId:req.customer.userId,
         customer:{name:req.customer.user.fullName || '',email:req.customer.email,phone},bookInfo:{items},books:items,
         title:items.map(i=>i.title).join(' • ').slice(0,500),quantity:items.reduce((n,i)=>n+i.quantity,0),condition:'Chờ kiểm tra thực tế',
-        shipping:'postal',returnAddress:address,province,payout:b.payout,images,photosVerified:false,conditionVerified:false,
+        shipping:delivery==='store'?'branch':'postal',returnAddress:address,province,payout:b.payout,images,photosVerified:false,conditionVerified:false,
         offerPrice:null,status:'pending',requestHash,note:'',createdAt:now,updatedAt:now};
       try {await collection.insertOne(row);res.status(201).json(view(row));}
       catch(error){if(error.code!==11000)throw error;const saved=await collection.findOne({_id});if(!saved)throw error;res.json(view(replay(saved)));}

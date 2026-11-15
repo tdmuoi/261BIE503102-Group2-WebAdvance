@@ -70,9 +70,12 @@ export class BookService {
     return this.catalog$;
   }
 
-  /** Chưa có API đánh giá trong my-server nên luôn trả về danh sách rỗng */
-  getReviews(_bookId: string): Observable<Review[]> {
-    return of([]);
+  /**
+   * Đánh giá của độc giả đã mua (GET /api/books/:id/reviews) — khách viết ở Tài khoản › Quản lý đơn hàng.
+   * Lỗi thì coi như chưa có đánh giá, trang chi tiết vẫn hiện sách.
+   */
+  getReviews(bookId: string): Observable<Review[]> {
+    return this.http.get<Review[]>(`${this.baseUrl}/${encodeURIComponent(bookId)}/reviews`).pipe(catchError(() => of<Review[]>([])));
   }
 }
 

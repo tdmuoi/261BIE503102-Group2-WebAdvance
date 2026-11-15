@@ -14,12 +14,14 @@ interface FooterLink {
 export class PageFooter {
   protected readonly currentYear = new Date().getFullYear();
 
-  // Các trang chưa có route sẽ tạm vào trang 404 cho tới khi nhóm làm xong
+  // Cột Explore: các trang chính của web khách (đều có route trong app-routing-module.ts)
   protected readonly exploreLinks: FooterLink[] = [
-    { label: 'Seasonal Reading Box', path: '/seasonal-reading-box' },
-    { label: 'Virtual Book Clubs', path: '/book-clubs' },
-    { label: 'Author Events & Salons', path: '/author-events' },
-    { label: 'Stationery & Bookmarks', path: '/stationery' },
+    { label: 'About Lightbook', path: '/about-us' },
+    { label: 'Browse Books', path: '/books' },
+    { label: 'Book Buyback', path: '/book-buyback' },
+    { label: 'Authors', path: '/authors' },
+    { label: 'Author Events', path: '/authors/events' },
+    { label: 'Lightbook News', path: '/news' },
   ];
 
   // Link ngoài — thay bằng địa chỉ thật khi có

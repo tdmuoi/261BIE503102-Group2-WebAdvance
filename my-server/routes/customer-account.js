@@ -15,11 +15,11 @@ const { hashPassword, verifyPassword, requireCustomer, toObjectId } = require('.
 const { publicUser } = require('./customer-auth');
 const { hasEbookEntitlement, freeEbookClaimId, verifiedPaymentDate } = require('../middleware/admin-safe-status');
 const transaction = require('../middleware/admin-transaction');
+const cloudinary = require('../middleware/cloudinary');
 
 const PHONE_PATTERN = /^0\d{9}$/;
 const NOTIFICATION_PAGE = 6;
 const ADDRESS_TYPES = { home: 'Nhà riêng', office: 'Văn phòng', school: 'Trường học' };
-const MAX_AVATAR_CHARS = 90000; // ảnh đã thu nhỏ ở trình duyệt (data URL), vừa giới hạn 100kb của express.json()
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const iso = (d) => (d ? new Date(d).toISOString() : null);
 
@@ -118,9 +118,10 @@ module.exports = function customerAccountRoutes(getDb) {
 
   router.put('/account/avatar', auth, async (req, res, next) => {
     try {
+      // Ảnh đã tải lên Cloudinary (GET /api/uploads/signature?purpose=avatar), chỉ lưu link
       const avatar = text(req.body?.avatar);
-      if (!/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/.test(avatar) || avatar.length > MAX_AVATAR_CHARS) {
-        return res.status(400).json({ message: 'Ảnh đại diện không hợp lệ hoặc quá lớn' });
+      if (!cloudinary.isOwnImageUrl(avatar, 'avatar', req.customer.userId)) {
+        return res.status(400).json({ message: 'Ảnh đại diện không hợp lệ, bạn tải lại ảnh giúp mình nhé' });
       }
       await db().collection('users').updateOne({ _id: req.customer.userId }, { $set: { avatar, updatedAt: new Date() } });
       res.json({ avatar, user: publicUser(req.customer.account, { ...req.customer.user, avatar }) });

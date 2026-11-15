@@ -1,12 +1,14 @@
 import { Component, DestroyRef, ElementRef, computed, inject, input, signal, viewChild } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
-import { map, startWith } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { forkJoin, map, startWith, switchMap } from 'rxjs';
 
 import { CatalogBook } from '../../../models/book';
-import { BookCondition, Branch, BuybackRequest, DeliveryMethod, PayoutMethod } from '../../../models/buyback';
+import { BookCondition, BuybackRequest, DeliveryMethod, PayoutMethod } from '../../../models/buyback';
 import { AuthService } from '../../../services/auth-service';
-import { BuybackService, BuybackUnavailableError } from '../../../services/buyback-service';
+import { BuybackService } from '../../../services/buyback-service';
+import { UploadService } from '../../../services/upload-service';
 import { PROVINCES } from '../../../shared/constants/provinces';
 import {
   CONDITION_GROUPS,
@@ -18,6 +20,7 @@ import {
   PACKING_GUIDE,
   PAYOUT_LABELS,
   PriceRange,
+  STORE,
   WAREHOUSE,
   estimatePrice,
   gradeOf,
@@ -31,6 +34,23 @@ const MAX_PHOTOS = 6;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const NOTE_MAX = 300;
+const PHOTO_REQUIRED = 'Tải lên ít nhất 1 ảnh sách (bìa trước, bìa sau hoặc gáy sách) để Lightbook ước giá chính xác.';
+
+/** Lỗi khi gửi phiếu: ưu tiên câu báo lỗi của server */
+function submitErrorMessage(error: unknown): string {
+  if (error instanceof HttpErrorResponse) {
+    if (error.status === 0) return 'Không gửi được yêu cầu. Kiểm tra kết nối mạng rồi thử lại.';
+    if (error.status === 401) return 'Phiên đăng nhập đã hết hạn. Bạn đăng nhập lại rồi gửi phiếu nhé.';
+    const message = (error.error as { message?: string } | null)?.message;
+    if (message) return message;
+  }
+  return 'Không gửi được yêu cầu, bạn thử lại sau ít phút nhé.';
+}
+
+/** Khoá chống gửi trùng cho một lần điền phiếu (server cần 16–128 ký tự [A-Za-z0-9_-]) */
+function newIdempotencyKey(): string {
+  return `bb_${crypto.randomUUID().replace(/-/g, '')}`;
+}
 
 /** Số di động Việt Nam: 0 hoặc +84, đầu số 3/5/7/8/9, tổng 10 số (bỏ qua dấu cách, chấm) */
 const PHONE_PATTERN = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
@@ -60,7 +80,6 @@ const MESSAGES: Record<string, Record<string, string>> = {
     maxlength: 'Địa chỉ tối đa 200 ký tự',
   },
   method: { required: 'Chọn cách gửi sách' },
-  branchId: { required: 'Chọn chi nhánh bạn sẽ mang sách đến' },
   payout: { required: 'Chọn hình thức nhận tiền' },
   agree: { required: 'Bạn cần đồng ý với điều khoản thu mua' },
 };
@@ -107,7 +126,6 @@ interface Receipt {
   books: number;
   estimate: PriceRange | null;
   delivery: DeliveryMethod;
-  branch: Branch | null;
   payout: PayoutMethod;
   email: string;
 }
@@ -132,6 +150,7 @@ export class BuybackForm {
 
   private readonly auth = inject(AuthService);
   private readonly buyback = inject(BuybackService);
+  private readonly uploads = inject(UploadService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly card = viewChild.required<ElementRef<HTMLElement>>('card');
 
@@ -142,6 +161,7 @@ export class BuybackForm {
   protected readonly payoutLabels = PAYOUT_LABELS;
   protected readonly payoutOptions: readonly PayoutMethod[] = ['bank', 'voucher'];
   protected readonly warehouse = WAREHOUSE;
+  protected readonly store = STORE;
   protected readonly packingGuide = PACKING_GUIDE;
   protected readonly noteMax = NOTE_MAX;
   protected readonly maxBooks = MAX_BOOKS;
@@ -169,7 +189,6 @@ export class BuybackForm {
     }),
     send: new FormGroup({
       method: new FormControl<DeliveryMethod | null>(null, Validators.required),
-      branchId: new FormControl('', { nonNullable: true }),
       payout: new FormControl<PayoutMethod | null>(null, Validators.required),
       agree: new FormControl(false, { nonNullable: true, validators: Validators.requiredTrue }),
     }),
@@ -192,7 +211,13 @@ export class BuybackForm {
   protected readonly sending = signal(false);
   protected readonly submitError = signal('');
   protected readonly receipt = signal<Receipt | null>(null);
-  protected readonly branches = toSignal(this.buyback.getBranches(), { initialValue: [] as Branch[] });
+  /** Popup "Đã gửi yêu cầu thanh lý" */
+  protected readonly successOpen = signal(false);
+  /** Đang tải ảnh lên / đang gửi phiếu — chữ trên nút gửi */
+  protected readonly sendingLabel = signal('');
+  /** Chưa đăng nhập mà bấm "Tiếp tục" ở bước 1 */
+  protected readonly loginRequired = signal(false);
+  private idempotencyKey = newIdempotencyKey();
 
   protected readonly user = this.auth.user;
   /** Đã đăng nhập: các field điền sẵn khoá lại cho tới khi bấm "Chỉnh sửa" */
@@ -231,13 +256,6 @@ export class BuybackForm {
   constructor() {
     this.prefillFromAccount();
 
-    // Chi nhánh chỉ bắt buộc khi mang sách đến chi nhánh
-    const branch = this.send.controls.branchId;
-    this.send.controls.method.valueChanges.pipe(takeUntilDestroyed()).subscribe((method) => {
-      branch.setValidators(method === 'store' ? Validators.required : null);
-      branch.updateValueAndValidity();
-    });
-
     inject(DestroyRef).onDestroy(() => this.photos().forEach((photo) => URL.revokeObjectURL(photo.url)));
   }
 
@@ -249,6 +267,19 @@ export class BuybackForm {
       group.markAllAsTouched();
       this.focusFirstError();
       return;
+    }
+    if (this.step() === 1) {
+      // Bắt buộc có ảnh sách mới qua bước sau
+      if (!this.photos().length) {
+        this.photoError.set(PHOTO_REQUIRED);
+        this.focusUpload();
+        return;
+      }
+      // Phiếu gắn với tài khoản để khách theo dõi ở mục Thanh lý → cần đăng nhập
+      if (!this.user()) {
+        this.loginRequired.set(true);
+        return;
+      }
     }
     this.goTo((this.step() + 1) as Step);
   }
@@ -404,10 +435,12 @@ export class BuybackForm {
       return;
     }
 
+    if (!this.photos().length) return this.reopenPhotos();
+
     const value = this.form.getRawValue();
     const estimate = this.estimate();
     const method = value.send.method!;
-    const request: BuybackRequest = {
+    const request: Omit<BuybackRequest, 'images'> = {
       items: value.items.map((item) => ({
         bookId: item.bookId,
         title: item.title.trim(),
@@ -420,41 +453,50 @@ export class BuybackForm {
       customer: {
         ...value.customer,
         fullName: value.customer.fullName.trim(),
-        phone: value.customer.phone.replace(/[\s.]/g, ''),
+        // Server nhận dạng 0xxxxxxxxx: đổi +84 về 0
+        phone: value.customer.phone.replace(/[\s.]/g, '').replace(/^\+84/, '0'),
         email: value.customer.email.trim(),
         returnAddress: value.customer.returnAddress.trim(),
       },
       delivery: method,
-      branchId: method === 'store' ? value.send.branchId : null,
       payout: value.send.payout!,
       estimate: estimate ?? { min: 0, max: 0 },
     };
 
     this.sending.set(true);
+    this.sendingLabel.set('Đang tải ảnh…');
     this.submitError.set('');
-    this.buyback.submitRequest(request, this.photos().map((photo) => photo.file)).subscribe({
-      next: (result) => {
-        this.sending.set(false);
-        this.receipt.set({
-          code: result?.requestCode ?? null,
-          books: this.bookCount(),
-          estimate,
-          delivery: method,
-          branch: this.branches().find((item) => item._id === request.branchId) ?? null,
-          payout: request.payout,
-          email: request.customer.email,
-        });
-        this.scrollToTop();
-      },
-      error: (error: unknown) => {
-        this.sending.set(false);
-        this.submitError.set(
-          error instanceof BuybackUnavailableError
-            ? 'Hệ thống thu mua đang được hoàn thiện nên chưa nhận phiếu online. Bạn vui lòng thử lại sau nhé.'
-            : 'Không gửi được yêu cầu. Kiểm tra kết nối mạng rồi thử lại.',
-        );
-      },
-    });
+    // Tải ảnh lên Cloudinary trước, phiếu chỉ gửi kèm đường link ảnh
+    forkJoin(this.photos().map((photo) => this.uploads.uploadImage(photo.file, 'buyback')))
+      .pipe(
+        switchMap((images) => {
+          this.sendingLabel.set('Đang gửi phiếu…');
+          return this.buyback.submitRequest({ ...request, images }, this.idempotencyKey);
+        }),
+      )
+      .subscribe({
+        next: (result) => {
+          this.sending.set(false);
+          this.receipt.set({
+            code: result?.requestCode ?? null,
+            books: this.bookCount(),
+            estimate,
+            delivery: method,
+            payout: request.payout,
+            email: request.customer.email,
+          });
+          this.successOpen.set(true);
+          this.scrollToTop();
+        },
+        error: (error: unknown) => {
+          this.sending.set(false);
+          this.submitError.set(submitErrorMessage(error));
+        },
+      });
+  }
+
+  protected closeSuccess(): void {
+    this.successOpen.set(false);
   }
 
   /** Sau khi gửi xong: làm phiếu mới */
@@ -465,6 +507,8 @@ export class BuybackForm {
     this.items.push(createItem());
     this.send.reset();
     this.receipt.set(null);
+    this.successOpen.set(false);
+    this.idempotencyKey = newIdempotencyKey();
     this.direction.set('prev');
     this.step.set(1);
     this.scrollToTop();
@@ -478,6 +522,22 @@ export class BuybackForm {
     const messages = MESSAGES[field] ?? {};
     const key = Object.keys(control.errors).find((name) => messages[name]);
     return key ? messages[key] : null;
+  }
+
+  /** Mất ảnh (hiếm): quay lại bước 1 và báo thiếu ảnh */
+  private reopenPhotos(): void {
+    this.direction.set('prev');
+    this.step.set(1);
+    this.photoError.set(PHOTO_REQUIRED);
+    this.focusUpload();
+  }
+
+  private focusUpload(): void {
+    setTimeout(() => {
+      const zone = this.host.querySelector<HTMLElement>('.bb-upload');
+      zone?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      zone?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
+    });
   }
 
   private reopen(step: Step, group: AbstractControl): void {

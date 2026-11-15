@@ -1,5 +1,6 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 
 import { Order, OrderItem, OrderStatus, PaymentMethod } from '../../../models/account';
@@ -9,6 +10,7 @@ import { BuyAgainTarget } from '../popups/buy-again-drawer/buy-again-drawer';
 import { ReviewTarget } from '../popups/review-popup/review-popup';
 
 export type OrderTab = 'all' | 'pending' | 'shipping' | 'delivered' | 'cancelled' | 'buyback';
+const ORDER_TABS: readonly OrderTab[] = ['all', 'pending', 'shipping', 'delivered', 'cancelled', 'buyback'];
 
 /** Trạng thái → tab: "Đang giao" gồm cả đơn đã xác nhận đang chờ giao */
 const TAB_OF: Record<OrderStatus, Exclude<OrderTab, 'all' | 'buyback'>> = {
@@ -57,7 +59,8 @@ export class Orders implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly buybacks = signal<BuybackRequest[]>([]);
   readonly ratings = signal<Record<string, number>>({});
-  readonly tab = signal<OrderTab>('all');
+  /** ?tab=buyback (popup gửi phiếu thanh lý) mở thẳng tab tương ứng */
+  readonly tab = signal<OrderTab>(initialTab(inject(ActivatedRoute, { optional: true })?.snapshot.queryParamMap.get('tab')));
   readonly query = signal('');
   readonly expanded = signal<string | null>(null);
   readonly cancelling = signal<string | null>(null);
@@ -197,4 +200,8 @@ function normalize(text: string): string {
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+function initialTab(value: string | null | undefined): OrderTab {
+  return ORDER_TABS.includes(value as OrderTab) ? (value as OrderTab) : 'all';
 }
