@@ -5,7 +5,7 @@
     <span class="hero-line">we pick <span class="hero-highlight">the books</span></span>
     <span class="hero-line">so you can <span class="hero-serif">simply</span> read.</span>
   </h1>
-  <p class="hero-sub">Lightbook giúp mọi độc giả tìm được cuốn sách phù hợp với mình mà không lo rào cản chi phí — từ sách mới, sách cũ tuyển chọn đến kho ebook, cùng Thủ thư AI gợi ý theo sở thích của bạn.</p>
+  <p class="hero-sub">Lightbook giúp mọi độc giả tìm được cuốn sách phù hợp với mình mà không lo rào cản chi phí, từ sách mới, sách cũ tuyển chọn đến kho ebook cùng Thủ thư AI.</p>
   <ul class="hero-pillars" aria-label="Lightbook có gì">
     @for (p of pillars; track p.label) {
       <li class="hero-pillar" [attr.data-tone]="p.tone">{{ p.label }}</li>
@@ -92,7 +92,13 @@
   <div class="team">
     @for (m of team; track m.name) {
       <article class="member">
-        <span class="member-avatar" [attr.data-tone]="m.tone">{{ m.initials }}</span>
+        <span class="member-avatar" [attr.data-tone]="m.tone">
+          @if (m.photo && !brokenPhotos().has(m.name)) {
+            <img [src]="m.photo" [alt]="m.name" width="120" height="120" loading="lazy" (error)="markBroken(m.name)" />
+          } @else {
+            {{ m.initials }}
+          }
+        </span>
         <p class="title-card-lg">{{ m.name }}</p>
         <p class="member-role">{{ m.role }}</p>
       </article>

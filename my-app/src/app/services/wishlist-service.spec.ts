@@ -25,21 +25,21 @@ describe('WishlistService', () => {
     expect(service.count()).toBe(0);
   });
 
-  it('đăng nhập: gộp wishlist khách lên tài khoản, lưu trên server; đăng xuất thì không còn thấy', () => {
-    localStorage.setItem('lightbook.wishlist', JSON.stringify([{ bookId: 'g1', title: 'Guest', image: '', price: 1, addedAt: null }, { bookId: 'mock-ove', title: 'Mẫu cũ', image: '', price: 1, addedAt: null }]));
+  it('tài khoản mới không nhận wishlist khách để lại trên máy; lưu trên server; đăng xuất thì không còn thấy', () => {
+    localStorage.setItem('lightbook.wishlist', JSON.stringify([{ bookId: 'g1', title: 'Guest', image: '', price: 1, addedAt: null }]));
     signInForTest();
     const api = fakeCustomerApi(0);
     TestBed.configureTestingModule({ providers: [api.providers] });
     const service = TestBed.inject(WishlistService);
     TestBed.tick();
     vi.advanceTimersByTime(10);
-    expect(api.db.calls).toEqual(['POST /wishlist/g1', 'GET /wishlist']);
-    expect(service.items().map((i) => i.bookId)).toEqual(['g1']);
+    expect(api.db.calls).toEqual(['GET /wishlist']);
+    expect(service.count()).toBe(0);
     expect(localStorage.getItem('lightbook.wishlist')).toBeNull();
 
     service.add(book);
     vi.advanceTimersByTime(10);
-    expect(api.db.wishlist.map((w) => w.bookId)).toEqual(['b1', 'g1']);
+    expect(api.db.wishlist.map((w) => w.bookId)).toEqual(['b1']);
 
     TestBed.inject(AuthService).logout();
     TestBed.tick();

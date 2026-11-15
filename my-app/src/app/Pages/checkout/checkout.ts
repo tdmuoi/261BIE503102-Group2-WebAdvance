@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 
 import { Address, CreateOrderRequest, Order, PaymentMethod, ShippingMethod } from '../../models/account';
 import { AccountService } from '../../services/account-service';
-import { formatPhone, fullAddress } from '../account/address/address';
+import { AddressEditor, formatPhone, fullAddress } from '../account/address/address-editor';
 import { AuthService } from '../../services/auth-service';
 import { CartFacade } from '../cart/cart-facade';
 import { SHIPPING_FEES, computeTotals } from '../cart/pricing';
@@ -17,6 +17,8 @@ interface Option<T> {
   value: T;
   title: string;
   desc: string;
+  /** Logo hiện trước tên phương thức thanh toán */
+  logo?: string;
 }
 
 export const SHIPPING_OPTIONS: Option<ShippingMethod>[] = [
@@ -25,10 +27,10 @@ export const SHIPPING_OPTIONS: Option<ShippingMethod>[] = [
 ];
 
 export const PAYMENT_OPTIONS: Option<PaymentMethod>[] = [
-  { value: 'momo', title: 'Ví MoMo', desc: 'Quét mã QR trong ứng dụng MoMo' },
-  { value: 'vnpay', title: 'VNPay', desc: 'Thẻ ATM nội địa, QR ngân hàng' },
-  { value: 'bank_transfer', title: 'Chuyển khoản ngân hàng', desc: 'Hiện số tài khoản và nội dung chuyển khoản' },
-  { value: 'cod', title: 'Thanh toán khi nhận hàng (COD)', desc: 'Không áp dụng cho sách điện tử' },
+  { value: 'momo', title: 'Ví MoMo', desc: 'Quét mã QR trong ứng dụng MoMo', logo: 'images/payment/momo.png' },
+  { value: 'vnpay', title: 'VNPay', desc: 'Thẻ ATM nội địa, QR ngân hàng', logo: 'images/payment/vnpay.png' },
+  { value: 'bank_transfer', title: 'Chuyển khoản ngân hàng', desc: 'Hiện số tài khoản và nội dung chuyển khoản', logo: 'images/payment/bank.svg' },
+  { value: 'cod', title: 'Thanh toán khi nhận hàng (COD)', desc: 'Không áp dụng cho sách điện tử', logo: 'images/payment/cod.svg' },
 ];
 
 /**
@@ -38,7 +40,7 @@ export const PAYMENT_OPTIONS: Option<PaymentMethod>[] = [
 @Component({
   selector: 'app-checkout',
   standalone: false,
-  styleUrls: ['../cart/shop.css', './checkout.css', './payment.css'],
+  styleUrls: ['../cart/shop.css', './checkout.css', './payment.css', './checkout-address.css', '../account/address/address-form.css'],
   templateUrl: './checkout.html',
 })
 export class Checkout implements OnInit {
@@ -124,11 +126,41 @@ export class Checkout implements OnInit {
         this.addresses.set(list);
         this.addressId.set((list.find((a) => a.isDefault) ?? list[0])?._id ?? null);
         this.addressesLoading.set(false);
+        // Chưa có địa chỉ nào thì mở sẵn form thêm địa chỉ ngay tại trang
+        if (!list.length) this.openAddressForm(null);
       },
       error: () => {
         this.addressesError.set(true);
         this.addressesLoading.set(false);
       },
+    });
+  }
+
+  // ---------------- Thêm / sửa địa chỉ ngay tại trang Thanh toán ----------------
+  /** Form địa chỉ (logic dùng chung với Sổ địa chỉ) */
+  readonly addressEditor = new AddressEditor();
+  readonly addressFormOpen = signal(false);
+
+  /** address = null: thêm mới */
+  openAddressForm(address: Address | null): void {
+    if (address) this.addressEditor.startEdit(address);
+    else this.addressEditor.startCreate(this.addresses().length === 0);
+    this.addressFormOpen.set(true);
+    setTimeout(() => document.getElementById('co-address-form')?.querySelector<HTMLInputElement>('input')?.focus());
+  }
+
+  closeAddressForm(): void {
+    this.addressFormOpen.set(false);
+  }
+
+  saveAddress(): void {
+    this.addressEditor.save(({ list, id }) => {
+      this.addresses.set(list);
+      // Chọn luôn địa chỉ vừa thêm / sửa để giao hàng
+      if (id) this.addressId.set(id);
+      else if (!list.some((a) => a._id === this.addressId())) this.addressId.set(list[0]?._id ?? null);
+      this.submitError.set(null);
+      this.addressFormOpen.set(false);
     });
   }
 

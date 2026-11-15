@@ -1,77 +1,39 @@
-import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, Validators } from '@angular/forms';
+import { Component, DestroyRef, ElementRef, OnInit, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 
-import { Address as AddressModel, AddressRequest, AddressType, Province } from '../../../models/account';
+import { Address as AddressModel, AddressType } from '../../../models/account';
 import { AccountService } from '../../../services/account-service';
 import { ToastService } from '../../../services/toast-service';
+import { ADDRESS_TYPES, AddressEditor, AddressSaved, formatPhone, fullAddress } from './address-editor';
 
-const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*[\p{L}]$/u;
-const PHONE_PATTERN = /^(0|\+84)(\s?\d){9}$/;
-
-export const ADDRESS_TYPES: { value: AddressType; label: string }[] = [
-  { value: 'home', label: 'Nhà riêng' },
-  { value: 'office', label: 'Văn phòng' },
-  { value: 'school', label: 'Trường học' },
-];
-
-/** "0909123268" → "0909 123 268" */
-export function formatPhone(phone: string): string {
-  const d = phone.replace(/\D/g, '');
-  return d.length === 10 ? `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}` : phone;
-}
-
-export function fullAddress(a: Pick<AddressModel, 'street' | 'ward' | 'province'>): string {
-  return [a.street, a.ward, a.province].filter(Boolean).join(', ');
-}
+// Giữ export cũ cho các file đang import từ đây (vd. trang Thanh toán)
+export { ADDRESS_TYPES, formatPhone, fullAddress };
 
 @Component({
   selector: 'app-address',
   standalone: false,
-  styleUrls: ['../account-page.css', './address.css'],
+  styleUrls: ['../account-page.css', './address.css', './address-form.css'],
   templateUrl: './address.html',
 })
 export class Address implements OnInit {
-  private readonly fb = inject(FormBuilder);
   private readonly account = inject(AccountService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly formCard = viewChild<ElementRef<HTMLElement>>('formCard');
 
-  readonly types = ADDRESS_TYPES;
   readonly formatPhone = formatPhone;
   readonly fullAddress = fullAddress;
 
   readonly status = signal<'loading' | 'error' | 'ready'>('loading');
   readonly addresses = signal<AddressModel[]>([]);
-  readonly provinces = signal<Province[]>([]);
-  readonly editingId = signal<string | null>(null);
-  readonly saving = signal(false);
-  readonly submitted = signal(false);
-
-  readonly form = this.fb.nonNullable.group({
-    fullName: ['', [Validators.required, Validators.pattern(NAME_PATTERN)]],
-    phone: ['', [Validators.required, Validators.pattern(PHONE_PATTERN)]],
-    province: ['', Validators.required],
-    ward: ['', Validators.required],
-    street: ['', [Validators.required, Validators.minLength(5)]],
-    type: this.fb.nonNullable.control<AddressType>('home'),
-    isDefault: [false],
-  });
-
-  private readonly provinceValue = toSignal(this.form.controls.province.valueChanges, { initialValue: '' });
-  readonly wards = computed(() => this.provinces().find((p) => p.name === this.provinceValue())?.wards ?? []);
+  /** Form thêm / sửa (logic dùng chung với trang Thanh toán) */
+  readonly editor = new AddressEditor();
+  /** Xoá / đặt mặc định đang chạy */
+  readonly busy = signal(false);
 
   ngOnInit(): void {
     this.load();
-    this.account.getLocations()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (list) => this.provinces.set(list), error: () => this.provinces.set([]) });
-    // Đổi tỉnh thì chọn lại phường
-    this.form.controls.province.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.wards().includes(this.form.controls.ward.value)) this.form.controls.ward.setValue('');
-    });
   }
 
   load(): void {
@@ -81,6 +43,7 @@ export class Address implements OnInit {
       .subscribe({
         next: (list) => {
           this.addresses.set(list);
+          this.editor.startCreate(list.length === 0);
           this.status.set('ready');
         },
         error: () => this.status.set('error'),
@@ -91,78 +54,50 @@ export class Address implements OnInit {
     return ADDRESS_TYPES.find((t) => t.value === type)?.label ?? '';
   }
 
-  error(name: 'fullName' | 'phone' | 'province' | 'ward' | 'street'): string | null {
-    const c = this.form.controls[name];
-    if (c.valid || !(c.touched || this.submitted())) return null;
-    switch (name) {
-      case 'fullName':
-        return c.hasError('required') ? 'Vui lòng nhập họ tên người nhận' : 'Họ tên chỉ gồm chữ cái';
-      case 'phone':
-        return c.hasError('required') ? 'Vui lòng nhập số điện thoại' : 'Số điện thoại chưa đúng định dạng';
-      case 'province':
-        return 'Vui lòng chọn tỉnh / thành';
-      case 'ward':
-        return 'Vui lòng chọn phường / xã';
-      case 'street':
-        return 'Vui lòng nhập số nhà, tên đường';
-    }
-  }
-
   /** Nút "+ Thêm địa chỉ mới": về form trống và cuộn tới form */
   startCreate(): void {
-    this.resetForm();
+    this.editor.startCreate(this.addresses().length === 0);
     this.scrollToForm();
   }
 
   edit(address: AddressModel): void {
-    this.editingId.set(address._id);
-    this.submitted.set(false);
-    this.form.reset({ ...address, phone: formatPhone(address.phone) });
+    this.editor.startEdit(address);
     this.scrollToForm();
   }
 
   resetForm(): void {
-    this.editingId.set(null);
-    this.submitted.set(false);
-    this.form.reset({ type: 'home', isDefault: this.addresses().length === 0 });
+    this.editor.startCreate(this.addresses().length === 0);
   }
 
   save(): void {
-    this.submitted.set(true);
-    this.form.markAllAsTouched();
-    if (this.form.invalid || this.saving()) return;
-    const v = this.form.getRawValue();
-    const body: AddressRequest = { ...v, fullName: v.fullName.trim(), phone: v.phone.replace(/\s/g, ''), street: v.street.trim() };
-    const id = this.editingId();
-    const request$ = id ? this.account.updateAddress(id, body) : this.account.createAddress(body);
-    this.run(request$, id ? 'Đã cập nhật địa chỉ' : 'Đã thêm địa chỉ mới', () => this.resetForm());
+    this.editor.save((result: AddressSaved) => {
+      this.addresses.set(result.list);
+      this.resetForm();
+    });
   }
 
   remove(address: AddressModel): void {
     if (!confirm(`Xoá địa chỉ "${fullAddress(address)}"?`)) return;
     this.run(this.account.deleteAddress(address._id), 'Đã xoá địa chỉ', () => {
-      if (this.editingId() === address._id) this.resetForm();
+      if (this.editor.editing()?._id === address._id) this.resetForm();
     });
   }
 
   setDefault(address: AddressModel): void {
-    this.run(
-      this.account.setDefaultAddress(address._id),
-      'Đã đặt làm địa chỉ mặc định',
-    );
+    this.run(this.account.setDefaultAddress(address._id), 'Đã đặt làm địa chỉ mặc định');
   }
 
   private run(request$: Observable<AddressModel[]>, message: string, after?: () => void): void {
-    this.saving.set(true);
+    this.busy.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (list) => {
-        this.saving.set(false);
+        this.busy.set(false);
         this.addresses.set(list);
         this.toast.show(message);
         after?.();
       },
       error: (err: { error?: { message?: string } }) => {
-        this.saving.set(false);
+        this.busy.set(false);
         this.toast.show(err?.error?.message ?? 'Chưa lưu được, vui lòng thử lại.');
       },
     });

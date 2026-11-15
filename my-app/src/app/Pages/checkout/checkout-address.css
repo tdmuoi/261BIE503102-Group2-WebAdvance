@@ -1,0 +1,53 @@
+/* Thêm / sửa địa chỉ ngay trong bước "Thông tin nhận hàng" (form dùng chung với Sổ địa chỉ: ../account/address/address-form.css) */
+.addr-row { display: flex; align-items: stretch; gap: var(--space-10); }
+.addr-row .option { flex: 1; min-width: 0; }
+.addr-edit {
+  flex: none; align-self: center; padding: var(--space-8) var(--space-14); cursor: pointer;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  font: 700 12px/1 var(--font-sans); color: var(--color-text-primary);
+}
+.addr-edit:hover { background: var(--color-bg-subtle); }
+
+.addr-form {
+  display: flex; flex-direction: column; gap: var(--space-16); padding: var(--space-20);
+  background: var(--color-bg-subtle); border: var(--border-default) dashed var(--color-border-strong); border-radius: var(--radius-16);
+}
+.addr-form-title { margin: 0; font: 800 15px/1.3 var(--font-sans); }
+
+/* Ô nhập — giống ../account/account-page.css */
+.row { display: flex; gap: var(--space-16); }
+.row > * { flex: 1; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.label { font: 700 12px/normal var(--font-sans); color: var(--color-text-body); }
+.input {
+  display: flex; align-items: center; gap: var(--space-8); height: 44px; padding: 0 14px;
+  background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-12);
+}
+.input:focus-within { box-shadow: var(--shadow-offset-xs); }
+.input input, .input select { flex: 1; width: 0; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; }
+.input input::placeholder { color: var(--color-text-muted); }
+.field--error .input { background: var(--color-feedback-error-bg); border-color: var(--color-border-error); }
+.helper { margin: 0; font: 400 11px/1.3 var(--font-sans); color: var(--color-feedback-error); }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-10); }
+.btn-outline, .btn-save {
+  display: inline-flex; align-items: center; justify-content: center; padding: var(--space-10) var(--space-20); cursor: pointer;
+  border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full);
+  font: 700 14px/normal var(--font-sans); color: var(--color-text-primary); box-shadow: var(--shadow-offset-xs);
+}
+.btn-outline { background: var(--color-bg-surface); }
+.btn-save { background: var(--green-50); box-shadow: var(--shadow-offset-sm); }
+.btn-outline:disabled, .btn-save:disabled { color: var(--color-text-muted); box-shadow: none; cursor: not-allowed; }
+
+@media (max-width: 720px) {
+  .row { flex-direction: column; }
+  .addr-row { flex-direction: column; }
+  .addr-edit { align-self: flex-end; }
+}
+
+/* Logo phương thức thanh toán */
+.pay-logo {
+  display: flex; flex: none; align-items: center; justify-content: center; width: 40px; height: 40px; overflow: hidden;
+  background: var(--color-bg-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-8);
+}
+.pay-logo img { width: 100%; height: 100%; object-fit: contain; }
+.pay-logo.is-icon { padding: 6px; }

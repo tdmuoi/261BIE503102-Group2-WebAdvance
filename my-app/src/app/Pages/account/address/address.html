@@ -49,12 +49,12 @@
                 </div>
                 <div class="links">
                   <button type="button" (click)="edit(a)">Sửa</button>
-                  <button type="button" class="danger" (click)="remove(a)" [disabled]="saving()">Xoá</button>
+                  <button type="button" class="danger" (click)="remove(a)" [disabled]="busy()">Xoá</button>
                 </div>
               </div>
               <p class="line">{{ fullAddress(a) }}</p>
               @if (!a.isDefault) {
-                <button type="button" class="set-default" (click)="setDefault(a)" [disabled]="saving()">Đặt làm mặc định</button>
+                <button type="button" class="set-default" (click)="setDefault(a)" [disabled]="busy()">Đặt làm mặc định</button>
               }
             </li>
           }
@@ -65,57 +65,63 @@
     }
   }
 
-  <section #formCard class="card" [formGroup]="form">
-    <h2 class="card-title">{{ editingId() ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+  <section #formCard class="card" [formGroup]="editor.form">
+    <h2 class="card-title">{{ editor.editing() ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
 
     <div class="row">
-      <div class="field" [class.field--error]="error('fullName')">
+      <div class="field" [class.field--error]="editor.error('fullName')">
         <label class="label" for="ad-name">Họ tên người nhận</label>
         <div class="input"><input id="ad-name" formControlName="fullName" autocomplete="name" placeholder="Nhập họ tên" /></div>
-        @if (error('fullName'); as err) { <p class="helper">{{ err }}</p> }
+        @if (editor.error('fullName'); as err) { <p class="helper">{{ err }}</p> }
       </div>
-      <div class="field" [class.field--error]="error('phone')">
+      <div class="field" [class.field--error]="editor.error('phone')">
         <label class="label" for="ad-phone">Số điện thoại</label>
         <div class="input"><input id="ad-phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
-        @if (error('phone'); as err) { <p class="helper">{{ err }}</p> }
+        @if (editor.error('phone'); as err) { <p class="helper">{{ err }}</p> }
       </div>
     </div>
 
     <div class="row">
-      <div class="field" [class.field--error]="error('province')">
+      <div class="field" [class.field--error]="editor.error('province')">
         <label class="label" for="ad-province">Tỉnh / Thành phố</label>
         <div class="input select">
           <select id="ad-province" formControlName="province">
-            <option value="" disabled>Chọn tỉnh / thành</option>
-            @for (p of provinces(); track p.code) { <option [value]="p.name">{{ p.name }}</option> }
+            <option value="" disabled>Chọn tỉnh / thành phố</option>
+            @if (editor.legacyProvince(); as old) { <option [value]="old">{{ old }} (tên cũ)</option> }
+            <optgroup label="Thành phố trực thuộc Trung ương">
+              @for (p of editor.cities(); track p.code) { <option [value]="p.name">{{ p.name }}</option> }
+            </optgroup>
+            <optgroup label="Tỉnh">
+              @for (p of editor.otherProvinces(); track p.code) { <option [value]="p.name">{{ p.name }}</option> }
+            </optgroup>
           </select>
         </div>
-        @if (error('province'); as err) { <p class="helper">{{ err }}</p> }
+        @if (editor.error('province'); as err) { <p class="helper">{{ err }}</p> }
       </div>
-      <div class="field" [class.field--error]="error('ward')">
+      <div class="field" [class.field--error]="editor.error('ward')">
         <label class="label" for="ad-ward">Phường / Xã</label>
-        <div class="input select">
-          <select id="ad-ward" formControlName="ward">
-            <option value="" disabled>Chọn phường / xã</option>
-            @for (w of wards(); track w) { <option [value]="w">{{ w }}</option> }
-          </select>
+        <div class="input">
+          <input id="ad-ward" formControlName="ward" list="ad-wards" autocomplete="address-level3" placeholder="Ví dụ: Phường Bến Thành" />
+          <datalist id="ad-wards">
+            @for (w of editor.wards(); track w) { <option [value]="w"></option> }
+          </datalist>
         </div>
-        @if (error('ward'); as err) { <p class="helper">{{ err }}</p> }
+        @if (editor.error('ward'); as err) { <p class="helper">{{ err }}</p> }
       </div>
     </div>
 
-    <div class="field" [class.field--error]="error('street')">
+    <div class="field" [class.field--error]="editor.error('street')">
       <label class="label" for="ad-street">Địa chỉ cụ thể</label>
       <div class="input"><input id="ad-street" formControlName="street" autocomplete="street-address" placeholder="Số nhà, tên đường, toà nhà…" /></div>
-      @if (error('street'); as err) { <p class="helper">{{ err }}</p> }
+      @if (editor.error('street'); as err) { <p class="helper">{{ err }}</p> }
     </div>
 
     <div class="type-row" role="radiogroup" aria-label="Loại địa chỉ">
       <span class="label">Loại địa chỉ</span>
-      @for (t of types; track t.value) {
-        <label class="chip" [class.is-on]="form.controls.type.value === t.value">
+      @for (t of editor.types; track t.value) {
+        <label class="chip" [class.is-on]="editor.form.controls.type.value === t.value">
           <input type="radio" formControlName="type" [value]="t.value" />
-          {{ form.controls.type.value === t.value ? '✓ ' : '' }}{{ t.label }}
+          {{ editor.form.controls.type.value === t.value ? '✓ ' : '' }}{{ t.label }}
         </label>
       }
     </div>
@@ -127,8 +133,8 @@
     </label>
 
     <div class="actions">
-      <button type="button" class="btn-outline" (click)="resetForm()" [disabled]="saving()">Huỷ</button>
-      <button type="button" class="btn-save" (click)="save()" [disabled]="saving()">{{ saving() ? 'Đang lưu…' : 'Lưu địa chỉ' }}</button>
+      <button type="button" class="btn-outline" (click)="resetForm()" [disabled]="editor.saving()">Huỷ</button>
+      <button type="button" class="btn-save" (click)="save()" [disabled]="editor.saving()">{{ editor.saving() ? 'Đang lưu…' : 'Lưu địa chỉ' }}</button>
     </div>
   </section>
 </div>

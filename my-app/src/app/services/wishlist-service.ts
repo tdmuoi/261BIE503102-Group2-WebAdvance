@@ -1,6 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Observable, catchError, concatMap, from, last, of } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { Book } from '../models/book';
@@ -23,13 +22,13 @@ export interface WishlistItem {
 
 type WishlistBook = Pick<Book, '_id' | 'title' | 'image' | 'price'>;
 
-/** Wishlist của khách chưa đăng nhập (đăng nhập xong sẽ gộp lên tài khoản rồi xoá) */
+/** Wishlist của khách chưa đăng nhập (xoá khi đăng nhập, không gộp vào tài khoản) */
 const GUEST_KEY = 'lightbook.wishlist';
 
 /**
  * Danh sách yêu thích.
  * - Đã đăng nhập: lưu trên server theo tài khoản (GET/POST/DELETE /api/wishlist — my-server/routes/customer-wishlist.js)
- * - Chưa đăng nhập: lưu tạm localStorage; đăng nhập thì gộp lên tài khoản.
+ * - Chưa đăng nhập: lưu tạm localStorage; đăng nhập / đăng xuất thì xoá (không gộp sang tài khoản).
  * Giao diện dùng has / toggle / items như cũ, cập nhật ngay rồi mới gọi API (lỗi thì trả lại như trước).
  */
 @Injectable({ providedIn: 'root' })
@@ -105,30 +104,24 @@ export class WishlistService {
     this.statusState.set('ready');
   }
 
-  /** Gộp wishlist khách (nếu có) lên tài khoản rồi lấy danh sách của tài khoản */
+  /**
+   * Lấy wishlist của tài khoản trên server. Wishlist lúc chưa đăng nhập KHÔNG gộp vào tài khoản
+   * (máy dùng chung thì tài khoản mới sẽ thấy sách người khác đã thả tim) — xoá luôn khi đăng nhập.
+   */
   private loadRemote(): void {
     this.statusState.set('loading');
-    const guest = readGuest();
-    const merge$: Observable<unknown> = guest.length
-      ? from(guest).pipe(
-          concatMap((item) => this.http.post(`${this.baseUrl}/${item.bookId}`, {}, { headers: this.headers() }).pipe(catchError(() => of(null)))),
-          last(),
-        )
-      : of(null);
-    merge$.subscribe({
-      complete: () => {
-        if (guest.length) writeGuest([]);
-        this.http.get<WishlistItem[]>(this.baseUrl, { headers: this.headers() }).subscribe({
-          next: (list) => {
-            this.state.set(list);
-            this.statusState.set('ready');
-          },
-          error: (error: unknown) => {
-            this.state.set([]);
-            this.statusState.set('error');
-            this.expireOn401(error);
-          },
-        });
+    this.state.set([]);
+    writeGuest([]);
+    this.http.get<WishlistItem[]>(this.baseUrl, { headers: this.headers() }).subscribe({
+      next: (list) => {
+        if (!this.auth.isLoggedIn()) return;
+        this.state.set(list);
+        this.statusState.set('ready');
+      },
+      error: (error: unknown) => {
+        this.state.set([]);
+        this.statusState.set('error');
+        this.expireOn401(error);
       },
     });
   }

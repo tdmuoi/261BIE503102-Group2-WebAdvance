@@ -2,6 +2,7 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, provideRouter } from '@angular/router';
 import { of, retry, throwError } from 'rxjs';
 
@@ -33,7 +34,7 @@ describe('Checkout', () => {
     localStorage.setItem('lightbook.cart', JSON.stringify(items.map((i) => ({ ...i, title: i.bookId, image: '' }))));
     await TestBed.configureTestingModule({
       declarations: [Checkout, VndPipe],
-      imports: [RouterModule],
+      imports: [RouterModule, ReactiveFormsModule],
       providers: [
         provideRouter([]),
         api.providers,
@@ -215,6 +216,35 @@ describe('Checkout', () => {
   it('tổng tiền trước khi đặt: 480.000 + 65.000 + ship 30.000 (freeship chỉ tính trên sách giấy)', async () => {
     await setup([{ bookId: 'a', price: 240000, quantity: 2 }, { bookId: 'e', price: 65000, quantity: 1 }]);
     expect(component.totals().total).toBe(575000);
+  });
+
+  it('sửa và thêm địa chỉ ngay tại trang Thanh toán, lưu xong chọn luôn địa chỉ đó', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 1 }]);
+    component.openAddressForm(component.addresses()[1]);
+    fixture.detectChanges();
+    expect(el.querySelector('#co-address-form')?.textContent).toContain('Sửa địa chỉ');
+    component.addressEditor.form.controls.street.setValue('99 Võ Văn Ngân');
+    component.saveAddress();
+    vi.advanceTimersByTime(400);
+    expect(component.addressId()).toBe('addr-2');
+    expect(component.addresses().find((a) => a._id === 'addr-2')?.street).toBe('99 Võ Văn Ngân');
+    expect(component.addressFormOpen()).toBe(false);
+
+    component.openAddressForm(null);
+    component.addressEditor.form.setValue({
+      fullName: 'Trần Mai Anh', phone: '0912345678', province: 'Gia Lai', ward: 'Phường Pleiku', street: '12 Hùng Vương', type: 'office', isDefault: false,
+    });
+    component.saveAddress();
+    vi.advanceTimersByTime(400);
+    const created = component.addresses().find((a) => a.street === '12 Hùng Vương');
+    expect(created).toBeTruthy();
+    expect(component.addressId()).toBe(created!._id);
+  });
+
+  it('có logo trước từng phương thức thanh toán', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 1 }]);
+    const logos = Array.from(el.querySelectorAll('.pay-logo img')).map((i) => i.getAttribute('src'));
+    expect(logos).toEqual(['images/payment/momo.png', 'images/payment/vnpay.png', 'images/payment/bank.svg', 'images/payment/cod.svg']);
   });
 
   it('giỏ không có sách được chọn thì báo và dẫn về giỏ hàng', async () => {

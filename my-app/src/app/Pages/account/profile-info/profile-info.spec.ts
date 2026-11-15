@@ -63,6 +63,12 @@ describe('ProfileInfo', () => {
     expect(component.strengthLabel()).toBe('Mạnh');
   });
 
+  it('không đổi mật khẩu: trình duyệt tự điền ô mật khẩu hiện tại cũng không bắt nhập mật khẩu mới', () => {
+    component.passwordForm.setValue({ currentPassword: 'matkhau-tu-dien', newPassword: '', confirmPassword: '' });
+    expect(component.passwordForm.valid).toBe(true);
+    expect(component.hasChanges()).toBe(false);
+  });
+
   it('đổi mật khẩu: thiếu mật khẩu hiện tại / nhập lại không khớp thì báo lỗi', () => {
     component.passwordForm.setValue({ currentPassword: '', newPassword: 'Lightbook1', confirmPassword: 'Khac1234' });
     component.passwordForm.markAllAsTouched();

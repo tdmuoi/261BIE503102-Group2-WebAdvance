@@ -48,7 +48,7 @@
             @if (c.discountPercent > 0) { <span class="sale">Đang giảm {{ c.discountPercent }}%</span> }
           </div>
           <div class="text">
-            <p class="title">{{ c.title }}</p>
+            <p class="title" [title]="c.title">{{ c.title }}</p>
             <p class="author">{{ c.author }}</p>
             <p class="prices">
               <b>{{ c.price | vnd }}</b>

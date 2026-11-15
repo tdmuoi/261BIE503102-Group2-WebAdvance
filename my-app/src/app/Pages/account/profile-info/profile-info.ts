@@ -53,10 +53,13 @@ export function passwordRules(value: string) {
   };
 }
 
-/** Đổi mật khẩu là tuỳ chọn: chỉ kiểm tra khi đã gõ vào một trong 3 ô */
+/**
+ * Đổi mật khẩu là tuỳ chọn: chỉ kiểm tra khi đã gõ mật khẩu mới hoặc ô nhập lại.
+ * Ô "Mật khẩu hiện tại" hay bị trình duyệt tự điền sẵn nên chỉ có ô đó thì coi như không đổi mật khẩu.
+ */
 function passwordGroupValidator(group: AbstractControl): ValidationErrors | null {
   const { currentPassword: cur, newPassword: next, confirmPassword: confirm } = group.value as Record<string, string>;
-  if (!cur && !next && !confirm) return null;
+  if (!next && !confirm) return null;
   const errors: ValidationErrors = {};
   if (!cur) errors['currentRequired'] = true;
   const rules = passwordRules(next ?? '');
@@ -199,7 +202,7 @@ export class ProfileInfo {
 
   hasChanges(): boolean {
     const pw = this.passwordForm.getRawValue();
-    return this.form.dirty || this.avatarChange !== undefined || !!(pw.currentPassword || pw.newPassword || pw.confirmPassword);
+    return this.form.dirty || this.avatarChange !== undefined || !!(pw.newPassword || pw.confirmPassword);
   }
 
   cancel(): void {

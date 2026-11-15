@@ -75,18 +75,100 @@
               } @else {
                 <div class="options" role="radiogroup" aria-label="Địa chỉ nhận hàng">
                   @for (a of addresses(); track a._id) {
-                    <button type="button" class="option" role="radio" [attr.aria-checked]="addressId() === a._id" [class.is-active]="addressId() === a._id" (click)="addressId.set(a._id)">
-                      <span class="radio" aria-hidden="true"></span>
-                      <span class="option-text">
-                        <span class="option-title">{{ a.fullName }} · {{ formatPhone(a.phone) }}</span>
-                        <span class="option-desc">{{ fullAddress(a) }}@if (a.isDefault) { · Mặc định }</span>
-                      </span>
-                    </button>
+                    <div class="addr-row">
+                      <button type="button" class="option" role="radio" [attr.aria-checked]="addressId() === a._id" [class.is-active]="addressId() === a._id" (click)="addressId.set(a._id)">
+                        <span class="radio" aria-hidden="true"></span>
+                        <span class="option-text">
+                          <span class="option-title">{{ a.fullName }} · {{ formatPhone(a.phone) }}</span>
+                          <span class="option-desc">{{ fullAddress(a) }}@if (a.isDefault) { · Mặc định }</span>
+                        </span>
+                      </button>
+                      <button type="button" class="addr-edit" (click)="openAddressForm(a)" [attr.aria-label]="'Sửa địa chỉ ' + fullAddress(a)">Sửa</button>
+                    </div>
                   } @empty {
-                    <p class="muted">Bạn chưa có địa chỉ nào trong sổ địa chỉ.</p>
+                    <p class="muted">Bạn chưa có địa chỉ nào — nhập địa chỉ nhận hàng bên dưới nhé.</p>
                   }
                 </div>
-                <a class="add-link" routerLink="/account/address">+ Thêm địa chỉ mới</a>
+                @if (addressFormOpen()) {
+                  <div class="addr-form" id="co-address-form" [formGroup]="addressEditor.form">
+                    <p class="addr-form-title">{{ addressEditor.editing() ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới' }}</p>
+
+                  <div class="row">
+                    <div class="field" [class.field--error]="addressEditor.error('fullName')">
+                      <label class="label" for="co-ad-name">Họ tên người nhận</label>
+                      <div class="input"><input id="co-ad-name" formControlName="fullName" autocomplete="name" placeholder="Nhập họ tên" /></div>
+                      @if (addressEditor.error('fullName'); as err) { <p class="helper">{{ err }}</p> }
+                    </div>
+                    <div class="field" [class.field--error]="addressEditor.error('phone')">
+                      <label class="label" for="co-ad-phone">Số điện thoại</label>
+                      <div class="input"><input id="co-ad-phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
+                      @if (addressEditor.error('phone'); as err) { <p class="helper">{{ err }}</p> }
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="field" [class.field--error]="addressEditor.error('province')">
+                      <label class="label" for="co-ad-province">Tỉnh / Thành phố</label>
+                      <div class="input select">
+                        <select id="co-ad-province" formControlName="province">
+                          <option value="" disabled>Chọn tỉnh / thành phố</option>
+                          @if (addressEditor.legacyProvince(); as old) { <option [value]="old">{{ old }} (tên cũ)</option> }
+                          <optgroup label="Thành phố trực thuộc Trung ương">
+                            @for (p of addressEditor.cities(); track p.code) { <option [value]="p.name">{{ p.name }}</option> }
+                          </optgroup>
+                          <optgroup label="Tỉnh">
+                            @for (p of addressEditor.otherProvinces(); track p.code) { <option [value]="p.name">{{ p.name }}</option> }
+                          </optgroup>
+                        </select>
+                      </div>
+                      @if (addressEditor.error('province'); as err) { <p class="helper">{{ err }}</p> }
+                    </div>
+                    <div class="field" [class.field--error]="addressEditor.error('ward')">
+                      <label class="label" for="co-ad-ward">Phường / Xã</label>
+                      <div class="input">
+                        <input id="co-ad-ward" formControlName="ward" list="co-ad-wards" autocomplete="address-level3" placeholder="Ví dụ: Phường Bến Thành" />
+                        <datalist id="co-ad-wards">
+                          @for (w of addressEditor.wards(); track w) { <option [value]="w"></option> }
+                        </datalist>
+                      </div>
+                      @if (addressEditor.error('ward'); as err) { <p class="helper">{{ err }}</p> }
+                    </div>
+                  </div>
+
+                  <div class="field" [class.field--error]="addressEditor.error('street')">
+                    <label class="label" for="co-ad-street">Địa chỉ cụ thể</label>
+                    <div class="input"><input id="co-ad-street" formControlName="street" autocomplete="street-address" placeholder="Số nhà, tên đường, toà nhà…" /></div>
+                    @if (addressEditor.error('street'); as err) { <p class="helper">{{ err }}</p> }
+                  </div>
+
+                  <div class="type-row" role="radiogroup" aria-label="Loại địa chỉ">
+                    <span class="label">Loại địa chỉ</span>
+                    @for (t of addressEditor.types; track t.value) {
+                      <label class="chip" [class.is-on]="addressEditor.form.controls.type.value === t.value">
+                        <input type="radio" formControlName="type" [value]="t.value" />
+                        {{ addressEditor.form.controls.type.value === t.value ? '✓ ' : '' }}{{ t.label }}
+                      </label>
+                    }
+                  </div>
+
+                  <label class="check">
+                    <input type="checkbox" formControlName="isDefault" />
+                    <span class="check-box"><img src="images/auth/check-white.svg" alt="" width="12" height="12" /></span>
+                    Đặt làm địa chỉ mặc định
+                  </label>
+
+                    <div class="actions">
+                      @if (addresses().length) {
+                        <button type="button" class="btn-outline" (click)="closeAddressForm()" [disabled]="addressEditor.saving()">Huỷ</button>
+                      }
+                      <button type="button" class="btn-save" (click)="saveAddress()" [disabled]="addressEditor.saving()">
+                        {{ addressEditor.saving() ? 'Đang lưu…' : 'Lưu và giao tới địa chỉ này' }}
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <button type="button" class="link add-link" (click)="openAddressForm(null)">+ Thêm địa chỉ mới</button>
+                }
               }
             </section>
 
@@ -122,6 +204,9 @@
                 <button type="button" class="option" role="radio" [attr.aria-checked]="payment() === o.value" [class.is-active]="payment() === o.value"
                   [disabled]="off" (click)="selectPayment(o.value)">
                   <span class="radio" aria-hidden="true"></span>
+                  @if (o.logo) {
+                    <span class="pay-logo" [class.is-icon]="o.logo.endsWith('.svg')"><img [src]="o.logo" alt="" width="32" height="32" /></span>
+                  }
                   <span class="option-text">
                     <span class="option-title">{{ o.title }}</span>
                     <span class="option-desc">{{ o.desc }}</span>

@@ -45,19 +45,33 @@ describe('Address', () => {
 
   it('form trống thì báo lỗi, không lưu', () => {
     component.save();
-    expect(component.error('fullName')).toBe('Vui lòng nhập họ tên người nhận');
-    expect(component.error('province')).toBe('Vui lòng chọn tỉnh / thành');
+    expect(component.editor.error('fullName')).toBe('Vui lòng nhập họ tên người nhận');
+    expect(component.editor.error('province')).toBe('Vui lòng chọn tỉnh / thành phố');
     expect(toast.show).not.toHaveBeenCalled();
   });
 
-  it('đổi tỉnh thì danh sách phường đổi theo', () => {
-    component.form.controls.province.setValue('TP. Đà Nẵng');
-    expect(component.wards()).toContain('Phường Hải Châu');
+  it('có đủ 34 tỉnh / thành (9 thành phố trực thuộc Trung ương + 25 tỉnh); phường gợi ý theo tỉnh, vẫn cho tự nhập', () => {
+    const names = component.editor.provinces().map((p) => p.name);
+    expect(names.length).toBe(34);
+    expect(component.editor.cities().map((p) => p.name)).toEqual([
+      'TP. Hà Nội', 'TP. Hồ Chí Minh', 'TP. Hải Phòng', 'TP. Đà Nẵng', 'TP. Huế', 'TP. Cần Thơ', 'TP. Đồng Nai', 'TP. Bắc Ninh', 'TP. Quảng Ninh',
+    ]);
+    expect(component.editor.otherProvinces().length).toBe(25);
+    component.editor.form.controls.province.setValue('TP. Đà Nẵng');
+    expect(component.editor.wards()).toContain('Phường Hải Châu');
+    component.editor.form.controls.province.setValue('Gia Lai');
+    component.editor.form.controls.ward.setValue('Phường Pleiku');
+    expect(component.editor.form.controls.ward.valid).toBe(true);
+  });
+
+  it('sửa địa chỉ cũ có tên tỉnh trước sáp nhập thì vẫn giữ và báo là tên cũ', () => {
+    component.edit({ ...component.addresses()[0], province: 'Bình Dương' });
+    expect(component.editor.legacyProvince()).toBe('Bình Dương');
   });
 
   it('thêm địa chỉ mới đặt làm mặc định thì địa chỉ đó lên đầu', () => {
     const before = component.addresses().length;
-    component.form.setValue({
+    component.editor.form.setValue({
       fullName: 'Trần Mai Anh', phone: '0912 345 678', province: 'TP. Hà Nội', ward: 'Phường Cầu Giấy',
       street: '1 Xuân Thủy', type: 'office', isDefault: true,
     });

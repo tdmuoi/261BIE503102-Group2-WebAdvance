@@ -57,13 +57,20 @@ export class AboutUs {
     { value: '4,9★', label: 'đánh giá trung bình đơn hàng' },
   ];
 
-  // Chữ viết tắt giữ đúng như Figma (Figma đang để LA / QM chưa khớp tên — xem báo cáo)
+  // Ảnh đội ngũ do nhóm cung cấp (public/images/about/team); initials dùng khi ảnh lỗi
   readonly team = [
-    { initials: 'LA', tone: 'pink', name: 'Thùy Dung', role: 'Người sáng lập · Chọn sách' },
-    { initials: 'MT', tone: 'mint', name: 'Mai Anh', role: 'Biên tập viên · Review sách' },
-    { initials: 'QM', tone: 'yellow', name: 'Khánh Hằng', role: 'Phụ trách góc Đọc chậm' },
-    { initials: 'NL', tone: 'pink', name: 'H Nhiên Kpor', role: 'Cộng đồng & sự kiện' },
+    { initials: 'TD', tone: 'pink', name: 'Thùy Dung', role: 'Người sáng lập · Chọn sách', photo: 'images/about/team/thuy-dung.jpg' },
+    { initials: 'MA', tone: 'mint', name: 'Mai Anh', role: 'Biên tập viên · Review sách', photo: 'images/about/team/mai-anh.jpg' },
+    { initials: 'KH', tone: 'yellow', name: 'Khánh Hằng', role: 'Phụ trách góc Đọc chậm', photo: 'images/about/team/khanh-hang.jpg' },
+    { initials: 'NK', tone: 'pink', name: 'H Nhiên Kpor', role: 'Cộng đồng & sự kiện', photo: 'images/about/team/nhien-kpor.jpg' },
   ];
+
+  /** Ảnh đội ngũ tải lỗi thì hiện chữ viết tắt */
+  readonly brokenPhotos = signal(new Set<string>());
+
+  markBroken(name: string): void {
+    this.brokenPhotos.update((s) => new Set(s).add(name));
+  }
 
   readonly partners = [
     { mark: 'TR', name: 'NXB Trẻ', tone: 'pink', round: true },

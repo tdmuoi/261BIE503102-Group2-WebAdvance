@@ -117,7 +117,7 @@ function clearStorage(): void {
 }
 
 /** Khoá localStorage chứa dữ liệu riêng của người đang đăng nhập */
-const USER_DATA_PREFIXES = ['lightbook.reader.'];
+const USER_DATA_PREFIXES = ['lightbook.reader.', 'lightbook.wishlist'];
 const USER_DATA_KEEP = ['lightbook.reader.settings'];
 
 function clearUserData(): void {
