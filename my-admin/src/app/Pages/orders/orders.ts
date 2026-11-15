@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { adminApiError } from '../../services/admin-api-error';
 
-import { ORDER_STATUS, Order, OrderListResponse, OrderQuery, OrderStatus, PAYMENT_STATUS, PaymentStatus } from '../../models/order';
+import { DEMO_PAYMENT_STATUS, ORDER_STATUS, Order, OrderListResponse, OrderQuery, OrderStatus, PAYMENT_STATUS, PaymentStatus } from '../../models/order';
 import { OrderService } from '../../services/order-service';
 
 /**
@@ -25,6 +25,7 @@ export class Orders {
 
   readonly statusInfo = ORDER_STATUS;
   readonly paymentInfo = PAYMENT_STATUS;
+  readonly demoPaymentInfo = DEMO_PAYMENT_STATUS;
   readonly tabs: { value: '' | OrderStatus; label: string }[] = [
     { value: '', label: 'Tất cả' },
     ...(Object.keys(ORDER_STATUS) as OrderStatus[]).map((s) => ({ value: s, label: ORDER_STATUS[s].label })),

@@ -13,7 +13,7 @@ const express = require('express');
 const { ObjectId } = require('mongodb');
 const { hashPassword, verifyPassword, requireCustomer, toObjectId } = require('../middleware/customer-auth');
 const { publicUser } = require('./customer-auth');
-const { hasEbookEntitlement, freeEbookClaimId } = require('../middleware/admin-safe-status');
+const { hasEbookEntitlement, freeEbookClaimId, verifiedPaymentDate } = require('../middleware/admin-safe-status');
 const transaction = require('../middleware/admin-transaction');
 
 const PHONE_PATTERN = /^0\d{9}$/;
@@ -131,7 +131,8 @@ module.exports = function customerAccountRoutes(getDb) {
 
   router.delete('/account/avatar', auth, async (req, res, next) => {
     try {
-      await db().collection('users').updateOne({ _id: req.customer.userId }, { $set: { avatar: null, updatedAt: new Date() } });
+      // users.avatar is an optional BSON string; absence means no avatar.
+      await db().collection('users').updateOne({ _id: req.customer.userId }, { $unset: { avatar: '' }, $set: { updatedAt: new Date() } });
       res.status(204).end();
     } catch (error) {
       next(error);
@@ -364,6 +365,7 @@ module.exports = function customerAccountRoutes(getDb) {
             image: b.image || r.image || '',
             format: b.ebookFormat === 'pdf' ? 'PDF' : 'EPUB',
             acquisitionType: r.acquisitionType || 'purchase',
+            paymentMode: r.paymentMode || 'standard',
             progress: Math.min(100, Math.round((page / totalPages) * 100)),
             page,
             totalPages,
@@ -440,13 +442,21 @@ module.exports = function customerAccountRoutes(getDb) {
   router.post('/reviews', auth, async (req, res, next) => {
     try {
       const bookId = toObjectId(req.body?.bookId);
-      const rating = parseInt(req.body?.rating, 10);
-      if (!bookId || !(rating >= 1 && rating <= 5)) return res.status(400).json({ message: 'Vui lòng chọn số sao từ 1 đến 5' });
+      const rating = req.body?.rating;
+      if (!bookId || !Number.isSafeInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ message: 'Vui lòng chọn số sao từ 1 đến 5' });
       const userId = req.customer.userId;
-      const bought = await db().collection('orders').findOne({
-        $or: [{ userId }, { 'customer.email': req.customer.email }], status: { $nin: ['cancelled'] }, 'items.bookId': { $in: [bookId, String(bookId)] },
-      });
-      if (!bought) return res.status(403).json({ message: 'Bạn chỉ đánh giá được sách đã mua' });
+      const purchases = await db().collection('orders').find({
+        userId, status: 'delivered', paymentStatus: 'paid', isDemo: { $ne: true },
+        'items.bookId': { $in: [bookId, String(bookId)] },
+      }).toArray();
+      // Use the same settlement evidence as revenue/refunds/ebook entitlement.
+      // An email match, a pending order or a client-supplied "paid" flag is not proof.
+      const realPurchase = purchases.some((order) => verifiedPaymentDate(order));
+      const demoPurchase = purchases.some((order) => require('../middleware/demo-mode').paymentDate(db(),order));
+      if (!realPurchase && !demoPurchase)
+        return res.status(403).json({ message: 'Bạn chỉ đánh giá được sách đã nhận và đã xác minh thanh toán' });
+      const book = await db().collection('books').findOne({ _id: bookId, isDemo: { $ne: true } }, { projection: { _id: 1 } });
+      if (!book) return res.status(404).json({ message: 'Không tìm thấy sách hợp lệ để đánh giá' });
       const now = new Date();
       const anonymous = req.body?.anonymous === true;
       await db().collection('reviews').updateOne(
@@ -455,7 +465,7 @@ module.exports = function customerAccountRoutes(getDb) {
           $set: {
             rating, tags: (Array.isArray(req.body?.tags) ? req.body.tags : []).map(text).filter(Boolean).slice(0, 8),
             content: text(req.body?.content).slice(0, 500), anonymous,
-            userName: anonymous ? 'Độc giả ẩn danh' : req.customer.user.fullName || 'Độc giả', verifiedPurchase: true, updatedAt: now,
+            userName: anonymous ? 'Độc giả ẩn danh' : req.customer.user.fullName || 'Độc giả', verifiedPurchase: realPurchase, demoPurchase:!realPurchase && demoPurchase, updatedAt: now,
           },
           $setOnInsert: { reviewCode: `RV-${Date.now().toString(36).toUpperCase()}`, helpfulCount: 0, createdAt: now },
         },
@@ -480,7 +490,7 @@ module.exports = function customerAccountRoutes(getDb) {
           rating: r.rating || r.stars || 5,
           content: r.content || '',
           createdAt: iso(r.createdAt),
-          verifiedPurchase: r.verifiedPurchase !== false,
+          verifiedPurchase: r.verifiedPurchase === true,
           helpfulCount: r.helpfulCount || r.helpful || 0,
         })),
       );
@@ -493,17 +503,27 @@ module.exports = function customerAccountRoutes(getDb) {
   router.get('/account/buybacks', auth, async (req, res, next) => {
     try {
       const { userId, email } = req.customer;
+      const owners = [userId, String(userId)];
       const list = await db().collection('liquidation')
-        .find({ $or: [{ userId }, { 'customer.email': email }, { email }, { customerEmail: email }] })
+        .find({ $or: [
+          { userId: { $in: owners } },
+          { userId: null, sellerId: { $in: owners } },
+          // Legacy email-only requests may be read only when no owner is assigned.
+          { userId: null, sellerId: null, 'customer.email': email },
+          { userId: null, sellerId: null, email },
+          { userId: null, sellerId: null, customerEmail: email },
+        ] })
         .sort({ createdAt: -1 }).limit(50).toArray();
       res.json(
         list.map((r) => ({
           code: r.requestCode || String(r._id).slice(-6).toUpperCase(),
           createdAt: iso(r.createdAt),
           bookCount: Array.isArray(r.books) ? r.books.length : r.quantity || 1,
-          status: r.status === 'completed' ? 'completed' : r.offeredPrice || r.quote ? 'quoted' : 'reviewing',
-          quote: r.offeredPrice ?? r.quote ?? null,
-          note: r.note || '',
+          status: text(r.status) || 'unknown',
+          quote: [r.offerPrice, r.offeredPrice, r.quote].find((price) => Number.isSafeInteger(price) && price >= 0) ?? null,
+          // Admin appends internal annotations to the legacy note field. Never
+          // echo that mixed field, adminNote, valuation metadata or operator names.
+          note: '',
         })),
       );
     } catch (error) {

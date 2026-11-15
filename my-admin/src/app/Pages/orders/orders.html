@@ -68,7 +68,7 @@
               <td class="num opt">{{ o.itemCount }}</td>
               <td class="num"><strong>{{ money(o.total) }}</strong></td>
               <td class="opt">
-                <app-status-badge [status]="o.paymentStatus" [label]="paymentInfo[o.paymentStatus].label"
+                <app-status-badge [status]="o.paymentStatus" [label]="o.paymentMode === 'demo' && o.paymentStatus !== 'refunded' ? demoPaymentInfo[o.demoPayment?.status ?? 'pending'] : (o.paymentMode === 'demo' ? 'DEMO · ' : '') + paymentInfo[o.paymentStatus].label"
                                   [tone]="paymentInfo[o.paymentStatus].tone"></app-status-badge>
               </td>
               <td>

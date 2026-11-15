@@ -274,7 +274,7 @@ async function publicSettings(db, session) {
     if (!validate(name, value)) throw Object.assign(new Error(`Settings ${name} chưa hợp lệ; chưa tính phí đơn hàng.`), { status: 503 });
     shipping[field] = value;
   }
-  return { ...values, shipping };
+  return { ...values, shipping, payments:{demoEnabled:require('../middleware/demo-mode').enabled(db),demoMethod:'qr_demo'}, promotions:{combosEnabled:false} };
 }
 module.exports.publicSettings = publicSettings;
 module.exports.publicRoutes = function publicSettingsRoutes(getDb) {

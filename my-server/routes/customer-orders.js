@@ -6,6 +6,7 @@
 //   GET  /api/orders/:id
 //   PUT  /api/account/orders/:id/cancel   chỉ đơn "pending"
 //   POST /api/orders/:id/confirm-payment  trả 409 chờ xác minh, không ghi paid hoặc cấp ebook
+//   POST /api/orders/:id/demo-payment     QR Demo riêng; chỉ database QA/demo local được bật rõ ràng
 // Tiền luôn tính lại ở đây từ giá trong collection books + vouchers (không tin số tiền trang gửi lên).
 // Cấu trúc đơn theo my-server/routes/admin-orders.js.
 // =====================================================================
@@ -13,7 +14,8 @@ const express = require('express');
 const { requireCustomer, toObjectId } = require('../middleware/customer-auth');
 const { computeTotals, voucherProblem, publicVoucher } = require('./customer-pricing');
 
-const PAYMENT_METHODS = ['momo', 'vnpay', 'bank_transfer', 'cod'];
+const PAYMENT_METHODS = ['momo', 'vnpay', 'bank_transfer', 'cod', 'qr_demo'];
+const demoMode = require('../middleware/demo-mode');
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const iso = (d) => (d ? new Date(d).toISOString() : null);
 const escapeRegex = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -33,7 +35,9 @@ function orderView(o) {
     total: Number(o.total ?? o.totalAmount) || 0,
     shippingMethod: o.shippingMethod || null,
     paymentMethod: o.paymentMethod || 'cod',
-    paymentStatus: o.paymentStatus === 'paid' ? 'paid' : 'unpaid',
+    paymentStatus: ['paid','refunded'].includes(o.paymentStatus) ? o.paymentStatus : 'unpaid',
+    paymentMode: o.paymentMode || 'standard',
+    demoPayment: o.paymentMode === 'demo' ? o.demoPayment : null,
     status: o.status || 'pending',
     statusHistory: (o.statusHistory || []).map((h) => ({ status: h.status, at: iso(h.at), note: h.note || null })),
     shippingAddress: o.shippingAddress
@@ -157,6 +161,7 @@ module.exports = function customerOrderRoutes(getDb) {
       const b = req.body || {};
       rejectClientPromotions(b);
       if (!PAYMENT_METHODS.includes(b.paymentMethod)) throw failure(400, 'Vui lòng chọn phương thức thanh toán');
+      if (b.paymentMethod === 'qr_demo') demoMode.requireDemo(db());
       const identity = requestIdentity(req);
       let created = false;
       let order;
@@ -194,10 +199,15 @@ module.exports = function customerOrderRoutes(getDb) {
           const document = { _id: identity.id, idempotencyKeyHash: identity.keyHash, requestHash: identity.requestHash,
             orderCode: 'LB-' + String(identity.id).toUpperCase(), userId: req.customer.userId,
             customer: { name: req.customer.user.fullName || '', email: req.customer.email, phone: req.customer.user.phone || shippingAddress?.phone || '' },
-            shippingAddress, items: lines.map(({ ebook, ...line }) => line), subtotal: totals.subtotal, comboDiscount: 0,
+            // Ebook-only orders have no shipping address. Omit the optional BSON
+            // object instead of storing null (public orderView still returns null).
+            ...(shippingAddress ? { shippingAddress } : {}), items: lines.map(({ ebook, ...line }) => line), subtotal: totals.subtotal, comboDiscount: 0,
             discount: totals.discount, voucherCode: voucher?.code || null, ...(voucher ? { voucherId: voucher._id, voucherReleased: false } : {}),
             shippingFee: totals.shippingFee, shippingMethod: totals.shippingMethod, total: totals.total,
             paymentMethod: b.paymentMethod, paymentStatus: 'unpaid', status: 'pending',
+            ...(b.paymentMethod === 'qr_demo' ? {paymentMode:'demo',demoPayment:{status:'pending',amount:totals.total,
+              reference:'DEMO-'+String(identity.id).toUpperCase(),qrPayload:'LIGHTBOOKS-DEMO:'+identity.id+':'+totals.total,
+              expiresAt:new Date(now.getTime()+15*60000)}} : {}),
             statusHistory: [{ status: 'pending', at: now, note: null }], note: text(b.note).slice(0, 300),
             stockDeducted: lines.some((line) => !line.ebook), restocked: false, createdAt: now, updatedAt: now };
           await db().collection('orders').insertOne(document, { session });
@@ -236,6 +246,11 @@ module.exports = function customerOrderRoutes(getDb) {
     try {
       const id = toObjectId(req.params.id);
       if (!id) throw failure(404, 'Không tìm thấy đơn hàng');
+      const pending = await db().collection('orders').findOne({_id:id,...mine(req)});
+      if (pending?.paymentMethod === 'qr_demo') {
+        const order = await require('./customer-demo-payment').settle(db(),req.customer.userId,id,'cancelled');
+        return res.json(orderView(order));
+      }
       const order = await transaction(db(), async (session) => {
         const current = await db().collection('orders').findOne({ _id: id, ...mine(req) }, { session });
         if (!current) throw failure(404, 'Không tìm thấy đơn hàng');

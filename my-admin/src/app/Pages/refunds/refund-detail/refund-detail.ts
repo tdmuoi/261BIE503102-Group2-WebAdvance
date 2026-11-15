@@ -100,7 +100,7 @@ export class RefundDetail {
     if (next === 'rejected' || next === 'received' || next === 'refunded') {
       this.note = '';
       this.askError.set('');
-      this.refundAmount = r.itemsValue || null;
+      this.refundAmount = (r.refundableTotal ?? r.itemsValue) || null;
       // Sách lỗi / hư hỏng thường không bán lại được
       this.restock = r.restockEligible === true && !r.restocked && r.reason !== 'damaged';
       this.asking.set(next);
@@ -113,7 +113,7 @@ export class RefundDetail {
     const ask = this.asking();
     if (!ask) return;
     if (ask === 'rejected' && !this.note.trim()) return this.askError.set('Vui lòng nhập lý do từ chối');
-    if (ask === 'refunded' && (!Number.isFinite(this.refundAmount) || !this.refundAmount || this.refundAmount <= 0 || this.refundAmount > (this.request()?.itemsValue ?? 0))) return this.askError.set('Tiền hoàn phải hữu hạn, lớn hơn 0 và không vượt giá trị sách trả');
+    if (ask === 'refunded' && (!Number.isFinite(this.refundAmount) || !this.refundAmount || this.refundAmount <= 0 || this.refundAmount > (this.request()?.refundableTotal ?? this.request()?.itemsValue ?? 0))) return this.askError.set('Tiền hoàn phải hữu hạn, lớn hơn 0 và không vượt số tiền hoàn của yêu cầu');
     this.send({
       status: ask,
       note: this.note.trim() || undefined,
@@ -188,7 +188,7 @@ export class RefundDetail {
     return {
       rejected: 'Khách sẽ thấy yêu cầu bị từ chối kèm lý do bạn nhập.',
       received: 'Xác nhận kho đã nhận lại sách khách gửi trả.',
-      refunded: 'Chỉ bấm sau khi đã chuyển tiền cho khách. Đơn gốc sẽ được đánh dấu Đã hoàn tiền.',
+      refunded: 'Ghi nhận hoàn tiền nội bộ cho toàn bộ yêu cầu. Thao tác này không chuyển tiền qua ngân hàng.',
     }[this.asking() ?? 'rejected'];
   }
 

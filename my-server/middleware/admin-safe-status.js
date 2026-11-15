@@ -2,6 +2,7 @@
 const { ObjectId } = require("mongodb");
 const { createHash } = require('node:crypto');
 const revisions = require('./admin-revision');
+const demoMode = require('./demo-mode');
 function failure(status, message) {
   return Object.assign(new Error(message), { status });
 }
@@ -87,6 +88,7 @@ async function releaseVoucher(db, session, order) {
 // One settlement policy for revenue, refunds and ebook entitlements. No client
 // request is allowed to manufacture these fields; legacy paid requires review.
 function verifiedPaymentDate(order, now = new Date()) {
+  if (order?.paymentMode === 'demo' || order?.paymentVerification?.source === 'demo') return null;
   const date = (value) => {
     if (!value) return null;
     const parsed = new Date(value);
@@ -124,7 +126,8 @@ async function ebookEntitlementOrder(db, row, session) {
     isDemo: { $ne: true } }, { session }).limit(2).toArray();
   if (orders.length !== 1) return null;
   const order = orders[0];
-  return verifiedPaymentDate(order) && !['cancelled', 'returned'].includes(order.status) &&
+  const payment = row.acquisitionType === 'demo' ? demoMode.paymentDate(db,order) : verifiedPaymentDate(order);
+  return payment && !['cancelled', 'returned'].includes(order.status) &&
     (order.items || []).some((item) => String(item.bookId) === String(row.bookId) && item.format === 'ebook' &&
       Number.isSafeInteger(item.quantity) && item.quantity > 0) ? order : null;
 }
@@ -137,6 +140,17 @@ async function revokeEbooks(db, session, order, at) {
         ? String(row.orderId) === String(order._id) && (!row.orderCode || row.orderCode === order.orderCode)
         : !!order.orderCode && row.orderCode === order.orderCode;
       if (!linked || row.accessRevokedAt != null) continue;
+      if (row.acquisitionType === 'demo') {
+        const candidates = await db.collection('orders').find({userId:order.userId,paymentMode:'demo',paymentStatus:'paid'}, {session}).toArray();
+        const alternate = candidates.find(other=>String(other._id)!==String(order._id) && demoMode.paymentDate(db,other) &&
+          !['cancelled','returned'].includes(other.status) && (other.items || []).some(item=>String(item.bookId)===String(row.bookId) && item.format==='ebook'));
+        if (alternate) {
+          const moved=await db.collection('personalBooks').updateOne({_id:row._id,userId:row.userId,...revisions.snapshot(row)},
+            {$set:{orderId:alternate._id,orderCode:alternate.orderCode,demoPaymentReference:alternate.demoPayment.reference,updatedAt:revisions.nextUpdatedAt(row)}},{session});
+          if(moved.modifiedCount!==1)throw failure(409,'Quyền Ebook demo vừa thay đổi.');
+          continue;
+        }
+      }
       const result = await db.collection('personalBooks').updateOne({ _id: row._id, userId: row.userId,
         bookId: row.bookId, isDemo: { $ne: true },
         accessRevokedAt: Object.hasOwn(row, 'accessRevokedAt') ? row.accessRevokedAt : { $exists: false } },
@@ -269,24 +283,28 @@ async function transition(db, client, kind, id, body) {
             }
             if (next === "refunded") {
               const amount = Number(body.refundAmount);
+              // New customer requests explicitly use a basic full-order internal
+              // refund policy, including the stored shipping/discount allocation.
+              const fullOrder = doc.refundPolicy === 'full-order-total-v1' && Number.isSafeInteger(order.total) &&
+                doc.refundableTotal === order.total;
               if (
                 !Number.isFinite(amount) ||
                 amount <= 0 ||
-                amount !== current.itemsValue
+                amount !== (fullOrder ? order.total : current.itemsValue)
               )
                 throw failure(
                   409,
                   "Only full verified item-value refunds supported pending policy approval",
                 );
-              if (!verifiedPaymentDate(order))
+              if (!verifiedPaymentDate(order) && !demoMode.paymentDate(db,order))
                 throw failure(
                   409,
                   "Thiếu bằng chứng thanh toán đã xác minh; cần đối soát thủ công trước khi hoàn tiền.",
                 );
               // Shipping/discount refund allocation is deliberately not inferred.
               if (
-                Number(order.shippingFee || 0) !== 0 ||
-                Number(order.discount || 0) !== 0 ||
+                (!fullOrder && Number(order.shippingFee || 0) !== 0) ||
+                (!fullOrder && Number(order.discount || 0) !== 0) ||
                 Number(order.total) !== amount
               )
                 throw failure(
@@ -315,6 +333,11 @@ async function transition(db, client, kind, id, body) {
                   { session },
                 );
               if (refunded.modifiedCount !== 1) throw failure(409, 'Original payment changed; reload');
+              if (order.paymentMode === 'demo') {
+                const payment = await db.collection('payments').updateOne({_id:order._id,source:'demo_confirmation',status:'paid'},
+                  {$set:{status:'refunded',refundedAt:now}},{session});
+                if (payment.modifiedCount !== 1) throw failure(409,'Không tìm thấy payment Demo hợp lệ để hoàn nội bộ.');
+              }
               await revokeEbooks(db, session, order, now);
             }
           }

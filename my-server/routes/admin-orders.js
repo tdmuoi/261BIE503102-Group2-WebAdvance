@@ -130,9 +130,12 @@ function present(order, user = null) {
     total: totalOf(order, items),
     paymentMethod: order.paymentMethod ?? 'cod',
     paymentStatus: PAYMENT_STATUSES.includes(order.paymentStatus) ? order.paymentStatus : 'unpaid',
+    paymentMode: order.paymentMode || 'standard',
+    demoPayment: order.paymentMode === 'demo' ? order.demoPayment : null,
     status,
     // Đơn chỉ có ebook không cần giao hàng: xác nhận xong là "Đã giao"
     nextStatuses: (onlyEbooks && status === 'confirmed' ? ['delivered', 'cancelled'] : FLOW[status])
+      .filter((next) => order.paymentMethod !== 'qr_demo' || order.paymentStatus === 'paid' || next === 'cancelled')
       .filter((next) => next !== 'cancelled' || !order.paymentStatus || order.paymentStatus === 'unpaid'),
     statusHistory: Array.isArray(order.statusHistory) ? order.statusHistory : [],
     note: order.note ?? '',
@@ -253,6 +256,13 @@ module.exports = function adminOrdersRoutes(getDb, getClient) {
   // ---------- Chuyển trạng thái ----------
   router.patch('/orders/:id/status', async (req, res) => {
     try {
+      const original = await findOrder(req.params.id);
+      if (original?.paymentMethod === 'qr_demo' && req.body?.status === 'cancelled') {
+        if (Object.keys(req.body).some(key=>!['status','note','restock'].includes(key)))
+          return res.status(400).json({message:'Payload hủy QR Demo không hợp lệ.'});
+        const cancelled = await require('./customer-demo-payment').settle(getDb(),original.userId,original._id,'cancelled');
+        return res.json(await presentOne(cancelled));
+      }
       const transition = require('../middleware/admin-safe-status');
       const doc = await transition(getDb(), getClient?.(), 'orders', req.params.id, req.body || {});
       res.json(await presentOne(doc));

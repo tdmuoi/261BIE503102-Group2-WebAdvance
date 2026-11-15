@@ -32,6 +32,7 @@ export interface ReturnRequest {
   refundMethod: string;
   bankInfo?: { bankName?: string; accountName?: string; accountNumber?: string } | null;
   refundAmount: number | null;
+  refundableTotal?: number;
   status: ReturnStatus;
   nextStatuses: ReturnStatus[];
   statusHistory?: { status: ReturnStatus; at: string; note: string | null }[];

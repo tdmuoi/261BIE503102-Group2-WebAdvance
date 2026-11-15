@@ -109,6 +109,7 @@ function present(doc) {
     refundMethod: doc.refundMethod ?? 'original',
     bankInfo: doc.bankInfo ?? null,
     refundAmount: doc.refundAmount ?? null,
+    refundableTotal: doc.refundPolicy === 'full-order-total-v1' && Number.isSafeInteger(doc.refundableTotal) ? doc.refundableTotal : undefined,
     status,
     nextStatuses: next,
     statusHistory: Array.isArray(doc.statusHistory) ? doc.statusHistory : [],

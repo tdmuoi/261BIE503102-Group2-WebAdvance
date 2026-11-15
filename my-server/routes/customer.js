@@ -16,6 +16,8 @@ module.exports = function customerRoutes(getDb) {
   router.use(customerAuthRoutes(getDb));
   router.use(customerAccountRoutes(getDb));
   router.use(customerOrderRoutes(getDb));
+  router.use(require('./customer-demo-payment')(getDb));
+  router.use(require('./customer-requests')(getDb));
   router.use(customerWishlistRoutes(getDb));
 
   // Lỗi trong các route khách hàng: trả JSON thay vì trang lỗi HTML

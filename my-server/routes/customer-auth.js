@@ -55,7 +55,7 @@ module.exports = function customerAuthRoutes(getDb) {
       account._id = (await db().collection('accounts').insertOne(account)).insertedId;
       const user = {
         accountId: account._id, fullName, username: email.split('@')[0], phone, gender: null,
-        avatar: null, dateOfBirth: null, createdAt: now, updatedAt: now,
+        dateOfBirth: null, createdAt: now, updatedAt: now,
       };
       try {
         user._id = (await db().collection('users').insertOne(user)).insertedId;

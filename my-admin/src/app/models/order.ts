@@ -44,6 +44,8 @@ export interface Order {
   total: number;
   paymentMethod: string;
   paymentStatus: PaymentStatus;
+  paymentMode?: 'standard' | 'demo';
+  demoPayment?: { status: 'pending' | 'succeeded' | 'failed' | 'cancelled' | 'expired'; reference?: string; amount?: number; confirmedAt?: string; expiresAt?: string } | null;
   status: OrderStatus;
   /** Các trạng thái được phép chuyển sang từ trạng thái hiện tại */
   nextStatuses: OrderStatus[];
@@ -94,8 +96,14 @@ export const PAYMENT_STATUS: Record<PaymentStatus, { label: string; tone: 'ok' |
 };
 
 export const PAYMENT_METHOD: Record<string, string> = {
+  qr_demo: 'QR mô phỏng (DEMO — không chuyển tiền thật)',
   cod: 'Thanh toán khi nhận hàng (COD)',
   bank_transfer: 'Chuyển khoản ngân hàng',
   momo: 'Ví MoMo',
   vnpay: 'VNPay',
+};
+
+export const DEMO_PAYMENT_STATUS: Record<string, string> = {
+  pending: 'Chờ thanh toán demo', succeeded: 'Thanh toán demo thành công',
+  failed: 'Thanh toán demo thất bại', cancelled: 'Đã hủy thanh toán demo', expired: 'Hết hạn thanh toán demo',
 };

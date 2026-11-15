@@ -4,7 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { ORDER_STATUS, Order, OrderStatus, PAYMENT_METHOD, PAYMENT_STATUS, PaymentStatus } from '../../../models/order';
+import { DEMO_PAYMENT_STATUS, ORDER_STATUS, Order, OrderStatus, PAYMENT_METHOD, PAYMENT_STATUS, PaymentStatus } from '../../../models/order';
 import { OrderService } from '../../../services/order-service';
 
 const STEPS: OrderStatus[] = ['pending', 'confirmed', 'shipping', 'delivered'];
@@ -37,6 +37,7 @@ export class OrderDetail {
   readonly statusInfo = ORDER_STATUS;
   readonly paymentInfo = PAYMENT_STATUS;
   readonly paymentMethods = PAYMENT_METHOD;
+  readonly demoPaymentInfo = DEMO_PAYMENT_STATUS;
   readonly paymentOptions = Object.keys(PAYMENT_STATUS) as PaymentStatus[];
   readonly actions = ACTIONS;
 

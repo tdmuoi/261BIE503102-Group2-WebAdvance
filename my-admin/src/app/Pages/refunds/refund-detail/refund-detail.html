@@ -56,6 +56,7 @@
           </div>
         }
         <p class="row-between total"><span>Giá trị sách trả</span><strong>{{ money(r.itemsValue) }}</strong></p>
+        @if (r.refundableTotal !== undefined) { <p class="row-between"><span>Hoàn toàn bộ số tiền đơn (nội bộ)</span><strong>{{ money(r.refundableTotal) }}</strong></p> }
         @if (r.restocked) { <small class="text-muted">Đã cộng lại sách vào tồn kho</small> }
       </section>
 
@@ -116,14 +117,14 @@
     @if (asking() === 'refunded') {
       <label class="label" for="refund-amount">Số tiền hoàn (đ) *</label>
       <input id="refund-amount" class="input" type="number" min="0" step="1000" [(ngModel)]="refundAmount" (ngModelChange)="askError.set('')" />
-      <small class="text-muted">Tối đa {{ money(request()?.itemsValue ?? 0) }} (giá trị sách trả)</small>
+      <small class="text-muted">Số tiền hoàn theo yêu cầu: {{ money(request()?.refundableTotal ?? request()?.itemsValue ?? 0) }}</small>
     }
     @if (asking() === 'received') {
       <label class="check"><input type="checkbox" [(ngModel)]="restock" [disabled]="request()?.restockEligible !== true || request()?.restocked === true" /> Sách còn bán được — cộng lại vào tồn kho</label>
     }
     <label class="label" for="ask-note">{{ asking() === 'rejected' ? 'Lý do từ chối *' : 'Ghi chú (không bắt buộc)' }}</label>
     <textarea id="ask-note" class="textarea" rows="2" [(ngModel)]="note" (ngModelChange)="askError.set('')"
-              [placeholder]="asking() === 'refunded' ? 'VD: Mã giao dịch chuyển khoản' : asking() === 'rejected' ? 'VD: Quá 7 ngày kể từ khi nhận hàng' : ''"></textarea>
+              [placeholder]="asking() === 'refunded' ? 'Ghi chú hoàn tiền nội bộ' : asking() === 'rejected' ? 'VD: Quá 7 ngày kể từ khi nhận hàng' : ''"></textarea>
     @if (askError()) { <small class="error">{{ askError() }}</small> }
   </div>
 </app-confirm-dialog>
