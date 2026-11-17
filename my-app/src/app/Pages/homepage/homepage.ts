@@ -1,11 +1,13 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, forkJoin, of, timeout } from 'rxjs';
 
 import { Author, Book, BookView, Category } from '../../models/book';
 import { AuthorService } from '../../services/author-service';
 import { BookService } from '../../services/book-service';
 import { CategoryService } from '../../services/category-service';
+import { environment } from '../../../environments/environment';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -20,6 +22,8 @@ export class Homepage {
   private readonly authorService = inject(AuthorService);
   private readonly categoryService = inject(CategoryService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
+  protected readonly heroBanner = signal<{ title: string; subtitle: string; link: string; image: string | null } | null>(null);
 
   protected readonly state = signal<LoadState>('loading');
   protected readonly books = signal<BookView[]>([]);
@@ -32,7 +36,7 @@ export class Homepage {
   protected readonly promoItems = [
     'Flash sale mỗi ngày',
     'Sách mới mỗi tuần',
-    'Freeship từ 300K',
+    'Ưu đãi vận chuyển theo chính sách hiện hành',
     'Gói quà miễn phí',
     'Đổi trả 7 ngày',
   ];
@@ -48,6 +52,10 @@ export class Homepage {
   protected load(): void {
     this.state.set('loading');
 
+    this.http.get<{ title: string; subtitle: string; link: string; image: string | null }[]>(`${environment.apiUrl}/banners`, { params: { position: 'hero' } })
+      .pipe(timeout(10000), catchError(() => of([])), takeUntilDestroyed(this.destroyRef))
+      .subscribe(banners => this.heroBanner.set(banners.find(banner => typeof banner.title === 'string' && !!banner.title.trim()) || null));
+
     forkJoin({
       books: this.bookService.getBooks({ limit: 200 }),
       newBooks: this.bookService.getBooks({ limit: 200, sort: 'newest', format: ['new'] }),
@@ -55,7 +63,7 @@ export class Homepage {
       authors: this.authorService.getAuthors().pipe(catchError(() => of<Author[]>([]))),
       categories: this.categoryService.getCategories().pipe(catchError(() => of<Category[]>([]))),
     })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(timeout(10000), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ books, newBooks, authors, categories }) => {
           this.authors.set(authors);

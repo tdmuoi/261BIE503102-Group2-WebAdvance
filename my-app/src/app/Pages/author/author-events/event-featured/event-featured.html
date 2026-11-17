@@ -1,3 +1,9 @@
+@if (event().image && event().image !== failedImage()) {
+  <div class="ef-art">
+    <img [src]="event().image" [alt]="'Ảnh minh họa: ' + event().title"
+         (error)="failedImage.set(event().image || '')" fetchpriority="high" />
+  </div>
+}
 <div class="ef-date">
   <span class="ef-month">{{ date().month }}</span>
   <span class="ef-day">{{ date().day }}</span>

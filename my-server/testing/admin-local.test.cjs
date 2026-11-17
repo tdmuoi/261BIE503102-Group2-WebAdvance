@@ -6,8 +6,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
   );
 } else {
   ("use strict");
-  const fs = require("node:fs"),
-    path = require("node:path"),
+  const path = require("node:path"),
     assert = require("node:assert/strict"),
     { test, before, after } = require("node:test");
 
@@ -44,6 +43,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
     return b;
   }
   async function order(b, overrides = {}) {
+    const paidAt = new Date();
     const o = fixture({
       items: [
         {
@@ -57,6 +57,8 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
       total: 100,
       shippingFee: 0,
       discount: 0,
+      ...(overrides.paymentStatus === 'paid' && (overrides.paymentMethod || 'cod') === 'cod'
+        ? { paidAt, paymentVerification: { source: 'cod_delivery', verifiedAt: paidAt } } : {}),
       ...overrides,
     });
     await db.collection("orders").insertOne(o);
@@ -93,6 +95,8 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
     // Explicit isolated fixture database. No production/backup data is copied or edited.
     for (const name of [
       "books",
+      "old_books",
+      "authors",
       "orders",
       "return_requests",
       "users",
@@ -147,11 +151,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
   after(async () => {
     if (server) await new Promise((r) => server.close(r));
     if (client) await client.close();
-    fs.writeFileSync(
-      path.join(
-        process.env.LIGHTBOOKS_QA_OUTPUT_DIR || require("node:os").tmpdir(),
-        "local-backend-test-result.json",
-      ),
+    console.log(
       JSON.stringify(
         {
           database: dbName,
@@ -362,7 +362,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
   check(
     "standalone MongoDB rejects transaction workflow before writes",
     async () => {
-      const c = new MongoClient("mongodb://127.0.0.1:27018");
+      const c = new MongoClient("mongodb://127.0.0.1:27018", { serverSelectionTimeoutMS: 3000 });
       try {
         await c.connect();
         await assert.rejects(
@@ -391,6 +391,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
               "categories",
               "orders",
               "accounts",
+              "users",
               "return_requests",
             ].map((name) => ({ name })),
         }),
@@ -403,12 +404,15 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
                   { _id: "p", bookType: "new", stock: 0, status: "active" },
                 ],
                 categories: [],
+                users: [{ _id: 'u', accountId: 'customer-account' }],
                 orders: [
                   {
                     userId: "u",
                     total: 100,
                     status: "delivered",
                     paymentStatus: "paid",
+                    paymentMethod: "cod", paidAt: now,
+                    paymentVerification: { source: "cod_delivery", verifiedAt: now },
                     createdAt: now,
                   },
                   {
@@ -428,7 +432,7 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
                   },
                 ],
                 accounts: [
-                  { roleCode: "CUSTOMER" },
+                  { _id: 'customer-account', roleCode: "CUSTOMER" },
                   { roleCode: "SUPER_ADMIN" },
                   { roleCode: "SALES_MANAGER" },
                 ],

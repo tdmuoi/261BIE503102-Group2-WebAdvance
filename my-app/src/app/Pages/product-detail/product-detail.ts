@@ -47,7 +47,7 @@ export class ProductDetail {
   /** Số cuốn còn thêm được: sách giấy = tồn kho trừ số trong giỏ; ebook không có tồn kho, mỗi đơn 1 bản */
   protected readonly maxQuantity = computed(() => {
     const book = this.book();
-    const limit = book?.type === 'ebook' ? 1 : (book?.stock ?? 0);
+    const limit = book?.type === 'ebook' ? (book.ebookReady === false ? 0 : 1) : (book?.stock ?? 0);
     return Math.max(0, limit - this.inCart());
   });
 

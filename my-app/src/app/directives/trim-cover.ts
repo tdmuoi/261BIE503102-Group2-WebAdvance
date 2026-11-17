@@ -33,12 +33,14 @@ interface TrimBox {
   standalone: false,
 })
 export class TrimCover {
-  readonly source = input.required<string>({ alias: 'appTrimCover' });
+  readonly source = input.required<string | null | undefined>({ alias: 'appTrimCover' });
 
   private readonly img = inject<ElementRef<HTMLImageElement>>(ElementRef).nativeElement;
   private objectUrl: string | null = null;
   /** Ảnh đang hiển thị đã là bản cắt lề hoặc đã kiểm tra xong */
   private settled = false;
+  private fallback = false;
+  private readonly originalFit = this.img.style.objectFit;
 
   constructor() {
     // Bật CORS trước khi gán src thì mới đọc được điểm ảnh
@@ -48,9 +50,14 @@ export class TrimCover {
 
     effect(() => {
       this.settled = false;
+      this.fallback = false;
       this.releaseUrl();
+      this.img.style.visibility = '';
+      this.img.style.objectFit = this.originalFit;
       this.img.crossOrigin = 'anonymous';
-      this.img.src = this.source();
+      const source = this.source()?.trim();
+      if (!source) this.showFallback();
+      else this.img.src = source;
     });
 
     inject(DestroyRef).onDestroy(() => {
@@ -70,11 +77,21 @@ export class TrimCover {
 
   /** CDN không hỗ trợ CORS thì tải lại ảnh như bình thường, không cắt lề */
   private readonly onError = (): void => {
-    if (this.img.crossOrigin === null || this.settled) return;
+    if (this.fallback) { this.img.style.visibility = 'hidden'; return; }
+    if (this.img.crossOrigin === null || this.settled) { this.showFallback(); return; }
     this.settled = true;
     this.img.removeAttribute('crossorigin');
-    this.img.src = this.source();
+    this.img.src = this.source() || '';
   };
+
+  private showFallback(): void {
+    this.fallback = true;
+    this.settled = true;
+    this.releaseUrl();
+    this.img.removeAttribute('crossorigin');
+    this.img.style.objectFit = 'contain';
+    this.img.src = 'images/decor/empty-book.svg';
+  }
 
   private detectMargins(): TrimBox | null {
     const { naturalWidth: width, naturalHeight: height } = this.img;

@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 
 import { LbEvent } from '../../models/content';
 import { dateBlock, eventState, placeLabel, seatsLeft, timeRange } from '../../shared/event-utils';
@@ -18,6 +18,7 @@ export class EventCard {
   readonly event = input.required<LbEvent>();
 
   readonly reserve = output<LbEvent>();
+  protected readonly failedImage = signal('');
 
   protected readonly state = computed(() => eventState(this.event()));
   protected readonly date = computed(() => dateBlock(this.event().startAt));

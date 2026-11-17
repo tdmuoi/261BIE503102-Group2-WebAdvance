@@ -8,7 +8,7 @@ import { AccountService } from '../../services/account-service';
 import { AddressEditor, formatPhone, fullAddress } from '../account/address/address-editor';
 import { AuthService } from '../../services/auth-service';
 import { CartFacade } from '../cart/cart-facade';
-import { SHIPPING_FEES, computeTotals } from '../cart/pricing';
+import { computeTotals } from '../cart/pricing';
 import { VoucherState } from '../cart/voucher-state';
 import { ToastService } from '../../services/toast-service';
 import { BANK_INFO, PAYMENT_GUIDE, PAYMENT_TTL, demoQrPath, formatCountdown, transferNote } from './payment';
@@ -19,6 +19,7 @@ interface Option<T> {
   desc: string;
   /** Logo hiện trước tên phương thức thanh toán */
   logo?: string;
+  available?: boolean;
 }
 
 export const SHIPPING_OPTIONS: Option<ShippingMethod>[] = [
@@ -28,8 +29,8 @@ export const SHIPPING_OPTIONS: Option<ShippingMethod>[] = [
 
 export const PAYMENT_OPTIONS: Option<PaymentMethod>[] = [
   { value: 'momo', title: 'Ví MoMo', desc: 'Quét QR hoặc thẻ ATM qua cổng MoMo', logo: 'images/payment/momo.png' },
-  { value: 'vnpay', title: 'VNPay', desc: 'Thẻ ATM nội địa, QR ngân hàng', logo: 'images/payment/vnpay.png' },
-  { value: 'bank_transfer', title: 'Chuyển khoản ngân hàng', desc: 'Hiện số tài khoản và nội dung chuyển khoản', logo: 'images/payment/bank.svg' },
+  { value: 'vnpay', title: 'VNPay', desc: 'Chưa hỗ trợ thanh toán qua VNPay', logo: 'images/payment/vnpay.png', available: false },
+  { value: 'bank_transfer', title: 'Chuyển khoản ngân hàng', desc: 'Chưa hỗ trợ xác nhận chuyển khoản', logo: 'images/payment/bank.svg', available: false },
   { value: 'cod', title: 'Thanh toán khi nhận hàng (COD)', desc: 'Không áp dụng cho sách điện tử', logo: 'images/payment/cod.svg' },
 ];
 
@@ -53,17 +54,24 @@ export class Checkout implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   readonly shippingOptions = SHIPPING_OPTIONS;
-  readonly shippingFees = SHIPPING_FEES;
+  readonly publicSettings = this.facade.publicSettings;
+  readonly settingsError = this.facade.settingsError;
+  readonly catalogError = this.facade.catalogError;
+  readonly stockError = this.facade.stockError;
+  get shippingFees() {
+    const shipping = this.publicSettings()?.shipping;
+    return { standard: shipping?.standardFee ?? 0, express: shipping?.expressFee ?? 0 };
+  }
   readonly formatPhone = formatPhone;
   readonly fullAddress = fullAddress;
-  readonly marquee = ['FREESHIP ĐƠN TỪ 500.000Đ', 'TẶNG BOOKMARK MỖI ĐƠN', 'ĐỔI TRẢ 7 NGÀY', 'GÓI QUÀ MIỄN PHÍ'];
+  readonly marquee = ['CHÍNH SÁCH VẬN CHUYỂN TẠI THANH TOÁN', 'TẶNG BOOKMARK MỖI ĐƠN', 'ĐỔI TRẢ 7 NGÀY', 'GÓI QUÀ MIỄN PHÍ'];
   readonly perks = [
-    { icon: 'images/auth/truck.svg', w: 17, label: 'Freeship đơn từ 500.000đ' },
+    { icon: 'images/auth/truck.svg', w: 17, label: 'Phí vận chuyển theo chính sách hiện hành' },
     { icon: 'images/auth/gift.svg', w: 16, label: 'Tặng bookmark mỗi đơn' },
     { icon: 'images/shop/check-sm.svg', w: 16, label: 'Đổi trả trong 7 ngày' },
   ];
 
-  readonly loading = this.facade.loading;
+  readonly loading = computed(() => this.facade.loading() || (this.lines().length > 0 && !this.publicSettings() && !this.settingsError()));
   readonly lines = this.facade.selectedLines;
   readonly hasPhysical = computed(() => this.lines().some((l) => !l.ebook));
   readonly hasEbook = computed(() => this.lines().some((l) => l.ebook));
@@ -75,7 +83,7 @@ export class Checkout implements OnInit {
   readonly addressId = signal<string | null>(null);
 
   readonly shipping = signal<ShippingMethod>('standard');
-  readonly payment = signal<PaymentMethod>('momo');
+  readonly payment = signal<PaymentMethod | null>(null);
   readonly note = signal('');
 
   /** COD: ẩn khi đơn chỉ có ebook; đơn có cả ebook thì vẫn hiện nhưng không chọn được */
@@ -90,6 +98,7 @@ export class Checkout implements OnInit {
       this.voucher(),
       this.shipping(),
       this.facade.comboTotals(),
+      this.publicSettings()?.shipping,
     ),
   );
 
@@ -103,9 +112,9 @@ export class Checkout implements OnInit {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.stopTimer());
-    // Đổi giỏ (vd. ebook-only) mà đang chọn COD thì chuyển về MoMo
+    // Khi giỏ có Ebook, bỏ lựa chọn COD và yêu cầu khách chọn lại.
     effect(() => {
-      if (this.codDisabled() && this.payment() === 'cod') this.payment.set('momo');
+      if (this.codDisabled() && this.payment() === 'cod') this.payment.set(null);
     });
   }
 
@@ -173,7 +182,7 @@ export class Checkout implements OnInit {
   }
 
   selectPayment(method: PaymentMethod): void {
-    if (method === 'cod' && this.codDisabled()) return;
+    if ((method === 'cod' && this.codDisabled()) || !this.paymentOptions().some(option => option.value === method && option.available !== false)) return;
     this.payment.set(method);
   }
 
@@ -182,7 +191,14 @@ export class Checkout implements OnInit {
   }
 
   placeOrder(): void {
-    if (this.placing() || this.paying() || this.placed() || !this.lines().length) return;
+    if (this.placing() || this.paying() || this.placed() || this.loading() || !this.lines().length) return;
+    if (this.catalogError()) { this.submitError.set('Chưa tải được giá sách hiện tại. Vui lòng tải lại trang.'); return; }
+    if (this.stockError()) { this.submitError.set('Sách chưa sẵn sàng hoặc không đủ số lượng. Vui lòng kiểm tra lại giỏ hàng.'); return; }
+    if (!this.publicSettings()) { this.submitError.set('Chưa tải được chính sách vận chuyển. Vui lòng tải lại trang.'); return; }
+    const payment = this.payment();
+    if (!payment || !this.paymentOptions().some(option => option.value === payment && option.available !== false) || (payment === 'cod' && this.codDisabled())) {
+      this.submitError.set('Vui lòng chọn phương thức thanh toán hợp lệ.'); return;
+    }
     const address = this.addresses().find((a) => a._id === this.addressId()) ?? null;
     if (this.hasPhysical() && !address) {
       this.submitError.set('Vui lòng chọn hoặc thêm địa chỉ nhận hàng');
@@ -197,7 +213,7 @@ export class Checkout implements OnInit {
       items: lines.map((l) => ({ bookId: l.bookId, quantity: l.quantity })),
       addressId: this.hasPhysical() ? address!._id : null,
       shippingMethod: this.hasPhysical() ? this.shipping() : null,
-      paymentMethod: this.payment(),
+      paymentMethod: payment,
       voucherCode: this.voucher()?.code ?? null,
       note: this.note().trim(),
       combos: this.facade.combosForOrder(),
@@ -270,8 +286,7 @@ export class Checkout implements OnInit {
     if (!order || this.paymentBusy()) return;
     this.paymentBusy.set('confirm');
     this.paymentError.set(null);
-    // Bản demo: server ghi nhận đã trả tiền khi bấm nút. Khi nối cổng MoMo/VNPay thật thì đổi thành
-    // this.account.getOrder(order._id) — trạng thái "đã thanh toán" do IPN/webhook của cổng cập nhật.
+    // Nút của khách chỉ yêu cầu kiểm tra; server không coi thao tác này là bằng chứng thanh toán.
     this.account.confirmPayment(order._id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.paymentBusy.set(null);
@@ -342,7 +357,10 @@ export class Checkout implements OnInit {
     this.paymentBusy.set('cancel');
     this.account.cancelOrder(order._id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.closePayment(expired),
-      error: () => this.closePayment(expired),
+      error: (err: { error?: { message?: string } }) => {
+        this.paymentBusy.set(null);
+        this.paymentError.set(err?.error?.message ?? 'Chưa xác nhận hủy đơn. Bạn có thể thử lại hoặc kiểm tra trong Đơn hàng.');
+      },
     });
   }
 

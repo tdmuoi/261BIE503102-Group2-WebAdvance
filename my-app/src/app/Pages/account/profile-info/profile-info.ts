@@ -64,7 +64,7 @@ function passwordGroupValidator(group: AbstractControl): ValidationErrors | null
   if (!cur) errors['currentRequired'] = true;
   const rules = passwordRules(next ?? '');
   if (!next) errors['newRequired'] = true;
-  else if (!rules.length || !rules.upper || !rules.digit) errors['weak'] = true;
+  else if (!rules.length || !/[A-Za-z]/.test(next) || !rules.digit || new TextEncoder().encode(next).length > 72) errors['weak'] = true;
   else if (next === cur) errors['sameAsCurrent'] = true;
   if (next && confirm !== next) errors['mismatch'] = true;
   return Object.keys(errors).length ? errors : null;
@@ -189,7 +189,7 @@ export class ProfileInfo {
     }
     if (field === 'next' && touched('newPassword')) {
       if (e['newRequired']) return 'Vui lòng nhập mật khẩu mới';
-      if (e['weak']) return 'Cần ít nhất 8 ký tự, có chữ hoa và chữ số';
+      if (e['weak']) return 'Cần ít nhất 8 ký tự, có chữ và số, tối đa 72 byte';
       if (e['sameAsCurrent']) return 'Mật khẩu mới phải khác mật khẩu hiện tại';
     }
     if (field === 'confirm' && touched('confirmPassword') && e['mismatch']) return 'Mật khẩu nhập lại chưa khớp';

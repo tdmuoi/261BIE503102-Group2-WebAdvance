@@ -1,11 +1,12 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { map } from 'rxjs';
 
 import { AccountService, EbookProgress } from '../../services/account-service';
 import { AuthService } from '../../services/auth-service';
 import { ToastService } from '../../services/toast-service';
+import { SharedModule } from '../../shared/shared-module';
 import { ShelfStore, normalizeText } from '../account/shelf-store';
 import { PdfBook, PdfLoader, PdfOpenError } from './pdf-book';
 import {
@@ -39,7 +40,8 @@ const SCROLL_MARGIN = '1500px 0px';
  */
 @Component({
   selector: 'app-ebook-reader',
-  standalone: false,
+  standalone: true,
+  imports: [RouterModule, SharedModule],
   styleUrls: ['./ebook-reader.css', './reader-panels.css'],
   templateUrl: './ebook-reader.html',
   host: {

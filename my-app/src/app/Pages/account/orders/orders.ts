@@ -9,12 +9,12 @@ import { ToastService } from '../../../services/toast-service';
 import { BuyAgainTarget } from '../popups/buy-again-drawer/buy-again-drawer';
 import { ReviewTarget } from '../popups/review-popup/review-popup';
 
-export type OrderTab = 'all' | 'pending' | 'shipping' | 'delivered' | 'cancelled' | 'buyback';
-const ORDER_TABS: readonly OrderTab[] = ['all', 'pending', 'shipping', 'delivered', 'cancelled', 'buyback'];
+export type OrderTab = 'all' | 'pending' | 'shipping' | 'delivered' | 'cancelled' | 'returned' | 'buyback';
+const ORDER_TABS: readonly OrderTab[] = ['all', 'pending', 'shipping', 'delivered', 'cancelled', 'returned', 'buyback'];
 
 /** Trạng thái → tab: "Đang giao" gồm cả đơn đã xác nhận đang chờ giao */
 const TAB_OF: Record<OrderStatus, Exclude<OrderTab, 'all' | 'buyback'>> = {
-  pending: 'pending', confirmed: 'shipping', shipping: 'shipping', delivered: 'delivered', cancelled: 'cancelled', returned: 'cancelled',
+  pending: 'pending', confirmed: 'shipping', shipping: 'shipping', delivered: 'delivered', cancelled: 'cancelled', returned: 'returned',
 };
 
 export const STATUS_META: Record<OrderStatus, { label: string; icon: string; tone: string }> = {
@@ -67,6 +67,12 @@ export class Orders implements OnInit {
 
   readonly reviewing = signal<ReviewTarget | null>(null);
   readonly buying = signal<BuyAgainTarget | null>(null);
+  readonly returning = signal<Order | null>(null);
+  readonly returnBusy = signal(false);
+  readonly returnError = signal('');
+  readonly returnResult = signal('');
+  returnReason = 'damaged';
+  returnDescription = '';
 
   readonly tabs = computed(() => {
     const list = this.orders();
@@ -77,6 +83,7 @@ export class Orders implements OnInit {
       { value: 'shipping' as const, label: 'Đang giao', count: count('shipping') },
       { value: 'delivered' as const, label: 'Đã giao', count: count('delivered') },
       { value: 'cancelled' as const, label: 'Đã huỷ', count: count('cancelled') },
+      { value: 'returned' as const, label: 'Đã trả hàng', count: count('returned') },
       { value: 'buyback' as const, label: 'Thanh lý', count: this.buybacks().length },
     ];
   });
@@ -192,6 +199,25 @@ export class Orders implements OnInit {
   /** Sang trang thanh toán MoMo (tách riêng để test không điều hướng thật). MoMo trả khách về /checkout để xác nhận */
   openExternal(url: string): void {
     window.location.assign(url);
+  }
+
+  openReturn(order: Order): void {
+    if (this.returnBusy() || order.status !== 'delivered') return;
+    this.returning.set(order); this.returnReason = 'damaged'; this.returnDescription = '';
+    this.returnError.set(''); this.returnResult.set(''); this.expanded.set(order._id);
+  }
+
+  submitReturn(): void {
+    const order = this.returning(), description = this.returnDescription.trim();
+    if (!order || this.returnBusy()) return;
+    if (!description || description.length > 1000) { this.returnError.set('Nhập mô tả từ 1 đến 1.000 ký tự.'); return; }
+    this.returnBusy.set(true); this.returnError.set('');
+    this.account.requestReturn(order._id, { type: 'refund', reason: this.returnReason, description })
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: result => { this.returnBusy.set(false); this.returning.set(null);
+          this.returnResult.set(`Đã gửi yêu cầu ${result.requestCode}. Cửa hàng sẽ kiểm tra trước khi hoàn tiền.`); },
+        error: error => { this.returnBusy.set(false); this.returnError.set(error.error?.message || 'Chưa gửi được yêu cầu. Bạn có thể thử lại cùng nội dung.'); },
+      });
   }
 
   /** Đơn đã giao: viết đánh giá cuốn đầu tiên chưa đánh giá */

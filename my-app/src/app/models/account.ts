@@ -126,12 +126,13 @@ export interface Order {
   total: number;
   shippingMethod: ShippingMethod | null;
   paymentMethod: PaymentMethod;
-  paymentStatus: 'paid' | 'unpaid';
+  paymentStatus: 'paid' | 'unpaid' | 'refunded';
   status: OrderStatus;
   statusHistory: { status: OrderStatus; at: string; note?: string | null }[];
   /** null khi đơn chỉ có sách điện tử */
   shippingAddress: ShippingAddress | null;
   note: string;
+  trackingCode?: string | null;
   createdAt: string;
 }
 

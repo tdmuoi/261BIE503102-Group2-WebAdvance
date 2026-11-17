@@ -80,6 +80,18 @@
           <dd>{{ request.date | date: 'dd/MM/yyyy HH:mm' : '+0700' }}</dd>
         </div>
       </dl>
+      @for (item of request.items; track $index) {
+        <div class="book-details">
+          <h3>{{ item.title || 'Chưa có tên sách' }}</h3>
+          <p>Tác giả: {{ item.author || 'Chưa có' }} · Số lượng: {{ item.quantity ?? 'Chưa có' }}</p>
+          <p>Giá bìa: {{ money(item.coverPrice) }} (không phải giá thu mua)</p>
+          <p>Bìa: {{ item.condition.cover.join(', ') || 'Chưa khai' }}</p>
+          <p>Gáy: {{ item.condition.spine.join(', ') || 'Chưa khai' }}</p>
+          <p>Ruột sách: {{ item.condition.pages.join(', ') || 'Chưa khai' }}</p>
+          <p>Kèm theo: {{ item.condition.extras.join(', ') || 'Chưa khai' }}</p>
+          @if (item.note) { <p>Ghi chú của khách: {{ item.note }}</p> }
+        </div>
+      }
       <div class="quote">
         <strong>Mô tả và lịch sử ghi chú</strong>
         <p>{{ request.note || 'Chưa có mô tả.' }}</p>
@@ -189,6 +201,8 @@
     </section>
     <section class="card side-card">
       <h2 class="card-title">Tiến trình xử lý</h2>
+      <p>Khách chọn nhận: {{ request.payout === 'bank' ? 'Chuyển khoản' : request.payout === 'voucher' ? 'Voucher' : 'Chưa có thông tin' }}.</p>
+      <p class="text-muted">Lựa chọn của khách chưa phải xác nhận đã chuyển tiền hoặc cấp voucher.</p>
       <app-status-badge [status]="request.status" />
       <p class="text-muted">
         Duyệt chuyển Chờ duyệt → Đang thẩm định. Không tự chuyển sang Đã thanh toán.

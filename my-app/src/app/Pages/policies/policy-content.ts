@@ -28,7 +28,7 @@ export const POLICIES: Policy[] = [
     title: 'Chính sách thanh toán',
     footerLabel: 'Payment Policy',
     paragraphs: [
-      'Nhằm mang lại sự thuận tiện tối đa cho độc giả, Lightbook hỗ trợ đa dạng các phương thức thanh toán linh hoạt và an toàn. Khách hàng có thể dễ dàng lựa chọn thanh toán qua các ví điện tử phổ biến như Momo, cổng thanh toán VNPay, chuyển khoản ngân hàng trực tiếp hoặc sử dụng hình thức thanh toán khi nhận hàng áp dụng cho đơn hàng sách giấy. Hệ thống sẽ ngay lập tức gửi email thông báo xác nhận tự động kèm mã vận đơn theo dõi ngay sau khi giao dịch thanh toán trực tuyến hoàn tất thành công.',
+      'Lightbook hiện hỗ trợ thanh toán qua MoMo và thanh toán khi nhận hàng (COD) cho đơn sách giấy. VNPay và xác nhận chuyển khoản ngân hàng chưa được tích hợp. Khách hàng theo dõi trạng thái thanh toán và mã vận đơn khi có tại mục Đơn hàng trong tài khoản. Dịch vụ gửi email xác nhận chưa được tích hợp.',
       'Trong các trường hợp phát sinh hủy đơn hàng trước khi vận chuyển hoặc sản phẩm nhận được gặp lỗi kỹ thuật từ nhà sản xuất, Lightbook áp dụng chính sách hoàn tiền minh bạch và nhanh chóng. Khoản tiền thanh toán sẽ được hoàn trả lại tài khoản gốc hoặc ví điện tử của khách hàng trong vòng 3 đến 5 ngày làm việc kể từ thời điểm yêu cầu hủy đơn hoặc đổi trả được bộ phận chăm sóc khách hàng phê duyệt chính thức.',
     ],
   },

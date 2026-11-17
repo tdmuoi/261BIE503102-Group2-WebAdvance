@@ -22,7 +22,7 @@
       @if (error) {
         <span class="text-error">{{ error }}</span>
       } @else if (state() === 'done') {
-        <span class="text-success">Cảm ơn bạn! Lịch Author Talk sẽ được gửi vào email mỗi đầu tháng.</span>
+        <span class="text-success">Đã lưu đăng ký nhận lịch. Lịch mới được cập nhật trên trang sự kiện; dịch vụ gửi email chưa được tích hợp.</span>
       } @else if (state() === 'duplicate') {
         Email này đã đăng ký nhận lịch Author Talk rồi nhé.
       } @else if (state() === 'unavailable') {

@@ -1,5 +1,6 @@
 :host {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-40);
   padding: 36px var(--space-40);
@@ -8,6 +9,9 @@
   border-radius: var(--radius-22);
   box-shadow: var(--shadow-offset-lg);
 }
+
+.ef-art { flex: 0 0 100%; width: 100%; overflow: hidden; border-radius: var(--radius-18); }
+.ef-art img { display: block; width: 100%; height: auto; }
 
 .ef-date {
   display: flex;

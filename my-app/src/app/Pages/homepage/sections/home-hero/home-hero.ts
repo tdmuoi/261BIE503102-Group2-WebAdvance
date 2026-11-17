@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 interface HeroBook {
   src: string;
@@ -17,6 +17,7 @@ interface HeroBook {
   templateUrl: './home-hero.html',
 })
 export class HomeHero {
+  readonly banner = input<{ title: string; subtitle: string; link: string; image: string | null } | null>(null);
   // Ảnh trang trí xuất từ Figma (Hero header section 772:1454)
   protected readonly books: HeroBook[] = [
     { src: 'images/hero/book-ho-so-mat.png', alt: 'Bìa sách Hồ Sơ Mật', x: 58.61, y: 51.96, width: 22.81, layer: 1 },

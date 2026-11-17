@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, forkJoin, map, of, shareReplay, throwError } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, timeout } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { Author, Book, BookType, Catalog, CatalogBook, Category, Review } from '../models/book';
@@ -37,8 +37,6 @@ export class BookService {
   private readonly categoryService = inject(CategoryService);
   private readonly baseUrl = `${environment.apiUrl}/books`;
 
-  private catalog$?: Observable<Catalog>;
-
   getBooks(query: BookQuery = {}): Observable<Book[]> {
     let params = new HttpParams();
     if (query.limit) params = params.set('limit', query.limit);
@@ -49,25 +47,19 @@ export class BookService {
   }
 
   /**
-   * Toàn bộ sách đang bán + tác giả + thể loại, tải một lần rồi dùng chung.
+   * Đọc lại danh mục khi trang yêu cầu để nhận giá và ảnh mới từ Admin.
    * API chưa có lọc / phân trang / tra theo id nên các trang xử lý trên danh sách này.
-   * Lỗi thì không giữ lại, lần gọi sau tải lại.
    */
   getCatalog(): Observable<Catalog> {
-    this.catalog$ ??= forkJoin({
+    return forkJoin({
       books: this.getBooks({ limit: CATALOG_LIMIT, sort: 'newest' }),
       // Thiếu tác giả hoặc thể loại thì vẫn hiện sách
       authors: this.authorService.getAuthors().pipe(catchError(() => of<Author[]>([]))),
       categories: this.categoryService.getCategories().pipe(catchError(() => of<Category[]>([]))),
     }).pipe(
+      timeout(10000),
       map(({ books, authors, categories }) => ({ books: toCatalogBooks(books, authors, categories), authors, categories })),
-      catchError((error) => {
-        this.catalog$ = undefined;
-        return throwError(() => error);
-      }),
-      shareReplay(1),
     );
-    return this.catalog$;
   }
 
   /**

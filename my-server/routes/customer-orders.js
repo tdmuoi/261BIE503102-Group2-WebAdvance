@@ -48,6 +48,7 @@ function orderView(o) {
       ? { fullName: o.shippingAddress.fullName, phone: o.shippingAddress.phone, address: o.shippingAddress.address, ward: o.shippingAddress.ward || '', province: o.shippingAddress.province || '' }
       : null,
     note: o.note || '',
+    trackingCode: typeof o.trackingCode === 'string' ? o.trackingCode : null,
     createdAt: iso(o.createdAt),
   };
 }
@@ -116,11 +117,13 @@ module.exports = function customerOrderRoutes(getDb) {
     const authorIds = books.map((book) => book.authorId).filter(Boolean);
     const authors = await db().collection('authors').find({ _id: { $in: authorIds } }, { session, projection: { name: 1 } }).toArray();
     const names = new Map(authors.map((author) => [String(author._id), author.name]));
+    const ready = await require('./admin-books').verifiedPdfBooks(db(), books, session);
     return items.map(({ bookId, quantity }) => {
       const book = byId.get(bookId);
       if (!book || book.isDemo === true || book.status !== 'active' || !['new', 'used', 'ebook'].includes(book.bookType))
         throw failure(409, 'Sách không còn bán hoặc chưa xác minh loại sách');
       if (book.bookType === 'ebook' && quantity !== 1) throw failure(400, 'Mỗi ebook chỉ được mua một bản');
+      if (book.bookType === 'ebook' && !ready.has(String(book._id))) throw failure(409, 'Ebook chưa có PDF hợp lệ để bán. Vui lòng chọn sách khác.');
       if (!Number.isSafeInteger(book.price) || book.price < 0) throw failure(409, 'Giá sách chưa hợp lệ');
       if (book.bookType !== 'ebook' && (!Number.isSafeInteger(book.stock) || book.stock < quantity))
         throw failure(409, 'Sách không đủ tồn kho');
@@ -165,6 +168,7 @@ module.exports = function customerOrderRoutes(getDb) {
       const b = req.body || {};
       rejectClientPromotions(b);
       if (!PAYMENT_METHODS.includes(b.paymentMethod)) throw failure(400, 'Vui lòng chọn phương thức thanh toán');
+      if (['vnpay', 'bank_transfer'].includes(b.paymentMethod)) throw failure(503, 'Phương thức thanh toán này chưa được tích hợp. Vui lòng chọn MoMo hoặc COD cho sách giấy.');
       if (b.paymentMethod === 'qr_demo') demoMode.requireDemo(db());
       const identity = requestIdentity(req);
       let created = false;

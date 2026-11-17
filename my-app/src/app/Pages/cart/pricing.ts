@@ -42,7 +42,10 @@ export function computeTotals(
   voucher: VoucherResult | null,
   method: ShippingMethod = 'standard',
   combo: ComboTotals = { amount: 0, freeship: false },
+  shippingSettings?: { standardFee: number; expressFee: number; freeShippingThreshold: number },
 ): Totals {
+  const threshold = shippingSettings?.freeShippingThreshold ?? FREESHIP_MIN;
+  const fees = shippingSettings ? { standard: shippingSettings.standardFee, express: shippingSettings.expressFee } : SHIPPING_FEES;
   const subtotal = lines.reduce((s, l) => s + l.price * l.quantity, 0);
   const physical = lines.filter((l) => !l.ebook);
   const physicalSubtotal = physical.reduce((s, l) => s + l.price * l.quantity, 0);
@@ -62,8 +65,8 @@ export function computeTotals(
   }
   const voucherFreeship = !!voucher && !voucherError && voucher.type === 'freeship' && method === 'standard';
   const comboFreeship = method === 'standard' && (combo.freeship || voucherFreeship);
-  const freeship = comboFreeship || (method === 'standard' && physicalSubtotal >= FREESHIP_MIN);
-  const shipping = !hasPhysical || freeship ? 0 : SHIPPING_FEES[method];
+  const freeship = comboFreeship || (method === 'standard' && physicalSubtotal >= threshold);
+  const shipping = !hasPhysical || freeship ? 0 : fees[method];
   return {
     itemCount: lines.length,
     bookCount: lines.reduce((s, l) => s + l.quantity, 0),
@@ -73,8 +76,8 @@ export function computeTotals(
     shipping,
     total: Math.max(0, subtotal - comboDiscount - discount + shipping),
     hasPhysical,
-    freeshipRemaining: comboFreeship ? 0 : Math.max(0, FREESHIP_MIN - physicalSubtotal),
-    freeshipProgress: comboFreeship ? 100 : Math.min(100, Math.round((physicalSubtotal / FREESHIP_MIN) * 100)),
+    freeshipRemaining: comboFreeship ? 0 : Math.max(0, threshold - physicalSubtotal),
+    freeshipProgress: comboFreeship || threshold === 0 ? 100 : Math.min(100, Math.round((physicalSubtotal / threshold) * 100)),
     voucherError,
   };
 }

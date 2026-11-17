@@ -8,7 +8,7 @@
         <span class="accent-h1">to the club!</span>
       </h1>
       <p class="auth-subtitle success-text body-lead">
-        Tài khoản của bạn đã sẵn sàng. Mã giảm 10% cho đơn đầu tiên đã được gửi tới {{ result.email }}.
+        Tài khoản {{ result.email }} đã sẵn sàng. @if (result.coupon) { Mã ưu đãi của bạn được hiển thị bên dưới để dùng khi thanh toán. }
       </p>
       @if (result.coupon; as code) {
         <div class="coupon">

@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { ToastService } from '../../services/toast-service';
 import { WishlistService } from '../../services/wishlist-service';
 import { CartFacade, CartLine } from './cart-facade';
-import { FREESHIP_MIN, computeTotals } from './pricing';
+import { computeTotals } from './pricing';
 import { VoucherState } from './voucher-state';
 
 /** Trang Giỏ hàng (Figma "Pages/cart · Giỏ hàng" + "Giỏ hàng trống") */
@@ -21,21 +21,24 @@ export class Cart {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly freeshipMin = FREESHIP_MIN;
-  readonly marquee = ['FREESHIP ĐƠN TỪ 500.000Đ', 'TẶNG BOOKMARK MỖI ĐƠN', 'ĐỔI TRẢ 7 NGÀY', 'GÓI QUÀ MIỄN PHÍ'];
+  readonly publicSettings = this.facade.publicSettings;
+  readonly freeshipText = this.facade.freeshipText;
+  readonly marquee = ['CHÍNH SÁCH VẬN CHUYỂN TẠI THANH TOÁN', 'TẶNG BOOKMARK MỖI ĐƠN', 'ĐỔI TRẢ 7 NGÀY', 'GÓI QUÀ MIỄN PHÍ'];
   readonly perks = [
-    { icon: 'images/auth/truck.svg', w: 17, label: 'Freeship đơn từ 500.000đ' },
+    { icon: 'images/auth/truck.svg', w: 17, label: 'Phí vận chuyển theo chính sách hiện hành' },
     { icon: 'images/auth/gift.svg', w: 16, label: 'Tặng bookmark mỗi đơn' },
     { icon: 'images/shop/check-sm.svg', w: 16, label: 'Đổi trả trong 7 ngày' },
   ];
 
   readonly lines = this.facade.lines;
   readonly loading = this.facade.loading;
+  readonly catalogError = this.facade.catalogError;
+  readonly stockError = this.facade.stockError;
   readonly allSelected = this.facade.allSelected;
   readonly selected = this.facade.selectedLines;
   readonly voucher = this.facade.voucher;
   readonly totals = computed(() =>
-    computeTotals(this.selected().map((l) => ({ price: l.price, quantity: l.quantity, ebook: l.ebook })), this.voucher(), 'standard', this.facade.comboTotals()),
+    computeTotals(this.selected().map((l) => ({ price: l.price, quantity: l.quantity, ebook: l.ebook })), this.voucher(), 'standard', this.facade.comboTotals(), this.publicSettings()?.shipping),
   );
   readonly comboLabels = this.facade.comboLabels;
   readonly comboFreeship = computed(() => this.facade.comboTotals().freeship && this.totals().hasPhysical);
@@ -111,6 +114,9 @@ export class Cart {
   }
 
   checkout(): void {
+    if (this.loading() || this.catalogError()) { this.toast.show('Chưa tải được giá sách hiện tại. Vui lòng tải lại trang trước khi thanh toán.'); return; }
+    if (this.stockError()) { this.toast.show('Một số sách chưa sẵn sàng hoặc không đủ số lượng. Vui lòng kiểm tra lại giỏ hàng.'); return; }
+    if (!this.publicSettings()) { this.toast.show('Chưa tải được chính sách vận chuyển. Vui lòng tải lại trang trước khi thanh toán.'); return; }
     if (this.selected().length) this.router.navigateByUrl('/checkout');
   }
 }

@@ -260,7 +260,7 @@ export class Inventory implements OnInit, OnDestroy {
   closeStockIn() { if (!this.stockSaving()) this.stockInBook.set(null); }
   submitStockIn() {
     const row = this.stockInBook();
-    if (!row || !this.canAdjust || this.stockSaving()) return;
+    if (!row || !this.canAdjust || this.stockSaving() || row.isDemo || !['new', 'used'].includes(row.bookType ?? '')) return;
     if (!Number.isSafeInteger(this.quantity) || this.quantity! < 1 || this.quantity! > 1000000 || this.stockNote.length > 500) {
       this.stockError.set('Nhập số lượng nguyên từ 1 đến 1.000.000 và ghi chú tối đa 500 ký tự.'); return;
     }

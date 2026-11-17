@@ -18,12 +18,12 @@
       <p class="body-lead empty-text">
         Mã đơn #{{ order.orderCode }} · Tổng {{ order.total | vnd }}.
         @if (hasPrintIn(order)) {
-          Lightbook đã gửi email xác nhận, đơn sẽ đến trong {{ deliveryText(order) }}.
+          Theo dõi trạng thái trong tài khoản. Thời gian giao dự kiến {{ deliveryText(order) }} sau khi cửa hàng xác nhận.
         } @else {
-          Lightbook đã gửi email xác nhận.
+          Bạn có thể xem trạng thái đơn trong tài khoản.
         }
-        @if (hasEbookIn(order)) {
-          Sách điện tử trong đơn đã có trong tủ sách của bạn.
+        @if (hasEbookIn(order) && order.paymentStatus === 'paid') {
+          Bạn có thể kiểm tra sách điện tử trong tủ sách sau khi thanh toán được xác minh.
         }
       </p>
       <div class="empty-actions">
@@ -50,6 +50,12 @@
 
     @if (loading()) {
       <p class="loading" role="status">Đang tải đơn hàng…</p>
+    } @else if (settingsError()) {
+      <p role="alert">Chưa tải được chính sách vận chuyển. Vui lòng tải lại trang trước khi thanh toán.</p>
+    } @else if (catalogError()) {
+      <p role="alert">Chưa tải được giá sách hiện tại. <a href="/checkout">Tải lại trang</a> trước khi thanh toán.</p>
+    } @else if (stockError()) {
+      <p role="alert">Sách chưa sẵn sàng hoặc không đủ số lượng. <a routerLink="/cart">Kiểm tra lại giỏ hàng</a> trước khi thanh toán.</p>
     } @else if (!lines().length) {
       <!-- Chưa chọn sách nào ở giỏ (Figma chưa có màn này) -->
       <div class="empty">
@@ -200,7 +206,7 @@
             <h2 class="card-head" id="co-payment"><span class="step">{{ steps().payment }}</span>Phương thức thanh toán</h2>
             <div class="options" role="radiogroup" aria-label="Phương thức thanh toán">
               @for (o of paymentOptions(); track o.value) {
-                @let off = o.value === 'cod' && codDisabled();
+                @let off = o.available === false || (o.value === 'cod' && codDisabled());
                 <button type="button" class="option" role="radio" [attr.aria-checked]="payment() === o.value" [class.is-active]="payment() === o.value"
                   [disabled]="off" (click)="selectPayment(o.value)">
                   <span class="radio" aria-hidden="true"></span>
@@ -229,7 +235,7 @@
           <ul class="items">
             @for (l of lines(); track l.bookId) {
               <li class="item">
-                <a class="item-cover" [routerLink]="['/books', l.bookId]"><img [src]="l.image" [alt]="l.title" /></a>
+                <a class="item-cover" [routerLink]="['/books', l.bookId]"><img [appTrimCover]="l.image" [alt]="l.title" /></a>
                 <span class="item-text">
                   <span class="item-title">{{ l.title }}</span>
                   <span class="item-qty">x{{ l.quantity }}@if (l.ebook) { · Sách điện tử }</span>

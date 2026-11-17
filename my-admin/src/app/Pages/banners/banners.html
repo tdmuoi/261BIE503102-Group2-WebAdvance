@@ -25,7 +25,7 @@
     </div>
   }
   <section class="stats">
-    <app-stat-card label="Đang hiển thị" [value]="d.counts.live" tone="ok" [note]="'trên tổng ' + d.counts.all + ' banner'"></app-stat-card>
+    <app-stat-card label="Đang trong lịch bật" [value]="d.counts.live" tone="ok" [note]="'trên tổng ' + d.counts.all + ' banner; chưa xác nhận hiển thị ở web khách'"></app-stat-card>
     <app-stat-card label="Lên lịch" [value]="d.counts.scheduled" tone="info" note="Chưa tới ngày bắt đầu"></app-stat-card>
     <app-stat-card label="Hết hạn" [value]="d.counts.expired" [tone]="d.counts.expired ? 'bad' : 'default'" note="Đã qua ngày kết thúc"></app-stat-card>
     <app-stat-card label="Đã tắt" [value]="d.counts.off" note="Admin tắt thủ công"></app-stat-card>
@@ -46,7 +46,7 @@
   @for (g of groups(); track g.position) {
     <section class="card group" [class.is-loading]="loading()">
       <div class="group-head">
-        <h2 class="card-title">{{ g.label }} <span class="text-muted">· {{ g.all.length }} banner</span></h2>
+        <h2 class="card-title">{{ g.label }} <span class="text-muted">· {{ g.all.length }} banner hợp lệ @if (g.unresolvedCount) { · {{ g.unresolvedCount }} banner cần đối soát (chỉ đọc) }</span></h2>
         <small class="text-muted">Thứ tự trên web khách: từ trái sang phải</small>
       </div>
 

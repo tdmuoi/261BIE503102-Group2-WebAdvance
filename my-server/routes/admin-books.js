@@ -239,6 +239,46 @@ module.exports = function adminBooksRoutes(getDb) {
       errors.categoryId = 'Vui lòng chọn thể loại';
     }
 
+    let pdfSourceFields = {};
+    if (body.pdfSource !== undefined) {
+      const source = body.pdfSource;
+      const validUrl = value => {
+        if (typeof value !== 'string' || value.length > 2000) return false;
+        try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !url.hash; }
+        catch { return false; }
+      };
+      if (!source || typeof source !== 'object' || Array.isArray(source) ||
+          Object.keys(source).some(key => !['url', 'page', 'license', 'editionYear', 'pageCount'].includes(key)) ||
+          !validUrl(source.url) || !validUrl(source.page) || !['Public domain', 'CC0-1.0'].includes(source.license) ||
+          !Number.isSafeInteger(source.editionYear) || source.editionYear < 1000 || source.editionYear > 2100 ||
+          !Number.isSafeInteger(source.pageCount) || source.pageCount < 1 || source.pageCount > 10000 ||
+          bookType !== 'ebook' || !(existing?.ebookFileId instanceof ObjectId)) {
+        errors.pdfSource = 'Nguồn PDF, giấy phép, năm ấn bản hoặc số trang chưa hợp lệ';
+      } else {
+        const file = await getDb().collection('fs.files').findOne({
+          _id: existing.ebookFileId, 'metadata.bookId': existing._id, 'metadata.verified': true,
+        });
+        if (!file || !Number.isSafeInteger(file.length) || file.length < 1 || file.length > PDF_MAX_BYTES ||
+            !/^[a-f0-9]{64}$/.test(file.metadata?.sha256 || '')) {
+          errors.pdfSource = 'Chỉ cập nhật nguồn sau khi PDF liên kết đã được xác minh';
+        } else {
+          pdfSourceFields = {
+            sourceUrl: source.page, sourceProvider: new URL(source.page).hostname,
+            pdfSourcePage: source.page,
+            licenseUrl: source.license === 'CC0-1.0' ? 'https://creativecommons.org/publicdomain/zero/1.0/'
+              : 'https://creativecommons.org/publicdomain/mark/1.0/',
+            fileUrl: source.url, pdfUrl: source.url, previewUrl: source.url, htmlUrl: null,
+            rightsNote: `${source.license}; original PDF and credits preserved.`,
+            pdfRightsNote: `${source.license}; see source page for this edition.`,
+            publishYear: source.editionYear, publicationYear: source.editionYear, pdfEditionYear: source.editionYear,
+            pages: source.pageCount, pageCount: source.pageCount, pdfPages: source.pageCount,
+            ebookMetadata: { sha256: file.metadata.sha256, sizeBytes: file.length, pageCount: source.pageCount,
+              license: source.license, pdfEditionYear: source.editionYear },
+          };
+        }
+      }
+    }
+
     // Tác giả: chọn theo id, hoặc gõ tên -> tìm đúng tên, chưa có thì tạo tác giả mới
     let authorId = null;
     const authorName = cleanText(body.authorName);
@@ -277,6 +317,7 @@ module.exports = function adminBooksRoutes(getDb) {
       condition,
       stock,
       status,
+      ...pdfSourceFields,
     };
   }
 
@@ -603,3 +644,14 @@ module.exports.validPdf = validPdf;
 module.exports.streamPdf = streamPdf;
 module.exports.parseByteRange = parseByteRange;
 module.exports.PDF_MAX_BYTES = PDF_MAX_BYTES;
+module.exports.verifiedPdfBooks = async function verifiedPdfBooks(db, books, session) {
+  const ebooks = books.filter(book => book.bookType === 'ebook' && book.ebookFileId instanceof ObjectId);
+  if (!ebooks.length) return new Set();
+  const files = await db.collection('fs.files').find({
+    _id: { $in: ebooks.map(book => book.ebookFileId) }, 'metadata.verified': true,
+  }, { session, projection: { _id: 1, length: 1, 'metadata.bookId': 1 } }).toArray();
+  return new Set(ebooks.filter(book => files.some(file => String(file._id) === String(book.ebookFileId) &&
+    file.metadata?.bookId instanceof ObjectId && book._id instanceof ObjectId && file.metadata.bookId.equals(book._id) &&
+    Number.isSafeInteger(file.length) && file.length > 0 && file.length <= PDF_MAX_BYTES))
+    .map(book => String(book._id)));
+};

@@ -19,14 +19,17 @@ test('Public catalog and librarian redact paid Ebook sources while preserving pr
   const records = {
     books: [paid, free, physical, { ...paid, _id: new ObjectId(), title: 'Hidden Ebook', status: 'hidden' }],
     authors: [{ _id: paid.authorId, name: 'Author' }], categories: [{ _id: paid.categoryId, name: 'Books', slug: 'ebook' }],
+    'fs.files': [{ _id: paid.ebookFileId, length: 100, metadata: { bookId: paid._id, verified: true } }],
   };
   const original = JSON.stringify(records);
   const db = { collection(name) {
     assert.ok(Object.hasOwn(records, name), 'Only catalog collections may be read');
     return { find(query = {}) {
-      let list = records[name].filter(doc => Object.entries(query).every(([key, value]) =>
-        value?.$in ? value.$in.some(id => String(id) === String(doc[key]))
-          : value?.$gt !== undefined ? doc[key] > value.$gt : doc[key] === value));
+      let list = records[name].filter(doc => Object.entries(query).every(([key, value]) => {
+        const actual = key.split('.').reduce((node, field) => node?.[field], doc);
+        return value?.$in ? value.$in.some(id => String(id) === String(actual))
+          : value?.$gt !== undefined ? actual > value.$gt : actual === value;
+      }));
       let projection;
       return {
         project(value) { projection = value; return this; },
@@ -49,7 +52,7 @@ test('Public catalog and librarian redact paid Ebook sources while preserving pr
   const end = source.indexOf('// API lấy danh sách tác giả', start);
   assert(start >= 0 && end > start);
   vm.runInNewContext(source.slice(start, end), {
-    app, database: db, customerRoutes, console,
+    app, database: db, customerRoutes, console, require: createRequire(path.join(__dirname, '../index.js')),
     listParam: value => String(value ?? '').split(',').map(item => item.trim()).filter(Boolean),
   });
   // Real recommendation route with a deterministic provider response; no
@@ -83,7 +86,9 @@ test('Public catalog and librarian redact paid Ebook sources while preserving pr
   const listResponse = await fetch(base + '/api/books?limit=500');
   assert.equal(listResponse.status, 200);
   const list = await listResponse.json(); assert.equal(list.length, 3); assertPaid(list[0]);
-  assert.deepEqual(list[1], JSON.parse(JSON.stringify(free))); assert.deepEqual(list[2], JSON.parse(JSON.stringify(physical)));
+  assert.equal(list[0].ebookReady, true);
+  assert.deepEqual(list[1], { ...JSON.parse(JSON.stringify(free)), ebookReady: false });
+  assert.deepEqual(list[2], JSON.parse(JSON.stringify(physical)));
   const filtered = await (await fetch(base + '/api/books?format=ebook&discounted=true&limit=1')).json();
   assert.equal(filtered.length, 1); assertPaid(filtered[0]);
   const recommendedResponse = await fetch(base + '/api/librarian', {

@@ -49,7 +49,7 @@
                 <span class="check-box"><img src="images/auth/check-white.svg" alt="" width="14" height="14" /></span>
               </label>
               <a class="cover" [routerLink]="['/product-detail', line.bookId]">
-                <img [src]="line.image" [alt]="line.title" loading="lazy" />
+                <img [appTrimCover]="line.image" [alt]="line.title" loading="lazy" />
               </a>
               <div class="info">
                 @if (line.bestseller) { <span class="badge">Bán chạy</span> }
@@ -86,7 +86,7 @@
       <aside class="summary" aria-label="Tóm tắt đơn hàng">
         <h2 class="summary-title h3">Tóm tắt đơn hàng</h2>
 
-        @if (totals().hasPhysical) {
+        @if (totals().hasPhysical && publicSettings()) {
           <div class="freeship">
             <p class="freeship-title">
               <img src="images/shop/truck.svg" alt="" width="19" height="18" />
@@ -102,7 +102,7 @@
             @if (comboFreeship()) {
               <p class="freeship-note">Freeship nhờ combo tự chọn (giao tiêu chuẩn)</p>
             } @else {
-              <p class="freeship-note">{{ totals().subtotal | vnd }} / {{ freeshipMin | vnd }} · Freeship cho đơn từ 500.000đ (áp dụng nội thành)</p>
+              <p class="freeship-note">{{ freeshipText() }}</p>
             }
           </div>
         }
@@ -142,15 +142,17 @@
               <div><dt>Giảm giá ({{ v.code }})</dt><dd class="is-discount">−{{ totals().discount | vnd }}</dd></div>
             }
           }
-          <div><dt>Phí vận chuyển</dt><dd>{{ totals().shipping ? (totals().shipping | vnd) : 'Miễn phí' }}</dd></div>
+          <div><dt>Phí vận chuyển</dt><dd>{{ publicSettings() ? (totals().shipping ? (totals().shipping | vnd) : 'Miễn phí') : 'Chưa xác nhận' }}</dd></div>
         </dl>
         <hr class="divider" />
         <div class="total">
           <div><p class="total-label">Tổng cộng</p><p class="total-sub">Đã bao gồm VAT</p></div>
-          <p class="total-value">{{ totals().total | vnd }}</p>
+          <p class="total-value">{{ publicSettings() ? (totals().total | vnd) : 'Chưa xác nhận phí vận chuyển' }}</p>
         </div>
 
-        <button type="button" class="btn btn-primary cta" (click)="checkout()" [disabled]="!selected().length">
+        @if (catalogError()) { <p role="alert">Chưa tải được giá sách hiện tại. <a href="/cart">Tải lại giỏ hàng</a> trước khi thanh toán.</p> }
+        @if (!loading() && !catalogError() && stockError()) { <p role="alert">Một số sách chưa sẵn sàng hoặc không đủ số lượng. Kiểm tra lại sách, giảm số lượng hoặc bỏ chọn để tiếp tục.</p> }
+        <button type="button" class="btn btn-primary cta" (click)="checkout()" [disabled]="!selected().length || loading() || catalogError() || stockError() || !publicSettings()">
           Thanh toán ({{ selected().length }}) <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
         </button>
         <p class="trust"><img src="images/shop/lock.svg" alt="" width="14" height="14" />Thanh toán an toàn · Đổi trả trong 7 ngày</p>

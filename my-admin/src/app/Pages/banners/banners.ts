@@ -72,6 +72,7 @@ export class Banners {
         position,
         label: POSITION_LABELS[position],
         all,
+        unresolvedCount: items.filter((b) => b.position === position && this.hasContractIssue(b)).length,
         items: this.stateFilter() ? all.filter((b) => b.state === this.stateFilter()) : all,
       };
     });

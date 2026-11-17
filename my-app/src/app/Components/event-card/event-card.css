@@ -10,6 +10,8 @@
 }
 
 :host(.is-past) { box-shadow: none; }
+.ev-art { width: 180px; flex-shrink: 0; overflow: hidden; border-radius: var(--radius-16); }
+.ev-art img { display: block; width: 100%; height: auto; }
 
 .ev-date {
   display: flex;
@@ -78,6 +80,7 @@
 
 @media (max-width: 640px) {
   :host { flex-wrap: wrap; padding: var(--space-16); }
+  .ev-art { flex: 0 0 100%; width: 100%; }
   .ev-date { width: 72px; height: 92px; }
   .ev-day { font-size: 32px; }
   .ev-action { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }

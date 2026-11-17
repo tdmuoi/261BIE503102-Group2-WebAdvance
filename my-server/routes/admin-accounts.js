@@ -510,6 +510,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           (addresses?.find((address) => address.isDefault) || addresses?.[0])
             ?.addressLine || null,
         birthday: asDate(profile.dateOfBirth),
+        avatar: text(profile.avatar) || null,
         customerCode: id(profile._id),
         vip: false,
         internalNote: null,

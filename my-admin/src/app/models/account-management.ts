@@ -32,6 +32,7 @@ export interface CustomerOrderSummary {
 }
 
 export interface CustomerAccountDetail extends CustomerAccount {
+  avatar?: string | null;
   orders: CustomerOrderSummary[];
   returns?: {
     available: boolean;

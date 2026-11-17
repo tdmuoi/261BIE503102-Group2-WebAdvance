@@ -24,6 +24,7 @@ import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { adminAuthGuard, adminAuthChildGuard } from './services/admin-auth-service';
 import { pendingChangesGuard } from './Pages/settings/pending-changes-guard';
 import { AccessDenied } from './Pages/access-denied/access-denied';
+import { Events } from './Pages/events/events';
 
 const routes: Routes = [
   { path: 'login', component: Login },              // đăng nhập: không có sidebar
@@ -39,6 +40,7 @@ const routes: Routes = [
       { path: 'book-form', component: BookForm },          // thêm sách
       { path: 'book-form/:id', component: BookForm },      // sửa sách
       { path: 'banners', component: Banners },
+      { path: 'events', component: Events, canDeactivate: [pendingChangesGuard] },
       { path: 'news-list', component: NewsList },
       { path: 'news-editor', component: NewsEditor, canDeactivate: [pendingChangesGuard] },      // viết bài mới
       { path: 'news-editor/:id', component: NewsEditor, canDeactivate: [pendingChangesGuard] },  // sửa bài

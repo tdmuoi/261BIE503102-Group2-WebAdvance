@@ -23,7 +23,7 @@ const mongoUri = process.env.MONGODB_URI;
 
 // Cookie/CSRF preflight must run before the existing CORS middleware.
 const adminAuth = createAdminAuth(() => database);
-app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/settings', '/api/admin/buybacks', '/api/admin/books', '/api/admin/orders', '/api/admin/returns', '/api/admin/dashboard', '/api/admin/banners'], adminAuth.cors);
+app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/events', '/api/admin/settings', '/api/admin/buybacks', '/api/admin/books', '/api/admin/orders', '/api/admin/returns', '/api/admin/dashboard', '/api/admin/banners'], adminAuth.cors);
 
 app.use(cors({
   origin: ['http://localhost:4200', 'http://localhost:4201'],
@@ -32,6 +32,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan('combined'));
+app.use('/media/events', express.static(require('node:path').join(__dirname, 'public', 'events'), {
+  index: false, dotfiles: 'deny', maxAge: '1h',
+}));
 
 let database;
 let client;
@@ -108,7 +111,9 @@ app.get('/api/books', async (req, res) => {
       .limit(limit)
       .toArray();
 
-    res.json(books.map(customerRoutes.publicBook));
+    const ready = await require('./routes/admin-books').verifiedPdfBooks(database, books);
+    res.json(books.map(book => customerRoutes.publicBook(book.bookType === 'ebook'
+      ? { ...book, ebookReady: ready.has(String(book._id)) } : book)));
   } catch (error) {
     console.error('GET /api/books failed:', error.message);
 
@@ -184,6 +189,7 @@ app.use('/api', newsRoutes(() => database));
 // API Sự kiện giao lưu cho web khách, chỉ đọc: /api/events (xem routes/events.js)
 const eventsRoutes = require('./routes/events');
 app.use('/api', eventsRoutes(() => database));
+app.use('/api/admin/events', require('./routes/admin-events')(() => database));
 
 // API đăng ký nhận bản tin: POST /api/newsletter (xem routes/newsletter.js)
 const newsletterRoutes = require('./routes/newsletter');

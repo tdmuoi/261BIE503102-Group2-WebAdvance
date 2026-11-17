@@ -60,6 +60,22 @@ describe('ProductDetail', () => {
     expect(el.querySelector('.reviews-empty')?.textContent).toContain('Chưa có đánh giá');
   });
 
+  it.each([false, true])('Ebook stock=0 chỉ cho thêm vào giỏ khi PDF đã xác minh: %s', async (ready) => {
+    catalog.books.push(book('digital', { type: 'ebook', bookType: 'ebook', stock: 0, ebookReady: ready }));
+    try {
+      const el = await open('/books/digital');
+      const add = el.querySelector<HTMLButtonElement>('.cta-add')!;
+      expect(add.disabled).toBe(!ready);
+      expect(el.querySelector<HTMLButtonElement>('.cta-buy')!.disabled).toBe(!ready);
+      add.click();
+      await harness.fixture.whenStable();
+      expect(TestBed.inject(CartService).quantityOf('digital')).toBe(ready ? 1 : 0);
+      if (!ready) expect(el.textContent).toContain('chưa có PDF sẵn sàng');
+    } finally {
+      catalog.books.pop();
+    }
+  });
+
   it('slug không tồn tại thì hiện "Không tìm thấy sách" kèm nút quay lại /books', async () => {
     const el = await open('/books/khong-co');
 

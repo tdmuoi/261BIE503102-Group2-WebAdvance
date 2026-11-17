@@ -29,7 +29,6 @@ import { Notifications } from './Pages/account/notifications/notifications';
 import { DownloadPopup } from './Pages/account/popups/download-popup/download-popup';
 import { ReviewPopup } from './Pages/account/popups/review-popup/review-popup';
 import { BuyAgainDrawer } from './Pages/account/popups/buy-again-drawer/buy-again-drawer';
-import { EbookReader } from './Pages/ebook-reader/ebook-reader';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { HomeHero } from './Pages/homepage/sections/home-hero/home-hero';
 import { HomeSearch } from './Pages/homepage/sections/home-search/home-search';
@@ -75,7 +74,6 @@ import { FooterLegal } from './Components/footer-legal/footer-legal';
     DownloadPopup,
     ReviewPopup,
     BuyAgainDrawer,
-    EbookReader,
     PageNotFound,
     HomeHero,
     HomeSearch,

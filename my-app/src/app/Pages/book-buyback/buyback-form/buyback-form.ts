@@ -332,10 +332,17 @@ export class BuybackForm {
   /** Ô giá bìa: chỉ nhận số, tự chấm hàng nghìn */
   protected onPriceInput(item: ItemGroup, event: Event): void {
     const input = event.target as HTMLInputElement;
+    const digitsBeforeCursor = input.value.slice(0, input.selectionStart ?? input.value.length).replace(/\D/g, '').length;
     const digits = input.value.replace(/\D/g, '').slice(0, 9);
     const price = digits ? Number(digits) : null;
     item.controls.coverPrice.setValue(price);
     input.value = this.formatPrice(price);
+    let cursor = 0, digitCount = 0;
+    while (cursor < input.value.length && digitCount < digitsBeforeCursor) {
+      if (/\d/.test(input.value[cursor])) digitCount++;
+      cursor++;
+    }
+    input.setSelectionRange(cursor, cursor);
   }
 
   protected toggleCondition(item: ItemGroup, group: ConditionGroup, id: string): void {

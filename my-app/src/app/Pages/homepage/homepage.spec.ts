@@ -29,6 +29,7 @@ describe('Homepage', () => {
     fixture = TestBed.createComponent(Homepage);
     http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
+    http.expectOne(`${api}/banners?position=hero`).flush([]);
   });
 
   afterEach(() => http.verify());
@@ -67,6 +68,7 @@ describe('Homepage', () => {
     await fixture.whenStable();
     expect(text()).toContain('Đang tải sách');
     flushOpen(`${api}/books?limit=200`);
+    flushOpen(`${api}/banners?position=hero`);
     flushOpen(newBooksUrl);
     flushOpen(`${api}/authors`);
     flushOpen(`${api}/categories`);

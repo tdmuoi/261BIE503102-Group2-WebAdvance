@@ -48,8 +48,7 @@ describe('EbookReader', () => {
     book = fakeBook();
     open = vi.fn(opener ?? (async () => book));
     await TestBed.configureTestingModule({
-      declarations: [EbookReader],
-      imports: [RouterModule],
+      imports: [RouterModule, EbookReader],
       providers: [
         provideRouter([]),
         provideFakeCustomerApi(),

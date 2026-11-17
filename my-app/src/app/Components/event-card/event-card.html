@@ -1,3 +1,9 @@
+@if (event().image && event().image !== failedImage()) {
+  <div class="ev-art">
+    <img [src]="event().image" [alt]="'Ảnh minh họa: ' + event().title"
+         (error)="failedImage.set(event().image || '')" loading="lazy" />
+  </div>
+}
 <div class="ev-date">
   <span class="ev-month">{{ date().month }}</span>
   <span class="ev-day">{{ date().day }}</span>

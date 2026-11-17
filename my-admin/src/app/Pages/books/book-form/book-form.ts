@@ -172,6 +172,13 @@ export class BookForm {
     this.imageBroken.set(false);
   }
 
+  onBookTypeChange(): void {
+    // Only a new digital product starts with zero stock; retain stored legacy data on edits.
+    if (!this.isEdit && this.form.bookType === 'ebook') this.form.stock = 0;
+    this.clearError('stock');
+    this.clearError('bookType');
+  }
+
   // ---------- Lưu ----------
   /** Kiểm tra ở trình duyệt trước (server cũng kiểm tra lại) */
   validate(): FieldErrors {

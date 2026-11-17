@@ -57,6 +57,7 @@ export interface RegisterError {
 
 /** Kết quả POST /api/auth/forgot-password (luôn 200 dù email có tồn tại hay không) */
 export interface ForgotPasswordResponse {
+  deliveryAvailable?: boolean;
   message?: string;
   /** Số giây phải chờ trước khi được gửi lại */
   resendAfter?: number;

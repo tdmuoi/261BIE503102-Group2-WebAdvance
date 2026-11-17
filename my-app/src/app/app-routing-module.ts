@@ -17,7 +17,6 @@ import { BookshelfPurchased } from './Pages/account/bookshelf-purchased/bookshel
 import { Wishlist } from './Pages/account/wishlist/wishlist';
 import { Orders } from './Pages/account/orders/orders';
 import { Notifications } from './Pages/account/notifications/notifications';
-import { EbookReader } from './Pages/ebook-reader/ebook-reader';
 import { PageNotFound } from './Pages/page-not-found/page-not-found';
 import { authGuard } from './guards/auth-guard';
 
@@ -73,7 +72,7 @@ const routes: Routes = [
       { path: 'notifications', component: Notifications },
     ]
   },
-  { path: 'ebook-reader/:id', component: EbookReader },
+  { path: 'ebook-reader/:id', loadComponent: () => import('./Pages/ebook-reader/ebook-reader').then(m => m.EbookReader) },
   { path: '**', component: PageNotFound },   // luôn để cuối cùng
 ];
 

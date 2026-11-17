@@ -1,0 +1,66 @@
+<app-page-heading title="Sự kiện tác giả" subtitle="Quản lý lịch giao lưu và nội dung hiển thị trên trang sự kiện."
+  [breadcrumbs]="[{ label: 'Marketing & nội dung' }, { label: 'Sự kiện tác giả' }]">
+  @if (can('create')) { <button class="btn btn-primary" type="button" (click)="open()">+ Tạo sự kiện</button> }
+</app-page-heading>
+@if (message()) { <p class="notice" role="status">{{ message() }}</p> }
+@if (error()) { <p class="notice error" role="alert">{{ error() }} <button type="button" class="btn" (click)="load()">Thử lại</button></p> }
+<section class="card">
+  <form class="toolbar" (ngSubmit)="load(true)">
+    <input class="input" name="search" [(ngModel)]="search" maxlength="200" placeholder="Tìm tên sự kiện" aria-label="Tìm tên sự kiện" />
+    <select class="select" name="status" [(ngModel)]="status" aria-label="Trạng thái">
+      <option value="">Mọi trạng thái</option><option value="draft">Bản nháp</option><option value="published">Đã xuất bản</option><option value="hidden">Đã ẩn</option>
+    </select>
+    <button class="btn" [disabled]="loading()" type="submit">Lọc</button>
+    <a href="http://localhost:4200/authors/events" target="_blank" rel="noopener noreferrer">Xem trang khách ↗</a>
+  </form>
+  <p class="text-muted">Chỉ sự kiện đã xuất bản và có lịch mới hiển thị với khách. Bản demo chỉ xem, không xuất bản.</p>
+  @if (loading()) { <p role="status">Đang tải sự kiện…</p> }
+  @if (data(); as d) {
+    <div class="table-wrap"><table>
+      <thead><tr><th>Sự kiện</th><th>Thời gian (Việt Nam)</th><th>Địa điểm</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+      <tbody>
+        @for (row of d.items; track row._id) {
+          <tr><td><strong>{{ row.title }}</strong><small>{{ row.eventCode }} @if (row.isDemo) { · Demo }</small></td>
+            <td>{{ row.startAt ? (row.startAt | date:'dd/MM/yyyy HH:mm':'+0700') : 'Chưa có lịch' }}
+              @if (row.endAt) { <small>Đến {{ row.endAt | date:'dd/MM/yyyy HH:mm':'+0700' }}</small> }</td>
+            <td>{{ row.location || 'Chưa xác nhận' }}<small>{{ row.format === 'online' ? 'Online' : 'Tại địa điểm' }}</small></td>
+            <td>{{ labels[row.status] || row.status }}</td>
+            <td><button type="button" class="btn" [disabled]="loading() || saving()" (click)="open(row)">{{ !row.isDemo && can('update') && (row.status !== 'published' || can('publish')) ? 'Sửa' : 'Xem' }}</button></td></tr>
+        } @empty { <tr><td colspan="5">Không có sự kiện phù hợp. Tạo sự kiện mới để thêm lịch giao lưu.</td></tr> }
+      </tbody>
+    </table></div>
+    <div class="toolbar"><span>{{ d.total }} sự kiện · Trang {{ d.page }}</span>
+      <button type="button" class="btn" [disabled]="loading() || d.page <= 1" (click)="changePage(-1)">Trước</button>
+      <button type="button" class="btn" [disabled]="loading() || d.page * d.limit >= d.total" (click)="changePage(1)">Sau</button></div>
+  }
+</section>
+@if (formOpen()) {
+  <div class="backdrop"><section class="event-dialog card" role="dialog" aria-modal="true" aria-labelledby="event-form-title">
+    <header><h2 id="event-form-title">{{ readOnly() ? 'Xem sự kiện' : editing() ? 'Sửa sự kiện' : 'Tạo sự kiện' }}</h2>
+      <button class="btn" type="button" [disabled]="saving()" (click)="close()" aria-label="Đóng form">Đóng</button></header>
+    @if (editing()?.isDemo) { <p class="notice">Bản demo chỉ đọc. Hãy tạo sự kiện mới với nội dung và lịch đã xác nhận.</p> }
+    @if (!editing()) { <p class="text-muted">Lịch gợi ý: sau một tuần, 19:00–21:00. Bạn có thể đổi trước khi lưu.</p> }
+    <form (ngSubmit)="save()">
+      <fieldset [disabled]="saving() || readOnly()">
+        <label>Tên sự kiện *<input class="input" name="title" [(ngModel)]="form.title" maxlength="200" required /></label>
+        <label>Mô tả<textarea class="input" name="description" [(ngModel)]="form.description" maxlength="4000" rows="4"></textarea></label>
+        <div class="fields"><label>Bắt đầu (giờ Việt Nam)<input class="input" type="datetime-local" name="startAt" [(ngModel)]="form.startAt" /></label>
+          <label>Kết thúc (giờ Việt Nam)<input class="input" type="datetime-local" name="endAt" [(ngModel)]="form.endAt" /></label></div>
+        <div class="fields"><label>Tác giả<select class="select" name="authorId" [(ngModel)]="form.authorId"><option value="">Chưa chọn</option>
+          @for (author of authors(); track author._id) { <option [value]="author._id">{{ author.name }}</option> }</select></label>
+          <label>Khách mời khác (mỗi dòng một tên)<textarea class="input" name="guests" [(ngModel)]="form.guests" rows="2" maxlength="1210"></textarea></label></div>
+        <div class="fields"><label>Hình thức<select class="select" name="format" [(ngModel)]="form.format"><option value="offline">Tại địa điểm</option><option value="online">Online</option></select></label>
+          <label>Loại sự kiện<input class="input" name="type" [(ngModel)]="form.type" maxlength="80" /></label></div>
+        <label>Địa điểm / đường dẫn tham gia<input class="input" name="location" [(ngModel)]="form.location" maxlength="500" /></label>
+        <label>URL ảnh<input class="input" name="image" [(ngModel)]="form.image" maxlength="2000" placeholder="https://…" /></label>
+        <div class="fields"><label>Sức chứa (trống = chưa giới hạn)<input class="input" type="number" name="capacity" [(ngModel)]="form.capacity" min="1" max="100000" step="1" /></label>
+          <label>Trạng thái<select class="select" name="formStatus" [(ngModel)]="form.status"><option value="draft">Bản nháp</option>
+            <option value="published" [disabled]="!can('publish')">Xuất bản</option><option value="hidden">Ẩn</option></select></label></div>
+      </fieldset>
+      @if (formError()) { <p class="error" role="alert">{{ formError() }}</p> }
+      @for (entry of fieldErrors() | keyvalue; track entry.key) { <p class="error">{{ entry.value }}</p> }
+      <footer><button type="button" class="btn" [disabled]="saving()" (click)="close()">Đóng</button>
+        @if (!readOnly()) { <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu…' : form.status === 'published' ? 'Lưu & xuất bản' : 'Lưu sự kiện' }}</button> }</footer>
+    </form>
+  </section></div>
+}

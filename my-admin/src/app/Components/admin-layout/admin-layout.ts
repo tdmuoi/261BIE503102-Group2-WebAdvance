@@ -95,6 +95,7 @@ export class AdminLayout {
         { label: 'Banner & quảng cáo', link: '/banners', icon: ICONS.banner },
         { label: 'Mã giảm giá', link: '/vouchers', icon: ICONS.voucher },
         { label: 'Lightbook News', link: '/news-list', icon: ICONS.news, match: ['/news-editor'] },
+        { label: 'Sự kiện tác giả', link: '/events', icon: ICONS.order },
       ],
     },
     {

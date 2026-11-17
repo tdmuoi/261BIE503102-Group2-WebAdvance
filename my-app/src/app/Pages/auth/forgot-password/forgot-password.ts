@@ -87,6 +87,10 @@ export class ForgotPassword implements OnInit {
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.loading.set(false);
+        if (res.deliveryAvailable === false) {
+          this.serverError.set(res.message || 'Chức năng gửi email đặt lại mật khẩu chưa được tích hợp.');
+          return;
+        }
         onSuccess();
         this.startCountdown(res.resendAfter ?? RESEND_SECONDS);
       },

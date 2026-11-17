@@ -16,6 +16,7 @@
       <input type="search" [value]="query()" (input)="onSearch($event)" placeholder="Tìm mã đơn, tên sách…" />
     </label>
   </header>
+  @if (returnResult()) { <p role="status">{{ returnResult() }}</p> }
 
   <div class="status-tabs" role="tablist" aria-label="Lọc đơn hàng">
     @for (t of tabs(); track t.value) {
@@ -83,7 +84,7 @@
             <ul class="items">
               @for (item of o.items; track item.bookId) {
                 <li class="item">
-                  <img class="cover" [src]="item.image" [alt]="item.title" />
+                  <img class="cover" [appTrimCover]="item.image" [alt]="item.title" />
                   <span class="item-text"><b>{{ item.title }}</b><span>{{ itemMeta(item) }}</span></span>
                   <span class="item-price">{{ item.price * item.quantity | vnd }}</span>
                 </li>
@@ -111,7 +112,7 @@
                 </section>
                 <section>
                   <h3>Thanh toán</h3>
-                  <p>{{ paymentLabel[o.paymentMethod] }} · {{ o.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</p>
+                  <p>{{ paymentLabel[o.paymentMethod] }} · {{ o.paymentStatus === 'refunded' ? 'Đã hoàn tiền' : o.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</p>
                   <dl class="sums">
                     <div><dt>Tạm tính</dt><dd>{{ o.subtotal | vnd }}</dd></div>
                     @if (o.discount) { <div><dt>Giảm giá{{ o.voucherCode ? ' (' + o.voucherCode + ')' : '' }}</dt><dd>−{{ o.discount | vnd }}</dd></div> }
@@ -121,6 +122,21 @@
               </div>
             }
 
+            @if (expanded() === o._id && o.trackingCode) { <p>Mã vận đơn: <strong>{{ o.trackingCode }}</strong></p> }
+            @if (returning()?._id === o._id) {
+              <form (submit)="$event.preventDefault(); submitReturn()">
+                <h3>Yêu cầu trả hàng & hoàn tiền</h3>
+                <p>Hiện hỗ trợ trả toàn đơn trong 7 ngày sau khi nhận và có thanh toán hợp lệ. Cửa hàng sẽ xác minh yêu cầu.</p>
+                <label>Lý do<select name="returnReason" [value]="returnReason" (change)="returnReason = $any($event.target).value" [disabled]="returnBusy()">
+                  <option value="damaged">Sách hư hỏng</option><option value="wrong_item">Giao sai sách</option>
+                  <option value="not_as_described">Không đúng mô tả</option><option value="other">Khác</option>
+                </select></label>
+                <label>Mô tả<textarea name="returnDescription" [value]="returnDescription" (input)="returnDescription = $any($event.target).value" maxlength="1000" required [disabled]="returnBusy()"></textarea></label>
+                @if (returnError()) { <p role="alert">{{ returnError() }}</p> }
+                <button class="btn-sm" type="button" [disabled]="returnBusy()" (click)="returning.set(null)">Đóng</button>
+                <button class="btn-sm btn-sm--primary" type="submit" [disabled]="returnBusy()">{{ returnBusy() ? 'Đang gửi…' : 'Gửi yêu cầu' }}</button>
+              </form>
+            }
             <hr class="divider" />
             <div class="order-foot">
               <p class="order-total">Tổng cộng ({{ bookCount(o) }} sản phẩm): <b>{{ o.total | vnd }}</b></p>
@@ -137,6 +153,7 @@
                     }
                   }
                   @case ('delivered') {
+                    <button type="button" class="btn-sm" [disabled]="returnBusy()" (click)="openReturn(o)">Yêu cầu trả hàng</button>
                     @if (firstUnreviewed(o); as item) {
                       <button type="button" class="btn-sm" (click)="review(o, item)">Viết đánh giá</button>
                     } @else {

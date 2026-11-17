@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
-import { MonoTypeOperatorFunction, Observable, of, tap } from 'rxjs';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { MonoTypeOperatorFunction, Observable, catchError, map, of, shareReplay, tap, throwError, timeout } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import {
@@ -38,6 +38,11 @@ export interface MomoPaymentLink {
   test: boolean;
 }
 
+export interface StoreSettings {
+  shipping: { standardFee: number; expressFee: number; freeShippingThreshold: number };
+  promotions: { combosEnabled: boolean };
+}
+
 /** Kết quả server tra MoMo: paid = đã ghi nhận (ebook đã vào tủ sách), pending = MoMo chưa có kết quả */
 export interface MomoVerifyResult {
   status: 'paid' | 'pending' | 'failed';
@@ -65,6 +70,37 @@ export class AccountService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/account`;
+  readonly publicSettings = signal<StoreSettings | null>(null);
+  readonly settingsError = signal(false);
+  private settingsRequest?: Observable<StoreSettings>;
+  readonly freeshipText = computed(() => {
+    const shipping = this.publicSettings()?.shipping;
+    return shipping ? shipping.freeShippingThreshold === 0 ? 'Miễn phí giao tiêu chuẩn'
+      : `Freeship giao tiêu chuẩn từ ${shipping.freeShippingThreshold.toLocaleString('vi-VN')}đ`
+      : 'Phí vận chuyển được xác nhận tại thanh toán';
+  });
+
+  getPublicSettings(refresh = false): Observable<StoreSettings> {
+    if (refresh) {
+      this.settingsRequest = undefined;
+      this.publicSettings.set(null);
+      this.settingsError.set(false);
+    }
+    this.settingsRequest ??= this.http.get<StoreSettings>(`${environment.apiUrl}/settings`).pipe(
+      timeout(10000),
+      map(settings => {
+        if (!settings.shipping || ['standardFee', 'expressFee', 'freeShippingThreshold'].some(key => {
+          const value = settings.shipping[key as keyof StoreSettings['shipping']];
+          return !Number.isSafeInteger(value) || value < 0;
+        })) throw new Error('Cấu hình vận chuyển không hợp lệ.');
+        return settings;
+      }),
+      tap(settings => { this.publicSettings.set(settings); this.settingsError.set(false); }),
+      catchError(error => { this.settingsRequest = undefined; this.publicSettings.set(null); this.settingsError.set(true); return throwError(() => error); }),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
+    return this.settingsRequest;
+  }
 
   private readonly profileState = signal<AccountProfile | null>(null);
   private readonly profileErrorState = signal(false);
@@ -96,7 +132,6 @@ export class AccountService {
     return this.http.put<AccountProfile>(`${this.baseUrl}/profile`, body, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** Ảnh đã thu nhỏ ở trình duyệt, gửi dạng data URL (server giới hạn ~90KB) */
   /** Lưu link ảnh đại diện đã tải lên Cloudinary (UploadService) */
   uploadAvatar(url: string): Observable<{ avatar: string }> {
     return this.http.put<{ avatar: string }>(`${this.baseUrl}/avatar`, { avatar: url }, { headers: this.headers() }).pipe(this.on401());
@@ -161,7 +196,7 @@ export class AccountService {
     const snapshot: CreateOrderRequest = JSON.parse(JSON.stringify(body));
     return this.http.post<Order>(`${environment.apiUrl}/orders`, snapshot, {
       headers: this.headers().set('Idempotency-Key', idempotencyKey),
-    }).pipe(this.on401());
+    }).pipe(timeout(20000), this.on401());
   }
 
   /** Hỏi lại trạng thái đơn — dùng sau khi người dùng quét mã thanh toán online */
@@ -169,8 +204,13 @@ export class AccountService {
     return this.http.get<Order>(`${environment.apiUrl}/orders/${id}`, { headers: this.headers() }).pipe(this.on401());
   }
 
+  requestReturn(orderId: string, body: { type: 'refund'; reason: string; description: string }) {
+    return this.http.post<{ _id: string; requestCode: string; status: string }>(
+      `${environment.apiUrl}/orders/${orderId}/returns`, body, { headers: this.headers() }).pipe(timeout(20000), this.on401());
+  }
+
   cancelOrder(id: string): Observable<Order> {
-    return this.http.put<Order>(`${this.baseUrl}/orders/${id}/cancel`, {}, { headers: this.headers() }).pipe(this.on401());
+    return this.http.put<Order>(`${this.baseUrl}/orders/${id}/cancel`, {}, { headers: this.headers() }).pipe(timeout(20000), this.on401());
   }
 
   /** Bản demo: người dùng bấm "Tôi đã thanh toán" (chưa nối cổng MoMo/VNPay thật) */

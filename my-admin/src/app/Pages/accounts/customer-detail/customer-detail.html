@@ -36,7 +36,12 @@
   <div class="profile-grid">
     <aside class="card profile-card">
       <div class="identity">
-        <span class="avatar">{{ initials(customer.fullName) }}</span>
+        <span class="avatar">
+          @if (customer.avatar) {
+            <img [src]="customer.avatar" [alt]="customer.fullName" width="80" height="80"
+                 style="border-radius: inherit; object-fit: cover" (error)="customer.avatar = null" />
+          } @else { {{ initials(customer.fullName) }} }
+        </span>
         <h2>{{ customer.fullName }}</h2>
         <p>
           {{ customer.customerCode }} · Tham gia

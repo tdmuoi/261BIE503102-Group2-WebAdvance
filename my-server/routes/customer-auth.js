@@ -140,7 +140,7 @@ module.exports = function customerAuthRoutes(getDb) {
 
   // Chưa có dịch vụ gửi email: luôn trả 200 để không lộ email nào đã đăng ký
   router.post('/auth/forgot-password', (req, res) => {
-    res.json({ message: 'Nếu email đã đăng ký, Lightbook sẽ gửi hướng dẫn đặt lại mật khẩu.', resendAfter: 30 });
+    res.json({ message: 'Chức năng gửi email đặt lại mật khẩu chưa được tích hợp. Vui lòng liên hệ hỗ trợ.', deliveryAvailable: false, resendAfter: 30 });
   });
 
   return router;

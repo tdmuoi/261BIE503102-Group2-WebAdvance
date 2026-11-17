@@ -25,7 +25,7 @@ describe('Checkout', () => {
   let el: HTMLElement;
   let db: FakeDb;
 
-  async function setup(items: { bookId: string; price: number; quantity: number }[]) {
+  async function setup(items: { bookId: string; price: number; quantity: number }[], selectMomo = true) {
     localStorage.clear();
     sessionStorage.clear();
     signInForTest();
@@ -42,12 +42,13 @@ describe('Checkout', () => {
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
+    vi.useFakeTimers();
     fixture = TestBed.createComponent(Checkout);
     component = fixture.componentInstance;
     el = fixture.nativeElement;
-    vi.useFakeTimers();
     fixture.detectChanges();
     vi.advanceTimersByTime(400); // sổ địa chỉ
+    if (selectMomo) component.selectPayment('momo');
     fixture.detectChanges();
   }
 
@@ -115,7 +116,7 @@ describe('Checkout', () => {
       case 'cart': facade.setQuantity('b', 2); break;
       case 'address': component.addressId.set('addr-2'); break;
       case 'shipping': component.shipping.set('express'); break;
-      case 'payment': component.payment.set('vnpay'); break;
+      case 'payment': component.selectPayment('cod'); break;
       case 'voucher': facade.setVoucher({ code: 'NEW', type: 'fixed', value: 1000, maxDiscount: null, minOrderValue: 0, description: '' }); break;
       case 'note': component.note.set('New note'); break;
       case 'combos': combos[0].freeship = true; break;
@@ -190,18 +191,18 @@ describe('Checkout', () => {
     expect(component.momoCheck()).toBeNull();
     expect(db.calls).toContain('POST /payments/momo/verify');
     expect(el.textContent).toContain('Đặt hàng thành công');
-    expect(el.textContent).toContain('Sách điện tử trong đơn đã có trong tủ sách của bạn.');
+    expect(el.textContent).toContain('tủ sách sau khi thanh toán được xác minh');
     expect(TestBed.inject(CartService).items().length).toBe(0);
     expect(db.orders[0].orderCode).toBe('LB-26117');
   });
 
   it('huỷ bước quét mã: đơn bị huỷ, giỏ giữ nguyên; COD thì xong luôn không cần quét mã', async () => {
     await setup([{ bookId: 'b', price: 99000, quantity: 1 }]);
-    component.payment.set('bank_transfer');
+    component.selectPayment('momo');
     component.placeOrder();
     vi.advanceTimersByTime(800);
     fixture.detectChanges();
-    expect(el.querySelector('.pay-modal')?.textContent).toContain('Số tài khoản');
+    expect(el.querySelector('.pay-modal')?.textContent).toContain('Số tiền');
     component.cancelPayment();
     vi.advanceTimersByTime(500);
     expect(component.paying()).toBeNull();
@@ -261,9 +262,79 @@ describe('Checkout', () => {
     await setup([]);
     expect(el.textContent).toContain('Chưa có sách nào để thanh toán');
   });
+
+  it('không tự chọn thanh toán và không gửi đơn trước khi khách chọn', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 1 }], false);
+    const { requests } = captureOrders();
+    expect(component.payment()).toBeNull();
+    component.placeOrder();
+    expect(requests()).toHaveLength(0);
+    expect(component.submitError()).toContain('chọn phương thức');
+  });
+
+  it('phương thức chưa tích hợp bị vô hiệu hóa và không tạo đơn', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 1 }], false);
+    const { requests } = captureOrders();
+    for (const method of ['vnpay', 'bank_transfer'] as const) {
+      component.selectPayment(method);
+      expect(component.payment()).toBeNull();
+    }
+    expect(el.querySelectorAll('#co-payment + .options button:disabled')).toHaveLength(2);
+    component.placeOrder();
+    expect(requests()).toHaveLength(0);
+  });
+
+  it('hủy thanh toán bị lỗi giữ nguyên đơn và cho thử lại, không báo đã hủy', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 1 }]);
+    component.placeOrder();
+    vi.advanceTimersByTime(800);
+    const pending = component.paying();
+    expect(pending).not.toBeNull();
+    vi.spyOn(TestBed.inject(AccountService), 'cancelOrder').mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 503 })),
+    );
+    component.cancelPayment();
+    expect(component.paying()).toEqual(pending);
+    expect(component.paymentBusy()).toBeNull();
+    expect(component.paymentError()).toContain('Chưa xác nhận hủy');
+    expect(db.orders[0].status).toBe('pending');
+    component.cancelPayment();
+    vi.advanceTimersByTime(500);
+    expect(component.paying()).toBeNull();
+    expect(db.orders[0].status).toBe('cancelled');
+  });
+
+  it('giỏ cũ vượt tồn kho bị chặn trước khi tạo đơn; giảm về mức hợp lệ thì mua được', async () => {
+    await setup([{ bookId: 'b', price: 99000, quantity: 11 }]);
+    const { requests } = captureOrders();
+    expect(component.stockError()).toBe(true);
+    component.placeOrder();
+    expect(requests()).toHaveLength(0);
+    TestBed.inject(CartFacade).setQuantity('b', 1);
+    expect(component.stockError()).toBe(false);
+    component.placeOrder();
+    expect(requests()).toHaveLength(1);
+  });
 });
 
 describe('Checkout createOrder HTTP retry', () => {
+  it('đọc lại Settings để nhận phí mới thay vì giữ cache của phiên cũ', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const http = TestBed.inject(HttpTestingController), account = TestBed.inject(AccountService);
+    account.getPublicSettings().subscribe();
+    http.expectOne(request => request.url.endsWith('/settings')).flush({
+      shipping: { standardFee: 30000, expressFee: 45000, freeShippingThreshold: 500000 }, promotions: { combosEnabled: false },
+    });
+    expect(account.publicSettings()?.shipping.standardFee).toBe(30000);
+    account.getPublicSettings(true).subscribe();
+    expect(account.publicSettings()).toBeNull();
+    http.expectOne(request => request.url.endsWith('/settings')).flush({
+      shipping: { standardFee: 18000, expressFee: 45000, freeShippingThreshold: 100000 }, promotions: { combosEnabled: false },
+    });
+    expect(account.publicSettings()?.shipping.standardFee).toBe(18000);
+    http.verify();
+  });
+
   it('retry Observable gửi cùng header và bản chụp payload dù object nguồn bị sửa', () => {
     localStorage.clear();
     sessionStorage.clear();

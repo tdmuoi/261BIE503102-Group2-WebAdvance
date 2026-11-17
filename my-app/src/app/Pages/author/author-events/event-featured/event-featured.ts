@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 
 import { Catalog, CatalogBook } from '../../../../models/book';
 import { LbEvent } from '../../../../models/content';
@@ -17,6 +17,7 @@ export class EventFeatured {
   readonly catalog = input<Catalog | null>(null);
 
   readonly reserve = output<LbEvent>();
+  protected readonly failedImage = signal('');
 
   protected readonly state = computed(() => eventState(this.event()));
   protected readonly date = computed(() => dateBlock(this.event().startAt));

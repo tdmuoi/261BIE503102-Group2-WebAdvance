@@ -3,7 +3,7 @@
   <div class="nn-text">
     <span class="nn-tag">✦ Newsletter</span>
     <h2 class="nn-title"><span class="h1">Thư từ Lightbook</span> <span class="accent-h1">every Thursday.</span></h2>
-    <p>Sách mới, review indie và lịch Author Talk gửi thẳng vào hộp thư mỗi thứ Năm. Không spam, huỷ bất cứ lúc nào.</p>
+    <p>Đăng ký nhận thông tin sách mới, review indie và lịch Author Talk. Dịch vụ gửi email đang chờ tích hợp.</p>
   </div>
 
   <form class="nn-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -40,7 +40,7 @@
       <span class="np-icon" aria-hidden="true">{{ state() === 'done' ? '✓' : '✦' }}</span>
       @if (state() === 'done') {
         <h2 class="np-title" id="np-title">Bạn đã đăng ký thành công!</h2>
-        <p class="np-text">Thư từ Lightbook sẽ đến hộp thư của bạn vào mỗi thứ Năm.</p>
+        <p class="np-text">Email đã được lưu vào danh sách nhận bản tin. Dịch vụ gửi thư đang chờ tích hợp.</p>
       } @else {
         <h2 class="np-title" id="np-title">Bạn đã đăng ký rồi nhé!</h2>
         <p class="np-text">Email này đã có trong danh sách nhận Thư từ Lightbook.</p>

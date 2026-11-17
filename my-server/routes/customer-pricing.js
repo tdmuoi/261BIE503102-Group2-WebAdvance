@@ -93,7 +93,7 @@ function computeTotals(lines, { method = 'standard', voucher = null, shipping = 
   const freeship =
     shipMethod === 'standard' && (voucherFreeship || physicalSubtotal >= (shipping?.freeShippingThreshold ?? FREESHIP_MIN));
   const shippingFee = !shipMethod || freeship ? 0 : shipMethod === 'standard'
-    ? shipping?.standardFee ?? SHIPPING_FEES.standard : SHIPPING_FEES.express;
+    ? shipping?.standardFee ?? SHIPPING_FEES.standard : shipping?.expressFee ?? SHIPPING_FEES.express;
 
   return {
     subtotal,

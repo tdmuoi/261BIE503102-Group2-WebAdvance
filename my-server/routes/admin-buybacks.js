@@ -4,7 +4,16 @@ const createAuth = require("../middleware/admin-auth");
 const text = (value) => (typeof value === "string" ? value.trim() : "");
 const number = (value) =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
+const conditionLabels = {
+  'cover-intact': 'Nguyên vẹn, không trầy', 'cover-scratched': 'Trầy xước nhẹ',
+  'cover-torn': 'Bong góc / rách nhẹ', 'cover-faded': 'Ố màu, phai màu',
+  'spine-straight': 'Thẳng, không nứt', 'spine-creased': 'Có nếp gấp nhẹ', 'spine-loose': 'Lỏng hoặc nứt gáy',
+  'pages-clean': 'Đủ trang, sạch', 'pages-notes': 'Có ghi chú / highlight',
+  'pages-yellowed': 'Ố vàng nhẹ', 'pages-missing': 'Thiếu hoặc rách trang',
+  bookmark: 'Bookmark / quà tặng gốc', jacket: 'Áo sách (bìa rời)', signed: 'Chữ ký tác giả', none: 'Không có',
+};
 function present(doc) {
+  const items = Array.isArray(doc.books) ? doc.books : Array.isArray(doc.bookInfo?.items) ? doc.bookInfo.items : [];
   return {
     id: String(doc._id),
     code: doc.requestCode || String(doc._id),
@@ -18,6 +27,14 @@ function present(doc) {
     offerPrice: number(doc.offerPrice),
     resalePrice: number(doc.resalePrice),
     quantity: number(doc.quantity),
+    items: items.filter(item => item && typeof item === 'object').map(item => ({
+      title: text(item.title), author: text(item.author), quantity: number(item.quantity),
+      coverPrice: number(item.coverPrice), note: text(item.note),
+      condition: Object.fromEntries(['cover', 'spine', 'pages', 'extras'].map(key => [key,
+        Array.isArray(item.condition?.[key]) ? item.condition[key].filter(value => typeof value === 'string')
+          .map(value => Object.hasOwn(conditionLabels, value) ? conditionLabels[value] : value) : []])),
+    })),
+    payout: ['bank', 'voucher'].includes(doc.payout) ? doc.payout : null,
     shipping: ["branch", "postal"].includes(doc.shipping) ? doc.shipping : null,
     status: doc.status,
     date: doc.createdAt || null,

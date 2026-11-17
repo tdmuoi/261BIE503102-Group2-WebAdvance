@@ -159,7 +159,7 @@ module.exports = function librarianRoutes(getDb) {
   function getClient() {
     if (!process.env.GEMINI_API_KEY) throw new Error('Missing GEMINI_API_KEY');
     // @google/genai 3.x mặc định gọi API v1, bản này không nhận systemInstruction → phải dùng v1beta
-    ai ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, apiVersion: 'v1beta' });
+    ai ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, apiVersion: 'v1beta', httpOptions: { timeout: 20000 } });
     return ai;
   }
 
@@ -245,6 +245,7 @@ module.exports = function librarianRoutes(getDb) {
     const message = String(req.body?.message ?? '').trim();
     if (!message) return res.status(400).json({ message: MESSAGES.empty });
     if (message.length > MAX_MESSAGE) return res.status(400).json({ message: MESSAGES.tooLong });
+    if (!process.env.GEMINI_API_KEY?.trim()) return res.status(503).json({ message: 'Chatbot chưa được cấu hình. Vui lòng thử lại sau.' });
 
     try {
       const catalog = await getCatalog();

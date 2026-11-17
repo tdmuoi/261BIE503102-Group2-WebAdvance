@@ -156,6 +156,11 @@ function handle(db: FakeDb, req: HttpRequest<unknown>): Reply | null {
   db.calls.push(`${m} ${path}`);
   const seg = path.split('/').filter(Boolean);
 
+  if (m === 'GET' && path === '/settings') return ok({
+    shipping: { standardFee: 30000, expressFee: 45000, freeShippingThreshold: 500000 },
+    promotions: { combosEnabled: false },
+  });
+
   // ---- Đăng nhập / đăng ký (không cần token) ----
   if (m === 'POST' && path === '/auth/login') {
     const id = String(body['identifier'] ?? '').trim().toLowerCase();

@@ -17,6 +17,15 @@ test('đơn chỉ có ebook không có phí ship', () => {
   assert.equal(t.shippingFee, 0); assert.equal(t.shippingMethod, null); assert.equal(t.total, 65000);
 });
 
+test('standard and express shipping both use current Settings instead of fixed fees', () => {
+  const shipping = { standardFee: 18000, expressFee: 60000, freeShippingThreshold: 100000 };
+  assert.equal(computeTotals([print('a', 16000)], { shipping }).shippingFee, 18000);
+  const express = computeTotals([print('a', 16000)], { shipping, method: 'express' });
+  assert.equal(express.shippingFee, 60000);
+  assert.equal(express.total, 76000);
+  assert.equal(computeTotals([ebook('e', 15000)], { shipping, method: 'express' }).shippingFee, 0);
+});
+
 test('mã phần trăm có trần giảm tối đa', () => {
   const t = computeTotals([print('a', 400000)], { voucher: { type: 'percentage', value: 20, maxDiscount: 50000 } });
   assert.equal(t.discount, 50000); assert.equal(t.total, 400000 - 50000 + 30000);
@@ -103,14 +112,16 @@ async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quot
   const userId = new ObjectId(), accountId = new ObjectId(), secondUser = new ObjectId(), secondAccount = new ObjectId();
   const bookId = new ObjectId(), addressId = new ObjectId(), secondAddress = new ObjectId(), voucherId = new ObjectId();
   const token = 'a'.repeat(64), otherToken = 'b'.repeat(64);
-  const book = { _id: bookId, title: 'Fixture', bookType: ebook ? 'ebook' : used ? 'used' : 'new', status: 'active', price: 100000, stock };
+  const book = { _id: bookId, title: 'Fixture', bookType: ebook ? 'ebook' : used ? 'used' : 'new', status: 'active', price: 100000, stock,
+    ...(ebook ? { ebookFileId: new ObjectId() } : {}) };
   let records = {
     users: [{ _id: userId, accountId, fullName: 'Fixture' }, { _id: secondUser, accountId: secondAccount, fullName: 'Other' }],
     accounts: [{ _id: accountId, roleCode: 'CUSTOMER', status: 'active', email: 'a@example.invalid' },
       { _id: secondAccount, roleCode: 'CUSTOMER', status: 'active', email: 'b@example.invalid' }],
     customer_sessions: [{ tokenHash: tokenDigest(token), accountId, userId, expiresAt: new Date('2099-01-01') },
       { tokenHash: tokenDigest(otherToken), accountId: secondAccount, userId: secondUser, expiresAt: new Date('2099-01-01') }],
-    books: [book], old_books: used ? [clone(book)] : [], authors: [], orders: [], notifications: [], personalBooks: [], settings: [], inventory_logs: [], 'fs.files': [], payments: [],
+    books: [book], old_books: used ? [clone(book)] : [], authors: [], orders: [], notifications: [], personalBooks: [], settings: [], inventory_logs: [],
+    'fs.files': ebook ? [{ _id: book.ebookFileId, length: 100, metadata: { bookId, verified: true } }] : [], payments: [],
     addresses: [{ _id: addressId, userId, recipientName: 'Fixture', street: 'Street' },
       { _id: secondAddress, userId: secondUser, recipientName: 'Other', street: 'Other street' }],
     vouchers: [{ _id: voucherId, code: 'QA10', type: 'percent', value: 10, usedCount: 0, usageLimit: quota, perUserLimit: perUser, status: 'active' }],
@@ -195,10 +206,37 @@ async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quot
     concurrentNext() { gate = { waiting: 0 }; gate.promise = new Promise((resolve) => { gate.resume = resolve; }); } };
 }
 
+test('Unconfigured VNPay and bank transfer cannot create orders or reserve stock/vouchers', async t => {
+  const f = await checkoutFixture(t), before = clone(f.records);
+  for (const paymentMethod of ['vnpay', 'bank_transfer']) {
+    const result = await f.request('/orders', { ...f.body, paymentMethod }, { key: require('node:crypto').randomUUID() });
+    assert.equal(result.status, 503);
+    assert.deepEqual(f.records, before);
+  }
+});
+
+test('Ebook purchase requires its own verified readable PDF before reserving anything', async t => {
+  const f = await checkoutFixture(t, { ebook: true, stock: 0 }), file = f.records['fs.files'][0];
+  for (const patch of [{ metadata: { ...file.metadata, verified: false } },
+    { metadata: { ...file.metadata, bookId: new ObjectId() } },
+    { metadata: { ...file.metadata, bookId: String(f.bookId) } }, { length: 0 },
+    { length: require('./admin-books').PDF_MAX_BYTES + 1 }]) {
+    const original = clone(file); Object.assign(file, patch); const before = clone(f.records);
+    const result = await f.request('/orders', f.body, { key: require('node:crypto').randomUUID() });
+    assert.equal(result.status, 409);
+    assert.deepEqual(f.records, before);
+    Object.assign(file, original);
+  }
+  const result = await f.request('/orders', f.body, { key: require('node:crypto').randomUUID() });
+  assert.equal(result.status, 201);
+  assert.equal(f.records.books[0].stock, 0);
+  assert.equal(f.records.personalBooks.length, 0);
+});
+
 async function freeEbookFixture(t) {
   const f = await checkoutFixture(t, { ebook: true });
   const book = f.records.books[0]; book.price = 0; book.ebookFormat = 'pdf'; book.ebookFileId = new ObjectId();
-  f.records['fs.files'].push({ _id: book.ebookFileId, length: 100, metadata: { bookId: book._id, verified: true } });
+  f.records['fs.files'] = [{ _id: book.ebookFileId, length: 100, metadata: { bookId: book._id, verified: true } }];
   return { f, book, claim: (body = {}, options = {}) => f.request('/account/ebooks/' + f.bookId, body, { method: 'PUT', ...options }) };
 }
 

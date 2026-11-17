@@ -6,7 +6,7 @@ export function routePermission(url: string): [string, string] | null {
   const modules: Record<string, string> = {
     dashboard: 'dashboard', 'book-list': 'products', inventory: 'inventory',
     orders: 'orders', 'order-detail': 'orders', refunds: 'orders',
-    banners: 'banners', vouchers: 'vouchers', 'news-list': 'content',
+    banners: 'banners', vouchers: 'vouchers', 'news-list': 'content', events: 'content',
     accounts: 'customers', 'customer-detail': 'customers',
     'users-roles': 'accounts', settings: 'settings',
     'buyback-requests': 'liquidation', 'buyback-detail': 'liquidation',
@@ -26,6 +26,6 @@ export function canAccessRoute(user: AdminUser | null, url: string): boolean {
 
 export function landingPage(user: AdminUser | null): string {
   return ['/dashboard', '/book-list', '/inventory', '/orders', '/refunds',
-    '/buyback-requests', '/banners', '/vouchers', '/news-list', '/accounts',
+    '/buyback-requests', '/banners', '/vouchers', '/news-list', '/events', '/accounts',
     '/users-roles', '/settings'].find((url) => canAccessRoute(user, url)) ?? '/access-denied';
 }

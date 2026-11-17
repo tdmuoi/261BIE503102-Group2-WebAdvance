@@ -9,7 +9,7 @@
   <p class="er-when">{{ when() }}@if (place()) { · {{ place() }} }</p>
 
   @if (state() === 'done') {
-    <p class="er-note er-ok" role="status">Đã giữ chỗ thành công. Lightbook sẽ gửi email xác nhận cho bạn.</p>
+    <p class="er-note er-ok" role="status">Đã giữ chỗ thành công. Bạn có thể theo dõi thông tin cập nhật trên trang sự kiện.</p>
     <button type="button" class="btn btn-primary" (click)="closed.emit()">Đóng</button>
   } @else {
     <form class="er-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>

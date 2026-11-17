@@ -22,6 +22,8 @@ export interface Book {
 
   /** Loại sách: GET /api/books?format=new,used lọc theo field này */
   bookType?: BookType;
+  /** Server đã xác minh PDF liên kết; không liên quan tồn kho vật lý. */
+  ebookReady?: boolean;
 
   // Chưa có trong DB — giao diện tự ẩn phần tương ứng khi thiếu, backend thêm vào là hiện
   slug?: string;

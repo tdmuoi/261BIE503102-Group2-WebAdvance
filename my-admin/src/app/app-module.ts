@@ -33,6 +33,7 @@ import { BuybackDetail } from './Pages/buyback-requests/buyback-detail/buyback-d
 import { UsersRoles } from './Pages/settings/users-roles/users-roles';
 import { BannerForm } from './Pages/banners/banner-form/banner-form';
 import { RefundDetail } from './Pages/refunds/refund-detail/refund-detail';
+import { Events } from './Pages/events/events';
 
 @NgModule({
   declarations: [
@@ -64,6 +65,7 @@ import { RefundDetail } from './Pages/refunds/refund-detail/refund-detail';
     UsersRoles,
     BannerForm,
     RefundDetail,
+    Events,
   ],
   imports: [BrowserModule, AppRoutingModule, FormsModule],
   providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(withFetch(), withInterceptors([adminSessionInterceptor]))],

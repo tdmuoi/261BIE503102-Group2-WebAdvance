@@ -79,12 +79,13 @@
   }
 </div>
 
+@if (isEbook() && item.ebookReady === false) { <p role="status">Ebook chưa có PDF sẵn sàng để bán. Vui lòng chọn sách khác.</p> }
 <div class="info-actions">
   <button class="cta cta-add" type="button" [disabled]="maxQuantity() <= 0" (click)="add.emit()">
     <img src="images/icons/shopping-bag.svg" alt="" width="20" height="20" />
     Thêm {{ quantity() }} cuốn vào giỏ
   </button>
-  <button class="cta cta-buy" type="button" [disabled]="!isEbook() && item.stock <= 0" (click)="buy.emit()">
+  <button class="cta cta-buy" type="button" [disabled]="(!isEbook() && item.stock <= 0) || (isEbook() && item.ebookReady === false)" (click)="buy.emit()">
     Mua ngay <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
   </button>
   <button class="share" type="button" aria-label="Chia sẻ sách" (click)="share.emit()">
@@ -93,7 +94,7 @@
 </div>
 
 <ul class="info-perks">
-  <li><img src="images/icons/truck.svg" alt="" width="18.1667" height="18" />Freeship đơn từ 500.000đ</li>
+  <li><img src="images/icons/truck.svg" alt="" width="18.1667" height="18" />Ưu đãi vận chuyển theo chính sách hiện hành</li>
   <li><img src="images/icons/gift.svg" alt="" width="18" height="18" />Tặng bookmark Lightbook</li>
   <li><img src="images/icons/check.svg" alt="" width="18" height="18" />Đổi trả trong 7 ngày</li>
 </ul>

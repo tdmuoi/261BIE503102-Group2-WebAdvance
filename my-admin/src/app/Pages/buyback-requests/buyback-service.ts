@@ -17,6 +17,11 @@ export interface BuybackRequest {
   offerPrice: number | null;
   resalePrice: number | null;
   quantity: number | null;
+  items?: {
+    title: string; author: string; quantity: number | null; coverPrice: number | null; note: string;
+    condition: { cover: string[]; spine: string[]; pages: string[]; extras: string[] };
+  }[];
+  payout?: 'bank' | 'voucher' | null;
   shipping: 'branch' | 'postal' | null;
   status: BuybackStatus;
   date: string;

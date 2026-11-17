@@ -1,6 +1,9 @@
 <section class="hero">
   <div class="hero-head">
     <h1 class="hero-title">
+      @if (banner(); as b) {
+        <a class="hero-line" [href]="b.link || '/books'"><span class="hero-sans">{{ b.title }}</span></a>
+      } @else {
       <span class="hero-line">
         <!-- Dải hồng chỉ ôm cụm "discover a story" -->
         <span class="hero-mark"><img class="hero-highlight" src="images/hero/headline-highlight.png" alt="" width="514" height="80" /><span class="hero-sans">discover</span>&ngsp;<span class="hero-serif">a story</span></span>&ngsp;<span class="hero-sans">that</span>
@@ -8,6 +11,7 @@
       &ngsp;<span class="hero-line">
         <span class="hero-serif hero-wavy">might change</span>&ngsp;<span class="hero-sans">your day.</span>
       </span>
+      }
     </h1>
 
     <span class="hero-sticker hero-sticker-trending"><span aria-hidden="true">🍒</span> trending</span>
@@ -15,12 +19,17 @@
   </div>
 
   <div class="hero-books">
+    @if (banner()?.image; as image) {
+      <a [href]="banner()?.link || '/books'"><img class="hero-book" [src]="image" [alt]="banner()?.title || ''"
+        style="left: 50%; top: 50%; width: 80%; height: 100%; object-fit: contain" /></a>
+    } @else {
     @for (book of books; track book.src) {
       <img class="hero-book" [src]="book.src" [alt]="book.alt"
            [style.left.%]="book.x" [style.top.%]="book.y" [style.width.%]="book.width" [style.z-index]="book.layer" />
     }
+    }
   </div>
 </section>
 
-<app-marquee class="hero-strip" [items]="stripItems" separator="✦"
+<app-marquee class="hero-strip" [items]="banner()?.subtitle ? [banner()!.subtitle] : stripItems" separator="✦"
              [height]="42" [letterSpacing]="1.4" [speed]="50"></app-marquee>

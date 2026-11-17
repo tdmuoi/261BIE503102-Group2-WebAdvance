@@ -9,7 +9,7 @@ import { Component } from '@angular/core';
 })
 export class PageNotFound {
   readonly perks = [
-    { icon: 'images/auth/truck.svg', w: 17, label: 'Freeship đơn từ 500.000đ' },
+    { icon: 'images/auth/truck.svg', w: 17, label: 'Ưu đãi vận chuyển theo chính sách hiện hành' },
     { icon: 'images/auth/gift.svg', w: 16, label: 'Tặng bookmark mỗi đơn' },
     { icon: 'images/shop/check-sm.svg', w: 16, label: 'Đổi trả trong 7 ngày' },
   ];

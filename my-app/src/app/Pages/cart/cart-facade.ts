@@ -1,6 +1,7 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Observable, catchError, map, of } from 'rxjs';
+import { NavigationEnd, Router } from '@angular/router';
+import { Observable, catchError, filter, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 
 import { VoucherResult } from '../../models/account';
 import { CatalogBook } from '../../models/book';
@@ -49,14 +50,27 @@ const VARIANT = { new: 'Sách mới', used: 'Sách cũ', ebook: 'Sách điện t
 export class CartFacade {
   private readonly cart = inject(CartService);
   private readonly bookService = inject(BookService);
+  private readonly router = inject(Router);
   private readonly account = inject(AccountService);
   private readonly comboService = inject(ComboService);
+  readonly publicSettings = this.account.publicSettings;
+  readonly settingsError = this.account.settingsError;
+  readonly freeshipText = this.account.freeshipText;
+  readonly catalogError = signal(false);
 
   /** null = đang tải danh mục */
   private readonly catalog = toSignal(
-    this.bookService.getCatalog().pipe(
-      map((c) => new Map(c.books.map((b) => [b._id, b] as const))),
-      catchError(() => of(new Map<string, CatalogBook>())),
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd && /^\/(cart|checkout)(?:[?#]|$)/.test(event.urlAfterRedirects)),
+      startWith(null),
+      switchMap(() => {
+        this.catalogError.set(false);
+        return forkJoin({ catalog: this.bookService.getCatalog(), settings: this.account.getPublicSettings(true) }).pipe(
+          map(({ catalog }) => new Map(catalog.books.map((b) => [b._id, b] as const))),
+          catchError(() => { this.catalogError.set(true); return of(new Map<string, CatalogBook>()); }),
+          startWith(null),
+        );
+      }),
     ),
     { initialValue: null },
   );
@@ -73,10 +87,12 @@ export class CartFacade {
   });
 
   readonly selectedLines = computed(() => this.lines().filter((l) => l.selected));
+  readonly stockError = computed(() => this.selectedLines().some(line => line.max < line.quantity));
   readonly allSelected = computed(() => this.lines().length > 0 && this.lines().every((l) => l.selected));
 
   /** Giảm combo cho các cuốn đang chọn: combo đủ sách mới được giảm 10% */
-  private readonly comboDiscount = computed(() => this.comboService.discountFor(this.selectedLines()));
+  private readonly comboDiscount = computed(() => this.publicSettings()?.promotions?.combosEnabled === true
+    ? this.comboService.discountFor(this.selectedLines()) : { amount: 0, freeship: false, labels: new Map<string, string>() });
   readonly comboTotals = computed<ComboTotals>(() => ({ amount: this.comboDiscount().amount, freeship: this.comboDiscount().freeship }));
   /** bookId → tên combo đang được giảm, để gắn nhãn trên dòng giỏ hàng */
   readonly comboLabels = computed(() => this.comboDiscount().labels);
@@ -92,7 +108,7 @@ export class CartFacade {
   setQuantity(bookId: string, quantity: number): void {
     const line = this.lines().find((l) => l.bookId === bookId);
     const max = line?.max ?? Number.MAX_SAFE_INTEGER;
-    const qty = Math.min(Math.max(1, Math.floor(quantity)), max);
+    const qty = Math.min(Math.max(1, Math.floor(quantity)), Math.max(1, max));
     this.write(this.cart.items().map((i) => (i.bookId === bookId ? { ...i, quantity: qty } : i)));
   }
 
@@ -151,6 +167,7 @@ export class CartFacade {
 
   /** Combo gửi kèm khi kiểm tra mã / đặt hàng để server tính giảm combo giống giỏ hàng */
   combosForOrder(): { bookIds: string[]; freeship: boolean }[] {
+    if (this.publicSettings()?.promotions?.combosEnabled !== true) return [];
     return this.comboService.combos().map((c) => ({ bookIds: c.bookIds, freeship: c.freeship }));
   }
 
@@ -192,7 +209,7 @@ function toLine(item: CartItem, book: CatalogBook | undefined, selected: boolean
     originalPrice: book?.originalPrice ?? item.price,
     discountPercent: book?.discountPercent ?? 0,
     quantity: item.quantity,
-    max: ebook ? 1 : book?.stock && book.stock > 0 ? book.stock : 99,
+    max: ebook ? (book?.ebookReady === false ? 0 : 1) : Number.isSafeInteger(book?.stock) ? Math.max(0, book!.stock) : 0,
     ebook,
     variant: VARIANT[book?.type ?? 'new'],
     author: book?.authorName ?? '',
