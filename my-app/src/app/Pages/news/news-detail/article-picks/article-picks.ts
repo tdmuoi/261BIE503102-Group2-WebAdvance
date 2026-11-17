@@ -37,7 +37,7 @@ export class ArticlePicks {
 
   /** Combo: các cuốn còn hàng, giá thật cộng lại */
   protected readonly combo = computed(() => {
-    const inStock = this.books().filter((book) => book.stock > 0);
+    const inStock = this.books().filter((book) => book.type === 'ebook' || book.stock > 0); // ebook không có tồn kho
     const price = inStock.reduce((sum, book) => sum + book.price, 0);
     const original = inStock.reduce((sum, book) => sum + Math.max(book.originalPrice || 0, book.price), 0);
     return { books: inStock, price, original, saving: original > price ? Math.round((1 - price / original) * 100) : 0 };

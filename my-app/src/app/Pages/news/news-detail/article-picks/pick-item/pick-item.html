@@ -18,9 +18,10 @@
         <span class="price-old">{{ b.originalPrice | vnd }}</span>
       }
     </span>
-    <button type="button" class="pi-add" [disabled]="b.stock <= 0" (click)="add.emit(b)">
+    @let buyable = b.type === 'ebook' || b.stock > 0;
+    <button type="button" class="pi-add" [disabled]="!buyable" (click)="add.emit(b)">
       <img src="images/icons/shopping-bag.svg" alt="" width="20" height="20" />
-      {{ b.stock > 0 ? 'Thêm vào giỏ' : 'Hết hàng' }}
+      {{ buyable ? 'Thêm vào giỏ' : 'Hết hàng' }}
     </button>
   </div>
 </div>

@@ -7,22 +7,15 @@ import { AccountService, EbookProgress } from '../../services/account-service';
 import { AuthService } from '../../services/auth-service';
 import { ToastService } from '../../services/toast-service';
 import { ShelfStore, normalizeText } from '../account/shelf-store';
+import { PdfBook, PdfLoader, PdfOpenError } from './pdf-book';
 import {
-  FONT_SIZE_MAX, FONT_SIZE_MIN, LineSpacing, ReadMode, ReaderFont, ReaderNote, ReaderSettings, ReaderState, ReaderTheme,
-  buildChapters, chapterOf, loadSettings, loadState, mockGetPage, remainingLabel, saveSettings, saveState,
-} from './ebook-reader.mock';
+  Chapter, ReadMode, ReaderNote, ReaderSettings, ReaderState, ReaderTheme, ZOOM_MAX, ZOOM_MIN,
+  chapterOf, loadSettings, loadState, remainingLabel, saveSettings, saveState, spreadPages, spreadStart, squash,
+} from './reader-state';
 
 type LeftPanel = 'toc' | 'search' | null;
+type SearchHit = { page: number; snippet: string };
 
-export const LINE_OPTIONS: { value: LineSpacing; label: string; ratio: number }[] = [
-  { value: 'narrow', label: 'Hẹp', ratio: 1.6 },
-  { value: 'normal', label: 'Vừa', ratio: 1.85 },
-  { value: 'wide', label: 'Rộng', ratio: 2.1 },
-];
-export const FONT_OPTIONS: { value: ReaderFont; label: string }[] = [
-  { value: 'sans', label: 'Không chân' },
-  { value: 'serif', label: 'Có chân' },
-];
 export const THEME_OPTIONS: { value: ReaderTheme; label: string }[] = [
   { value: 'white', label: 'Trắng' },
   { value: 'paper', label: 'Giấy' },
@@ -33,25 +26,17 @@ export const MODE_OPTIONS: { value: ReadMode; label: string }[] = [
   { value: 'scroll', label: 'Cuộn dọc' },
 ];
 
-/** Cắt đoạn văn thành các phần thường / đã tô sáng */
-export function splitMarks(text: string, marks: string[]): { text: string; mark: boolean }[] {
-  const found = marks
-    .map((m) => ({ m, i: text.indexOf(m) }))
-    .filter((x) => x.m && x.i >= 0)
-    .sort((a, b) => a.i - b.i);
-  const parts: { text: string; mark: boolean }[] = [];
-  let pos = 0;
-  for (const { m, i } of found) {
-    if (i < pos) continue;
-    if (i > pos) parts.push({ text: text.slice(pos, i), mark: false });
-    parts.push({ text: m, mark: true });
-    pos = i + m.length;
-  }
-  if (pos < text.length) parts.push({ text: text.slice(pos), mark: false });
-  return parts;
-}
+/** Lật trang: bề ngang tối đa một trang ở mức thu phóng 100% */
+const PAGE_WIDTH = 720;
+/** Cột đọc rộng từ mức này trở lên thì lật trang hiện 2 trang */
+const TWO_UP_MIN = 900;
+/** Cuộn dọc: vẽ trước các trang cách màn hình khoảng này, trang xa hơn thì giải phóng */
+const SCROLL_MARGIN = '1500px 0px';
 
-/** Trang Đọc ebook (Figma "Pages/ebook-reader · Đọc ebook") — route /ebook-reader/:id */
+/**
+ * Trang Đọc ebook (Figma "Pages/ebook-reader · Đọc ebook") — route /ebook-reader/:id.
+ * Nội dung là file PDF của sách (pdf.js), chỉ mở được khi server xác nhận sách có trong tủ sách.
+ */
 @Component({
   selector: 'app-ebook-reader',
   standalone: false,
@@ -60,6 +45,7 @@ export function splitMarks(text: string, marks: string[]): { text: string; mark:
   host: {
     '(document:keydown)': 'onKey($event)',
     '(window:scroll)': 'onScroll()',
+    '(window:resize)': 'scheduleRender()',
     '(document:selectionchange)': 'onSelectionChange()',
   },
 })
@@ -70,52 +56,79 @@ export class EbookReader {
   private readonly shelf = inject(ShelfStore);
   private readonly account = inject(AccountService);
   private readonly toast = inject(ToastService);
+  private readonly pdfLoader = inject(PdfLoader);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly lineOptions = LINE_OPTIONS;
-  readonly fontOptions = FONT_OPTIONS;
   readonly themeOptions = THEME_OPTIONS;
   readonly modeOptions = MODE_OPTIONS;
-  readonly fontMin = FONT_SIZE_MIN;
-  readonly fontMax = FONT_SIZE_MAX;
+  readonly zoomMin = ZOOM_MIN;
+  readonly zoomMax = ZOOM_MAX;
 
   readonly bookId = toSignal(this.route.paramMap.pipe(map((p) => p.get('id') ?? '')), { initialValue: '' });
   readonly loggedIn = computed(() => !!this.auth.user());
 
   readonly ebook = computed(() => this.shelf.ebooks().find((e) => e.bookId === this.bookId()) ?? null);
+
+  // ---------------- File PDF ----------------
+  readonly pdf = signal<PdfBook | null>(null);
+  readonly pdfStatus = signal<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  readonly pdfError = signal('');
+
   readonly status = computed(() => {
     if (!this.loggedIn()) return 'login';
     const s = this.shelf.status();
     if (s !== 'ready') return s;
-    return this.ebook() ? 'ready' : 'notfound';
+    if (!this.ebook()) return 'notfound';
+    const p = this.pdfStatus();
+    if (p === 'error') return 'pdferror';
+    return p === 'ready' ? 'ready' : 'loading';
   });
 
   readonly settings = signal<ReaderSettings>(loadSettings());
   readonly state = signal<ReaderState | null>(null);
+  readonly chapters = signal<Chapter[]>([]);
 
   readonly leftPanel = signal<LeftPanel>('toc');
   readonly settingsOpen = signal(true);
   readonly query = signal('');
 
-  readonly total = computed(() => this.ebook()?.totalPages || 140);
-  readonly chapters = computed(() => buildChapters(this.total()));
+  readonly total = computed(() => this.pdf()?.numPages || this.ebook()?.totalPages || 1);
   readonly page = computed(() => this.state()?.page ?? 1);
-  readonly current = computed(() => mockGetPage(this.chapters(), this.page()));
+  readonly chapter = computed(() => chapterOf(this.chapters(), this.page()));
   readonly percent = computed(() => Math.ceil((this.page() / this.total()) * 100));
   readonly remaining = computed(() => remainingLabel(this.total() - this.page()));
   readonly bookmarked = computed(() => !!this.state()?.bookmarks.includes(this.page()));
-  readonly lineRatio = computed(() => LINE_OPTIONS.find((o) => o.value === this.settings().lineSpacing)?.ratio ?? 1.85);
 
-  /** Cuộn dọc: hiện cả chương đang đọc */
-  readonly chapterPages = computed(() => {
-    const chapters = this.chapters();
-    const ch = chapterOf(chapters, this.page());
-    const next = chapters.find((c) => c.index === ch.index + 1);
-    const end = next ? next.startPage - 1 : this.total();
-    return Array.from({ length: end - ch.startPage + 1 }, (_, i) => mockGetPage(chapters, ch.startPage + i));
+  // ---------------- Bố cục trang ----------------
+  /** Bề ngang cột đọc (giữa 2 bảng bên) — đo lại khi đổi cỡ cửa sổ / đóng mở bảng */
+  readonly columnWidth = signal(PAGE_WIDTH);
+  /** Cao / rộng trang PDF (lấy từ trang 1) để giữ chỗ trước khi vẽ */
+  readonly pageRatio = signal(1.414);
+  readonly isScroll = computed(() => this.settings().mode === 'scroll');
+  /** Lật trang trên cột rộng: mở 2 trang như sách thật */
+  readonly twoUp = computed(() => !this.isScroll() && this.columnWidth() >= TWO_UP_MIN);
+  /** Bề ngang một trang trên màn hình. Cuộn dọc: rộng bằng cả cột đọc (100%) */
+  readonly pageWidth = computed(() => {
+    const col = Math.max(240, this.columnWidth());
+    const base = this.isScroll() ? col - 8 : this.twoUp() ? Math.min((col - 8) / 2, PAGE_WIDTH) : Math.min(col, PAGE_WIDTH);
+    return Math.floor(base * (this.settings().zoom / 100));
   });
-  readonly visiblePages = computed(() => (this.settings().mode === 'scroll' ? this.chapterPages() : [this.current()]));
+  readonly pageHeight = computed(() => Math.round(this.pageWidth() * this.pageRatio()));
+
+  /** Lật trang: 2 trang (hoặc 1 trang khi màn hình hẹp). Cuộn dọc: cả cuốn, trang nào gần màn hình mới vẽ */
+  readonly visiblePages = computed(() =>
+    this.isScroll() ? Array.from({ length: this.total() }, (_, i) => i + 1) : spreadPages(this.page(), this.total(), this.twoUp()),
+  );
+  /** "Trang 31–32" khi mở 2 trang */
+  readonly pageLabel = computed(() => {
+    const shown = this.isScroll() ? [this.page()] : this.visiblePages();
+    return shown.length > 1 ? `${shown[0]}–${shown[1]}` : String(shown[0] ?? this.page());
+  });
+  /** Câu đã tô sáng — tách riêng để đổi trang không kích hoạt vẽ lại */
+  readonly highlights = computed(() => this.state()?.highlights ?? []);
+  /** Hướng lật để chạy hiệu ứng: next = sang trang sau, prev = về trang trước */
+  readonly flip = signal<'next' | 'prev' | null>(null);
 
   readonly marks = computed(() => {
     const s = this.state();
@@ -125,18 +138,8 @@ export class EbookReader {
     ].sort((a, b) => a.page - b.page);
   });
 
-  readonly searchResults = computed(() => {
-    const q = normalizeText(this.query());
-    if (q.length < 2) return { items: [], more: 0 };
-    const all: { page: number; snippet: string }[] = [];
-    for (let p = 1; p <= this.total(); p++) {
-      for (const para of mockGetPage(this.chapters(), p).paragraphs) {
-        const i = normalizeText(para).indexOf(q);
-        if (i >= 0) all.push({ page: p, snippet: (i > 30 ? '…' : '') + para.slice(Math.max(0, i - 30), i + q.length + 50) + '…' });
-      }
-    }
-    return { items: all.slice(0, 20), more: Math.max(0, all.length - 20) };
-  });
+  /** Tìm trong sách: đọc chữ từng trang PDF (chạy sau khi ngừng gõ 0,3 giây) */
+  readonly searchResults = signal<{ items: SearchHit[]; more: number; searching: boolean }>({ items: [], more: 0, searching: false });
 
   /** Thanh công cụ khi bôi đen chữ */
   readonly selection = signal<{ page: number; text: string; top: number; left: number } | null>(null);
@@ -145,13 +148,20 @@ export class EbookReader {
   constructor() {
     this.shelf.load(this.destroyRef);
 
+    // Có sách trong tủ → mở file PDF
+    effect(() => {
+      const id = this.ebook()?.bookId;
+      if (!id || !this.loggedIn()) return;
+      untracked(() => this.openPdf(id));
+    });
+
     // Mở sách: hiện ngay bản nháp trên máy (hoặc trang đang đọc ở tủ sách), rồi lấy bản lưu trên server
     effect(() => {
       const e = this.ebook();
       if (!e) return;
       untracked(() => {
         const s = loadState(e.bookId, e.progress >= 100 ? 1 : e.page || 1);
-        this.state.set({ ...s, page: clamp(s.page, 1, e.totalPages || 140) });
+        this.state.set({ ...s, page: clamp(s.page, 1, this.total()) });
         this.account
           .getEbookProgress(e.bookId)
           .pipe(takeUntilDestroyed(this.destroyRef))
@@ -167,9 +177,187 @@ export class EbookReader {
       saveState(e.bookId, s);
       untracked(() => this.queueSync());
     });
-    this.destroyRef.onDestroy(() => this.flushSync());
 
     effect(() => saveSettings(this.settings()));
+
+    // Vẽ lại khi đổi trang / bố cục / thu phóng / tô sáng
+    effect(() => {
+      this.visiblePages();
+      this.pageWidth();
+      this.highlights(); // không đọc cả state: cuộn đổi trang không phải dựng lại
+      if (this.status() === 'ready') untracked(() => this.scheduleRender());
+    });
+
+    // Tìm trong sách
+    effect(() => {
+      const q = normalizeText(this.query());
+      const book = this.pdf();
+      untracked(() => this.queueSearch(q, book));
+    });
+
+    this.destroyRef.onDestroy(() => {
+      this.flushSync();
+      if (this.searchTimer) clearTimeout(this.searchTimer);
+      if (this.renderTimer) clearTimeout(this.renderTimer);
+      if (this.flipTimer) clearTimeout(this.flipTimer);
+      this.observer?.disconnect();
+      this.resizer?.disconnect();
+      this.pdf()?.destroy();
+    });
+  }
+
+  // ---------------- Mở PDF ----------------
+  private openedId: string | null = null;
+
+  private openPdf(bookId: string): void {
+    if (this.openedId === bookId) return;
+    this.openedId = bookId;
+    this.pdf()?.destroy();
+    this.pdf.set(null);
+    this.chapters.set([]);
+    this.pdfStatus.set('loading');
+    this.pdfLoader.open(bookId).then(
+      async (book) => {
+        if (this.openedId !== bookId) return book.destroy();
+        this.pageRatio.set(await book.pageRatio(1).catch(() => 1.414));
+        if (this.openedId !== bookId) return book.destroy();
+        this.pdf.set(book);
+        const s = this.state();
+        if (s) this.state.set({ ...s, page: clamp(s.page, 1, book.numPages) });
+        this.scrolledToStart = false;
+        this.pdfStatus.set('ready');
+        const outline = await book.outline().catch(() => []);
+        if (this.openedId === bookId) this.chapters.set(outline.map((o, i) => ({ index: i + 1, title: o.title, startPage: o.page })));
+      },
+      (err: unknown) => {
+        if (this.openedId !== bookId) return;
+        this.pdfError.set(err instanceof PdfOpenError ? err.message : 'Không mở được file PDF của sách.');
+        this.pdfStatus.set('error');
+      },
+    );
+  }
+
+  retry(): void {
+    const id = this.ebook()?.bookId;
+    this.openedId = null;
+    if (id) this.openPdf(id);
+  }
+
+  // ---------------- Vẽ trang ----------------
+  private renderTimer: ReturnType<typeof setTimeout> | null = null;
+
+  scheduleRender(): void {
+    if (this.renderTimer) clearTimeout(this.renderTimer);
+    this.renderTimer = setTimeout(() => this.renderVisible());
+  }
+
+  private observer: IntersectionObserver | null = null;
+  private resizer: ResizeObserver | null = null;
+  private scrolledToStart = false;
+
+  private renderVisible(): void {
+    this.renderTimer = null;
+    const root = this.host.nativeElement;
+    if (!this.pdf()) return;
+    this.watchColumn(root.querySelector<HTMLElement>('.pages'));
+    const articles = Array.from(root.querySelectorAll<HTMLElement>('article[data-page]'));
+    this.observer?.disconnect();
+    this.observer = null;
+    if (!this.isScroll()) {
+      articles.forEach((a) => this.renderArticle(a));
+      return;
+    }
+    // Cuộn dọc: chỉ vẽ trang gần màn hình, trang đã cuộn xa thì giải phóng cho nhẹ máy
+    if (typeof IntersectionObserver === 'undefined') {
+      articles.filter((a) => Math.abs(Number(a.dataset['page']) - this.page()) <= 2).forEach((a) => this.renderArticle(a));
+    } else {
+      this.observer = new IntersectionObserver(
+        (entries) => entries.forEach((e) => (e.isIntersecting ? this.renderArticle(e.target as HTMLElement) : this.releaseArticle(e.target as HTMLElement))),
+        { rootMargin: SCROLL_MARGIN },
+      );
+      articles.forEach((a) => this.observer!.observe(a));
+    }
+    if (!this.scrolledToStart) {
+      this.scrolledToStart = true;
+      this.scrollToPage(this.page(), 'auto');
+    }
+  }
+
+  /** Đo bề ngang cột đọc (đóng / mở bảng bên, đổi cỡ cửa sổ) */
+  private watchColumn(column: HTMLElement | null): void {
+    if (!column) return;
+    const measure = () => {
+      const width = column.clientWidth;
+      if (width > 0 && Math.abs(width - this.columnWidth()) > 4) this.columnWidth.set(width);
+    };
+    measure();
+    if (this.resizer || typeof ResizeObserver === 'undefined') return;
+    this.resizer = new ResizeObserver(measure);
+    this.resizer.observe(column);
+  }
+
+  private renderArticle(article: HTMLElement): void {
+    const book = this.pdf();
+    const n = Number(article.dataset['page']);
+    const canvas = article.querySelector('canvas');
+    const text = article.querySelector<HTMLElement>('.textLayer');
+    if (!book || !n || !canvas || !text) return;
+    const width = this.pageWidth();
+    const key = `${n}|${width}`;
+    if (canvas.dataset['key'] === key) {
+      this.applyHighlights(text, n);
+      return;
+    }
+    canvas.dataset['key'] = key;
+    book.renderPage(n, canvas, text, width).then(
+      () => this.applyHighlights(text, n),
+      () => {
+        canvas.dataset['key'] = '';
+        this.toast.show(`Chưa hiển thị được trang ${n}`);
+      },
+    );
+  }
+
+  private releaseArticle(article: HTMLElement): void {
+    const canvas = article.querySelector('canvas');
+    if (!canvas?.dataset['key']) return;
+    canvas.dataset['key'] = '';
+    canvas.width = 0;
+    canvas.height = 0;
+    article.querySelector<HTMLElement>('.textLayer')?.replaceChildren();
+  }
+
+  /** Tô màu các dòng chữ PDF nằm trong câu đã tô sáng */
+  private applyHighlights(textLayer: HTMLElement, page: number): void {
+    const marks = this.marksOf(page).map(squash).filter(Boolean);
+    for (const span of Array.from(textLayer.querySelectorAll<HTMLElement>('span:not(.markedContent)'))) {
+      const t = squash(span.textContent ?? '');
+      span.classList.toggle('hl', t.length >= 2 && marks.some((m) => m.includes(t)));
+    }
+  }
+
+  // ---------------- Tìm trong sách ----------------
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchRun = 0;
+
+  private queueSearch(q: string, book: PdfBook | null): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    const run = ++this.searchRun;
+    if (q.length < 2 || !book) {
+      this.searchResults.set({ items: [], more: 0, searching: false });
+      return;
+    }
+    this.searchResults.set({ items: [], more: 0, searching: true });
+    this.searchTimer = setTimeout(async () => {
+      const all: SearchHit[] = [];
+      for (let p = 1; p <= book.numPages; p++) {
+        const text = await book.pageText(p).catch(() => '');
+        if (run !== this.searchRun) return;
+        const i = normalizeText(text).indexOf(q);
+        if (i >= 0) all.push({ page: p, snippet: (i > 30 ? '…' : '') + text.slice(Math.max(0, i - 30), i + q.length + 50) + '…' });
+      }
+      this.searchResults.set({ items: all.slice(0, 20), more: Math.max(0, all.length - 20), searching: false });
+    }, 300);
   }
 
   // ---------------- Đồng bộ tiến độ với server ----------------
@@ -184,7 +372,7 @@ export class EbookReader {
     const remoteNewer = !!remote.lastReadAt && (!local.lastReadAt || remote.lastReadAt > local.lastReadAt);
     if (!remoteNewer) return;
     const next: ReaderState = {
-      page: clamp(remote.page || 1, 1, e.totalPages || 140),
+      page: clamp(remote.page || 1, 1, this.total()),
       bookmarks: remote.bookmarks ?? [],
       notes: (remote.notes ?? []).map((n, i) => ({ id: n.id || `n-${i}`, page: n.page, quote: n.quote ?? '', text: n.text ?? '' })),
       highlights: remote.highlights ?? [],
@@ -208,7 +396,8 @@ export class EbookReader {
     this.syncTimer = null;
     const e = this.ebook();
     const s = this.state();
-    if (!e || !s || !this.auth.isLoggedIn()) return;
+    // Chưa mở được PDF thì chưa biết tổng số trang thật — không ghi đè tiến độ trên server
+    if (!e || !s || !this.pdf() || !this.auth.isLoggedIn()) return;
     const body = this.progressBody(s);
     const key = JSON.stringify(body);
     if (key === this.synced) return;
@@ -227,24 +416,37 @@ export class EbookReader {
     if (scroll && this.settings().mode === 'scroll') setTimeout(() => this.scrollToPage(target));
   }
 
+  /** Lật 2 trang: sang cặp trước / sau. 1 trang hoặc cuộn dọc: từng trang */
   prev(): void {
-    if (this.settings().mode === 'scroll') {
-      const ch = chapterOf(this.chapters(), this.page());
-      const prevCh = this.chapters().find((c) => c.index === ch.index - 1);
-      this.goTo(prevCh ? prevCh.startPage : 1);
-    } else {
-      this.goTo(this.page() - 1);
-    }
+    const target = this.twoUp() ? spreadStart(this.page()) - 2 : this.page() - 1;
+    if (target < 1) return;
+    this.turn('prev');
+    this.goTo(target);
   }
 
   next(): void {
-    if (this.settings().mode === 'scroll') {
-      const ch = chapterOf(this.chapters(), this.page());
-      const nextCh = this.chapters().find((c) => c.index === ch.index + 1);
-      this.goTo(nextCh ? nextCh.startPage : this.total());
-    } else {
-      this.goTo(this.page() + 1);
-    }
+    const target = this.twoUp() ? spreadStart(this.page()) + 2 : this.page() + 1;
+    if (target > this.total()) return;
+    this.turn('next');
+    this.goTo(target);
+  }
+
+  get atStart(): boolean {
+    return (this.twoUp() ? spreadStart(this.page()) : this.page()) <= 1;
+  }
+
+  get atEnd(): boolean {
+    return (this.twoUp() ? spreadStart(this.page()) + 1 : this.page()) >= this.total();
+  }
+
+  private flipTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Hiệu ứng lật (chỉ ở chế độ lật trang) */
+  private turn(direction: 'next' | 'prev'): void {
+    if (this.isScroll()) return;
+    if (this.flipTimer) clearTimeout(this.flipTimer);
+    this.flip.set(direction);
+    this.flipTimer = setTimeout(() => this.flip.set(null), 600);
   }
 
   onSlider(event: Event): void {
@@ -258,7 +460,7 @@ export class EbookReader {
       this.selection.set(null);
       this.noteDraft.set(null);
     }
-    if (this.settings().mode !== 'page') return;
+    if (this.isScroll()) return;
     if (event.key === 'ArrowLeft') this.prev();
     if (event.key === 'ArrowRight') this.next();
   }
@@ -276,8 +478,8 @@ export class EbookReader {
     if (n && n !== this.page()) this.goTo(n, false);
   }
 
-  private scrollToPage(page: number): void {
-    this.host.nativeElement.querySelector<HTMLElement>(`[data-page="${page}"]`)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  private scrollToPage(page: number, behavior: ScrollBehavior = 'smooth'): void {
+    this.host.nativeElement.querySelector<HTMLElement>(`[data-page="${page}"]`)?.scrollIntoView?.({ block: 'start', behavior });
   }
 
   // ---------------- Công cụ ----------------
@@ -300,11 +502,14 @@ export class EbookReader {
 
   setSetting<K extends keyof ReaderSettings>(key: K, value: ReaderSettings[K]): void {
     this.settings.update((s) => ({ ...s, [key]: value }));
-    if (key === 'mode') setTimeout(() => this.scrollToPage(this.page()));
+    if (key === 'mode') {
+      this.scrolledToStart = value !== 'scroll'; // vào cuộn dọc: nhảy tới trang đang đọc sau khi dựng trang
+      if (value !== 'scroll') window.scrollTo?.({ top: 0 });
+    }
   }
 
-  onFontSize(event: Event): void {
-    this.setSetting('fontSize', Number((event.target as HTMLInputElement).value));
+  onZoom(event: Event): void {
+    this.setSetting('zoom', Number((event.target as HTMLInputElement).value));
   }
 
   removeMark(mark: { kind: 'bookmark' | 'note'; page: number; note: ReaderNote | null }): void {
@@ -317,10 +522,6 @@ export class EbookReader {
   // ---------------- Bôi đen chữ ----------------
   marksOf(page: number): string[] {
     return (this.state()?.highlights ?? []).filter((h) => h.page === page).map((h) => h.text);
-  }
-
-  segments(text: string, page: number) {
-    return splitMarks(text, this.marksOf(page));
   }
 
   onSelectionChange(): void {

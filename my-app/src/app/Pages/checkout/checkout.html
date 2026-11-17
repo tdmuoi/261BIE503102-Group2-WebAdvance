@@ -306,6 +306,15 @@
         <span class="pay-timer" [class.is-low]="secondsLeft() < 60" aria-live="polite">Còn {{ countdown() }}</span>
       </header>
 
+      @if (o.paymentMethod === 'momo') {
+        <!-- MoMo: không có QR ở đây — chuyển sang trang thanh toán của MoMo -->
+        <div class="pay-info">
+          <dl class="pay-rows">
+            <div><dt>Mã đơn</dt><dd>#{{ o.orderCode }}</dd></div>
+            <div><dt>Số tiền</dt><dd class="pay-amount">{{ o.total | vnd }}</dd></div>
+          </dl>
+        </div>
+      } @else {
       <div class="pay-body">
         <figure class="qr">
           <svg viewBox="-2 -2 29 29" width="184" height="184" role="img" aria-label="Mã QR minh hoạ">
@@ -334,6 +343,7 @@
           </ol>
         </div>
       </div>
+      }
 
       @if (paymentError(); as err) {
         <p class="voucher-help is-error" role="alert"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
@@ -343,10 +353,42 @@
         <button type="button" class="btn btn-secondary" (click)="cancelPayment()" [disabled]="!!paymentBusy()">
           {{ paymentBusy() === 'cancel' ? 'Đang huỷ…' : 'Huỷ, chọn cách khác' }}
         </button>
-        <button type="button" class="btn btn-primary" (click)="confirmPaid()" [disabled]="!!paymentBusy()">
-          {{ paymentBusy() === 'confirm' ? 'Đang kiểm tra…' : 'Tôi đã thanh toán' }}
-        </button>
+        @if (o.paymentMethod === 'momo') {
+          <button type="button" class="btn btn-secondary" (click)="payWithMomo('wallet')" [disabled]="!!paymentBusy()"
+            title="Môi trường test: chỉ app MoMo bản test quét được">Quét QR ví MoMo</button>
+          <button type="button" class="btn btn-primary" (click)="payWithMomo('atm')" [disabled]="!!paymentBusy()">
+            {{ paymentBusy() === 'confirm' ? 'Đang chuyển sang MoMo…' : 'Trả bằng thẻ ATM qua MoMo' }}
+          </button>
+        } @else {
+          <button type="button" class="btn btn-primary" (click)="confirmPaid()" [disabled]="!!paymentBusy()">
+            {{ paymentBusy() === 'confirm' ? 'Đang kiểm tra…' : 'Tôi đã thanh toán' }}
+          </button>
+        }
       </footer>
+    </section>
+  </div>
+}
+
+<!-- Quay lại từ MoMo: server đang hỏi MoMo kết quả giao dịch -->
+@if (momoCheck(); as c) {
+  <div class="pay-overlay">
+    <section class="pay-modal" role="dialog" aria-modal="true" aria-labelledby="momo-check-title">
+      <header class="pay-head">
+        <h2 id="momo-check-title">{{ c.state === 'verifying' ? 'Đang xác nhận thanh toán MoMo…' : 'MoMo chưa báo kết quả' }}</h2>
+      </header>
+      <p class="body-lead" role="status">
+        @if (c.state === 'verifying') {
+          Lightbook đang hỏi MoMo kết quả giao dịch, bạn đợi vài giây nhé.
+        } @else {
+          {{ c.message || 'Giao dịch đang được MoMo xử lý.' }} Bạn bấm “Kiểm tra lại” sau ít phút.
+        }
+      </p>
+      @if (c.state === 'pending') {
+        <footer class="pay-foot">
+          <a class="btn btn-secondary" routerLink="/account/orders">Xem đơn hàng</a>
+          <button type="button" class="btn btn-primary" (click)="verifyMomo(c.momoOrderId)">Kiểm tra lại</button>
+        </footer>
+      }
     </section>
   </div>
 }

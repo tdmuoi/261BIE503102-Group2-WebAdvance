@@ -17,6 +17,7 @@ module.exports = function customerRoutes(getDb) {
   router.use(customerAccountRoutes(getDb));
   router.use(customerOrderRoutes(getDb));
   router.use(require('./customer-demo-payment')(getDb));
+  router.use(require('./customer-momo-payment')(getDb));
   router.use(require('./customer-requests')(getDb));
   router.use(require('./customer-uploads')(getDb));
   router.use(require('./customer-follows')(getDb));

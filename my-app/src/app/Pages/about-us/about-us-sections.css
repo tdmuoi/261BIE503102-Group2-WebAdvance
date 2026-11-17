@@ -9,7 +9,7 @@
 .stat dd { margin: 0; }
 
 /* Đội ngũ */
-.team { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-24); }
+.team { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-24); }
 .member {
   display: flex; flex-direction: column; align-items: center; gap: var(--space-6); padding: 28px 22px var(--space-24); text-align: center;
   background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);

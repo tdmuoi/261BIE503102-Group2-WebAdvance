@@ -86,15 +86,13 @@
 <section class="section container">
   <header class="section-head">
     <span class="tag">✦ Đội ngũ</span>
-    <h2 class="title"><span class="h1">Những người sau quầy sách</span> <span class="accent-h1">the team</span></h2>
-    <p class="body-lead sub">Bốn người đọc, bốn gu sách khác nhau — cùng một niềm tin vào những câu chuyện tốt.</p>
-  </header>
+    <h2 class="title"><span class="h1">Những người sau quầy sách</span> <span class="accent-h1">the team</span></h2>  </header>
   <div class="team">
     @for (m of team; track m.name) {
       <article class="member">
         <span class="member-avatar" [attr.data-tone]="m.tone">
           @if (m.photo && !brokenPhotos().has(m.name)) {
-            <img [src]="m.photo" [alt]="m.name" width="120" height="120" loading="lazy" (error)="markBroken(m.name)" />
+            <img [src]="m.photo" [alt]="m.name" [style.object-position]="m.focus" width="120" height="120" loading="lazy" (error)="markBroken(m.name)" />
           } @else {
             {{ m.initials }}
           }

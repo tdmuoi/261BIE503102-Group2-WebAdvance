@@ -170,6 +170,30 @@ export class Orders implements OnInit {
     });
   }
 
+  /** Đơn MoMo chưa trả tiền: trả tiếp, không phải đặt đơn mới */
+  readonly paying = signal<string | null>(null);
+
+  canPay(order: Order): boolean {
+    return order.status === 'pending' && order.paymentStatus === 'unpaid' && order.paymentMethod === 'momo';
+  }
+
+  pay(order: Order): void {
+    if (!this.canPay(order) || this.paying()) return;
+    this.paying.set(order._id);
+    this.account.createMomoPayment(order._id, 'atm').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ({ payUrl }) => this.openExternal(payUrl),
+      error: (err: { error?: { message?: string } }) => {
+        this.paying.set(null);
+        this.toast.show(err?.error?.message ?? 'Chưa tạo được thanh toán MoMo, vui lòng thử lại.');
+      },
+    });
+  }
+
+  /** Sang trang thanh toán MoMo (tách riêng để test không điều hướng thật). MoMo trả khách về /checkout để xác nhận */
+  openExternal(url: string): void {
+    window.location.assign(url);
+  }
+
   /** Đơn đã giao: viết đánh giá cuốn đầu tiên chưa đánh giá */
   firstUnreviewed(order: Order): OrderItem | undefined {
     return order.items.find((i) => !this.ratings()[i.bookId]);

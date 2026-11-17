@@ -59,10 +59,12 @@ export class AboutUs {
 
   // Ảnh đội ngũ do nhóm cung cấp (public/images/about/team); initials dùng khi ảnh lỗi
   readonly team = [
-    { initials: 'TD', tone: 'pink', name: 'Thùy Dung', role: 'Người sáng lập · Chọn sách', photo: 'images/about/team/thuy-dung.jpg' },
-    { initials: 'MA', tone: 'mint', name: 'Mai Anh', role: 'Biên tập viên · Review sách', photo: 'images/about/team/mai-anh.jpg' },
+    { initials: 'TD', tone: 'pink', name: 'Thùy Dung', role: 'Người sáng lập', photo: 'images/about/team/thuy-dung.jpg' },
+    { initials: 'MA', tone: 'mint', name: 'Mai Anh', role: 'Biên tập viên', photo: 'images/about/team/mai-anh.jpg' },
     { initials: 'KH', tone: 'yellow', name: 'Khánh Hằng', role: 'Phụ trách góc Đọc chậm', photo: 'images/about/team/khanh-hang.jpg' },
     { initials: 'NK', tone: 'pink', name: 'H Nhiên Kpor', role: 'Cộng đồng & sự kiện', photo: 'images/about/team/nhien-kpor.jpg' },
+    // Ảnh dọc, mặt ở phía trên → căn top để không bị cắt mặt trong khung tròn
+    { initials: 'DT', tone: 'mint', name: 'Trần Duy Thanh', role: 'Cố vấn doanh nghiệp', photo: 'images/about/team/tran-duy-thanh.png', focus: 'center top' },
   ];
 
   /** Ảnh đội ngũ / logo đối tác tải lỗi thì hiện chữ viết tắt */

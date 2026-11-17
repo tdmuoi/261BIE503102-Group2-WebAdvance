@@ -34,6 +34,9 @@ export class ProductInfo {
     return ((words[0]?.[0] ?? '') + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase();
   });
 
+  /** Ebook là file, không có tồn kho — không hiện dòng tồn kho */
+  protected readonly isEbook = computed(() => this.book().type === 'ebook');
+
   protected readonly stockText = computed(() => {
     const stock = this.book().stock;
     if (stock <= 0) return 'Tạm hết hàng';

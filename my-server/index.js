@@ -26,7 +26,9 @@ const adminAuth = createAdminAuth(() => database);
 app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/settings', '/api/admin/buybacks', '/api/admin/books', '/api/admin/orders', '/api/admin/returns', '/api/admin/dashboard', '/api/admin/banners'], adminAuth.cors);
 
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:4201']
+  origin: ['http://localhost:4200', 'http://localhost:4201'],
+  // pdf.js (trình đọc ebook) cần đọc các header này để tải PDF theo từng đoạn
+  exposedHeaders: ['Accept-Ranges', 'Content-Range', 'Content-Length'],
 }));
 app.use(express.json());
 app.use(morgan('combined'));

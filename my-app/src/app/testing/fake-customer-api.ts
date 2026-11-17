@@ -252,6 +252,19 @@ function handle(db: FakeDb, req: HttpRequest<unknown>): Reply | null {
     db.orders = [created, ...db.orders];
     return ok(structuredClone(created), 201);
   }
+  // MoMo: link thanh toán giả; xác nhận = server đã hỏi MoMo và MoMo báo thành công
+  if (m === 'POST' && seg[0] === 'orders' && seg[2] === 'momo') {
+    const found = db.orders.find((o) => o._id === seg[1]);
+    if (!found) return fail(404, { message: 'Không tìm thấy đơn hàng' });
+    const momoOrderId = `${found.orderCode.replace(/-/g, '')}-test`;
+    return ok({ payUrl: `https://test-payment.momo.vn/v2/gateway/pay?t=${momoOrderId}`, momoOrderId, test: true });
+  }
+  if (m === 'POST' && path === '/payments/momo/verify') {
+    const found = db.orders.find((o) => `${o.orderCode.replace(/-/g, '')}-test` === body['momoOrderId']);
+    if (!found) return fail(404, { message: 'Không tìm thấy đơn hàng của giao dịch này.' });
+    found.paymentStatus = 'paid';
+    return ok({ status: 'paid', message: null, order: structuredClone(found) });
+  }
   if (seg[0] === 'orders' || (seg[0] === 'account' && seg[1] === 'orders')) {
     const id = seg[0] === 'orders' ? seg[1] : seg[2];
     const found = db.orders.find((o) => o._id === id);

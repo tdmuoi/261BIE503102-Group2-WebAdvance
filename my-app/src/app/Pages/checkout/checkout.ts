@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { Address, CreateOrderRequest, Order, PaymentMethod, ShippingMethod } from '../../models/account';
 import { AccountService } from '../../services/account-service';
@@ -27,7 +27,7 @@ export const SHIPPING_OPTIONS: Option<ShippingMethod>[] = [
 ];
 
 export const PAYMENT_OPTIONS: Option<PaymentMethod>[] = [
-  { value: 'momo', title: 'Ví MoMo', desc: 'Quét mã QR trong ứng dụng MoMo', logo: 'images/payment/momo.png' },
+  { value: 'momo', title: 'Ví MoMo', desc: 'Quét QR hoặc thẻ ATM qua cổng MoMo', logo: 'images/payment/momo.png' },
   { value: 'vnpay', title: 'VNPay', desc: 'Thẻ ATM nội địa, QR ngân hàng', logo: 'images/payment/vnpay.png' },
   { value: 'bank_transfer', title: 'Chuyển khoản ngân hàng', desc: 'Hiện số tài khoản và nội dung chuyển khoản', logo: 'images/payment/bank.svg' },
   { value: 'cod', title: 'Thanh toán khi nhận hàng (COD)', desc: 'Không áp dụng cho sách điện tử', logo: 'images/payment/cod.svg' },
@@ -50,6 +50,7 @@ export class Checkout implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly shippingOptions = SHIPPING_OPTIONS;
   readonly shippingFees = SHIPPING_FEES;
@@ -116,6 +117,13 @@ export class Checkout implements OnInit {
       return;
     }
     this.loadAddresses();
+    // MoMo chuyển khách về /checkout?partnerCode=…&orderId=…&resultCode=… sau khi thanh toán
+    const q = this.route.snapshot.queryParamMap;
+    const momoOrderId = q.get('partnerCode') && q.get('orderId');
+    if (momoOrderId) {
+      this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+      this.verifyMomo(momoOrderId);
+    }
   }
 
   loadAddresses(): void {
@@ -274,6 +282,55 @@ export class Checkout implements OnInit {
         this.paymentBusy.set(null);
         this.paymentError.set(err?.error?.message ?? 'Chưa kiểm tra được thanh toán, vui lòng thử lại.');
       },
+    });
+  }
+
+  // ---------------- MoMo (cổng thật, môi trường test) ----------------
+  /** Đang kiểm tra kết quả MoMo sau khi khách quay lại */
+  readonly momoCheck = signal<{ momoOrderId: string; state: 'verifying' | 'pending'; message: string | null } | null>(null);
+
+  /** "Thanh toán bằng MoMo": server tạo link rồi chuyển hẳn sang trang MoMo */
+  payWithMomo(method: 'atm' | 'wallet' = 'atm'): void {
+    const order = this.paying();
+    if (!order || this.paymentBusy()) return;
+    this.paymentBusy.set('confirm');
+    this.paymentError.set(null);
+    this.account.createMomoPayment(order._id, method).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ({ payUrl }) => {
+        this.stopTimer();
+        this.openExternal(payUrl);
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.paymentBusy.set(null);
+        this.paymentError.set(err?.error?.message ?? 'Chưa tạo được thanh toán MoMo, vui lòng thử lại.');
+      },
+    });
+  }
+
+  /** Rời web sang trang thanh toán của MoMo (tách riêng để test không điều hướng thật) */
+  openExternal(url: string): void {
+    window.location.assign(url);
+  }
+
+  /** Server hỏi MoMo — chỉ khi MoMo xác nhận mới ghi "đã thanh toán" và đưa ebook vào tủ sách */
+  verifyMomo(momoOrderId: string): void {
+    this.momoCheck.set({ momoOrderId, state: 'verifying', message: null });
+    this.account.verifyMomoPayment(momoOrderId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        if (r.status === 'paid') {
+          this.momoCheck.set(null);
+          this.finish(r.order);
+        } else if (r.status === 'pending') {
+          this.momoCheck.set({ momoOrderId, state: 'pending', message: r.message });
+        } else {
+          // Thất bại / khách huỷ trên MoMo: đơn vẫn chờ → mở lại bước thanh toán để thử lại hoặc huỷ
+          this.momoCheck.set(null);
+          this.openPayment(r.order);
+          this.paymentError.set(`MoMo: ${r.message ?? 'thanh toán chưa thành công.'} Bạn có thể thử lại.`);
+        }
+      },
+      error: (err: { error?: { message?: string } }) =>
+        this.momoCheck.set({ momoOrderId, state: 'pending', message: err?.error?.message ?? 'Chưa kiểm tra được thanh toán MoMo.' }),
     });
   }
 

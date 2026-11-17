@@ -15,7 +15,8 @@ export const BANK_INFO = {
 };
 
 export const PAYMENT_GUIDE: Record<Exclude<PaymentMethod, 'cod'>, { title: string; steps: string[] }> = {
-  momo: { title: 'Thanh toán bằng Ví MoMo', steps: ['Mở ứng dụng MoMo, chọn “Quét mã”.', 'Quét mã QR bên cạnh.', 'Kiểm tra số tiền và xác nhận thanh toán.'] },
+  // MoMo: không hiện các bước — khách bấm nút là sang trang thanh toán của MoMo
+  momo: { title: 'Thanh toán bằng Ví MoMo', steps: [] },
   vnpay: { title: 'Thanh toán qua VNPay', steps: ['Mở ứng dụng ngân hàng hoặc ví có VNPay-QR.', 'Quét mã QR bên cạnh.', 'Kiểm tra số tiền và xác nhận thanh toán.'] },
   bank_transfer: { title: 'Chuyển khoản ngân hàng', steps: ['Chuyển đúng số tiền tới tài khoản bên dưới.', 'Ghi đúng nội dung chuyển khoản để Lightbook đối soát.', 'Đơn được xác nhận trong vài phút sau khi nhận tiền.'] },
 };

@@ -83,16 +83,33 @@ function validPdf(buffer) {
   return Number.isSafeInteger(catalog) &&
     /^\d+\s+\d+\s+obj\b\s*<<(?:(?!endobj)[\s\S])*?\/Type\s*\/Catalog\b/.test(pdf.slice(catalog));
 }
+/** "bytes=0-99" | "bytes=100-" | "bytes=-500" → {start, end} (end tính cả byte cuối). Nhiều đoạn / sai cú pháp → null (gửi cả file). */
+function parseByteRange(header, size) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(header || '').trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  let start, end;
+  if (m[1] === '') { start = Math.max(0, size - Number(m[2])); end = size - 1; }
+  else { start = Number(m[1]); end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1); }
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start >= size || start > end) return 'unsatisfiable';
+  return { start, end };
+}
+
 async function streamPdf(db, book, req, res) {
   if (!(book?.ebookFileId instanceof ObjectId)) return res.status(404).json({ message: 'Ebook chưa có PDF được xác minh.' });
   const file = await db.collection('fs.files').findOne({ _id: book.ebookFileId, 'metadata.bookId': book._id, 'metadata.verified': true });
   if (!file || !Number.isSafeInteger(file.length) || file.length < 1 || file.length > PDF_MAX_BYTES)
     return res.status(404).json({ message: 'Không tìm thấy PDF hợp lệ.' });
-  res.set({ 'Content-Type': 'application/pdf', 'Content-Length': String(file.length), 'Content-Disposition': 'inline; filename="ebook.pdf"',
+  // Range (một đoạn byte): trình đọc pdf.js chỉ tải phần cần cho trang đang xem, không đợi cả file.
+  const range = parseByteRange(req.headers.range, file.length);
+  if (range === 'unsatisfiable') return res.status(416).set('Content-Range', `bytes */${file.length}`).end();
+  res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="ebook.pdf"', 'Accept-Ranges': 'bytes',
     'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "sandbox" });
-  const download = new GridFSBucket(db).openDownloadStream(file._id);
+  if (range) res.status(206).set({ 'Content-Range': `bytes ${range.start}-${range.end}/${file.length}`, 'Content-Length': String(range.end - range.start + 1) });
+  else res.set('Content-Length', String(file.length));
+  const download = new GridFSBucket(db).openDownloadStream(file._id, range ? { start: range.start, end: range.end + 1 } : undefined);
   download.on('error', () => { if (res.headersSent) res.destroy(); else {
-    for (const header of ['Content-Length', 'Content-Type', 'Content-Disposition']) res.removeHeader(header);
+    res.status(200);
+    for (const header of ['Content-Length', 'Content-Type', 'Content-Disposition', 'Content-Range', 'Accept-Ranges']) res.removeHeader(header);
     res.status(503).json({ message: 'Không đọc được PDF. Vui lòng thử lại.' });
   } });
   res.on('close', () => download.destroy());
@@ -584,4 +601,5 @@ module.exports = function adminBooksRoutes(getDb) {
 };
 module.exports.validPdf = validPdf;
 module.exports.streamPdf = streamPdf;
+module.exports.parseByteRange = parseByteRange;
 module.exports.PDF_MAX_BYTES = PDF_MAX_BYTES;

@@ -34,20 +34,43 @@
 /* Thân */
 .body { display: flex; align-items: flex-start; gap: 28px; padding: 28px var(--space-32); }
 /* Trang sách */
-.pages { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: center; gap: var(--space-24); --reader-size: 17px; --reader-line: 1.85; }
+.pages { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: center; gap: var(--space-24); overflow-x: auto; perspective: 2400px; }
 .page {
-  position: relative; display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 640px; min-height: 510px; padding: 56px 64px;
+  position: relative; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
   background: var(--reader-page); color: var(--reader-text); border: var(--border-default) solid var(--color-border-strong);
   border-radius: var(--radius-16); box-shadow: var(--shadow-offset-4);
 }
-.kicker { margin: 0; font: 700 11px/normal var(--font-sans); letter-spacing: 1px; text-transform: uppercase; color: var(--color-text-muted); }
-.chapter { margin: 0; font: 800 26px/normal var(--font-display); color: inherit; }
-.para { margin: 0; font-family: var(--font-sans); font-size: var(--reader-size); line-height: var(--reader-line); }
-.pages[data-font='serif'] .para { font-family: Georgia, 'Times New Roman', serif; }
-.hl { font-weight: 700; text-decoration: underline; color: var(--color-text-accent); }
-.reader[data-theme='dark'] .hl { color: var(--color-tint-mint); }
-.reader[data-theme='dark'] .page { border-color: var(--stone-600); box-shadow: none; }
-.page-no { align-self: center; margin: 0; font: 400 11px/normal var(--font-sans); color: var(--color-text-muted); }
+/* Lật trang 2 trang: ghép ở gáy sách */
+.pages.is-spread { flex-direction: row; justify-content: center; align-items: flex-start; gap: 0; }
+.page.is-left { border-radius: var(--radius-16) 0 0 var(--radius-16); border-right-width: 0; }
+.page.is-right { border-radius: 0 var(--radius-16) var(--radius-16) 0; }
+.page.is-left .sheet::after, .page.is-right .sheet::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(to left, rgb(0 0 0 / 0.16), transparent 7%);
+}
+.page.is-right .sheet::after { background: linear-gradient(to right, rgb(0 0 0 / 0.16), transparent 7%); }
+/* Hiệu ứng lật: trang mới xoay quanh gáy sách rồi nằm phẳng */
+.page.turn-next { transform-origin: right center; animation: turn-next 0.55s cubic-bezier(0.3, 0.7, 0.4, 1); }
+.page.turn-prev { transform-origin: left center; animation: turn-prev 0.55s cubic-bezier(0.3, 0.7, 0.4, 1); }
+.pages:not(.is-spread) .page.turn-next { transform-origin: left center; animation-name: turn-prev; }
+@keyframes turn-next { from { transform: rotateY(88deg); filter: brightness(0.75); } to { transform: none; filter: none; } }
+@keyframes turn-prev { from { transform: rotateY(-88deg); filter: brightness(0.75); } to { transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .page.turn-next, .page.turn-prev { animation: none; } }
+/* Cuộn dọc: trang rộng bằng cả cột đọc, viền mảnh cho đỡ rối */
+.pages.is-scroll { gap: var(--space-16); }
+.pages.is-scroll .page { border-radius: var(--radius-8); box-shadow: none; }
+/* Trang PDF: hình (canvas) + chữ trong suốt phủ lên trên để bôi đen. Kích thước đặt sẵn để giữ chỗ khi chưa vẽ */
+.sheet { position: relative; border-radius: inherit; overflow: hidden; }
+.sheet canvas { display: block; }
+.reader[data-theme='paper'] canvas { filter: sepia(0.12); }
+.reader[data-theme='dark'] canvas { filter: invert(0.88) hue-rotate(180deg); }
+.textLayer { position: absolute; inset: 0; overflow: clip; line-height: 1; text-size-adjust: none; transform-origin: 0 0; z-index: 1; }
+.textLayer ::ng-deep :is(span, br) { position: absolute; color: transparent; white-space: pre; cursor: text; transform-origin: 0 0; }
+.textLayer ::ng-deep span.markedContent { top: 0; height: 0; }
+.textLayer ::ng-deep .endOfContent { display: block; position: absolute; inset: 100% 0 0; cursor: default; user-select: none; }
+.textLayer ::ng-deep ::selection { background: color-mix(in srgb, var(--color-tint-mint) 70%, transparent); }
+.textLayer ::ng-deep span.hl { background: color-mix(in srgb, var(--color-tint-yellow) 75%, transparent); mix-blend-mode: multiply; }
+.reader[data-theme='dark'] .page { border-color: var(--stone-600); box-shadow: none; }.page-no { align-self: center; margin: 0 0 var(--space-8); font: 400 11px/normal var(--font-sans); color: var(--color-text-muted); }
 .selection-bar {
   position: absolute; z-index: 3; display: flex; align-items: center; gap: var(--space-4); padding: var(--space-6) var(--space-8);
   background: var(--color-text-primary); border-radius: var(--radius-12); box-shadow: var(--shadow-offset-sm);
@@ -73,6 +96,5 @@
 @media (max-width: 640px) {
   .topbar, .bottombar, .body { padding-inline: var(--space-16); }
   .topbar { flex-wrap: wrap; }
-  .page { padding: var(--space-32) var(--space-20); }
   .progress-labels span { display: none; }
 }

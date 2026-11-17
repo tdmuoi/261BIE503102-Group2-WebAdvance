@@ -92,7 +92,11 @@ function matches(doc, query) {
         throw new Error('Unsupported fixture query ' + op);
       });
     }
-    return equal(actual, value);
+    if (equal(actual, value)) return true;
+    // Như MongoDB: "a.b" khớp khi a là mảng và một phần tử có b bằng giá trị
+    const walk = (node, fields) => !fields.length ? [node]
+      : Array.isArray(node) ? node.flatMap((item) => walk(item, fields)) : node == null ? [] : walk(node[fields[0]], fields.slice(1));
+    return key.includes('.') && walk(doc, key.split('.')).some((v) => v !== undefined && equal(v, value));
   });
 }
 async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quota = 10, perUser = 10 } = {}) {
@@ -106,7 +110,7 @@ async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quot
       { _id: secondAccount, roleCode: 'CUSTOMER', status: 'active', email: 'b@example.invalid' }],
     customer_sessions: [{ tokenHash: tokenDigest(token), accountId, userId, expiresAt: new Date('2099-01-01') },
       { tokenHash: tokenDigest(otherToken), accountId: secondAccount, userId: secondUser, expiresAt: new Date('2099-01-01') }],
-    books: [book], old_books: used ? [clone(book)] : [], authors: [], orders: [], notifications: [], personalBooks: [], settings: [], inventory_logs: [], 'fs.files': [],
+    books: [book], old_books: used ? [clone(book)] : [], authors: [], orders: [], notifications: [], personalBooks: [], settings: [], inventory_logs: [], 'fs.files': [], payments: [],
     addresses: [{ _id: addressId, userId, recipientName: 'Fixture', street: 'Street' },
       { _id: secondAddress, userId: secondUser, recipientName: 'Other', street: 'Other street' }],
     vouchers: [{ _id: voucherId, code: 'QA10', type: 'percent', value: 10, usedCount: 0, usageLimit: quota, perUserLimit: perUser, status: 'active' }],
@@ -774,4 +778,111 @@ test('Verified legacy orderCode entitlement retains normal progress APIs without
   assert.deepEqual(f.records.orders[0], order);
   assert.equal((await f.request(path, undefined, { method: 'GET' })).body.page, 5);
   assert.equal((await f.request(path, undefined, { method: 'GET', other: true })).status, 404);
+});
+
+
+// ---------------- MoMo (MoMo được giả lập: không gọi mạng) ----------------
+const { createHmac } = require('node:crypto');
+const MOMO_SECRET = 'K951B6PE1waDMi640xX08PD3vg6EkVlz', MOMO_ACCESS = 'F8BBA842ECF85';
+const momoSign = (raw) => createHmac('sha256', MOMO_SECRET).update(raw).digest('hex');
+
+/** Thay fetch: gọi tới MoMo thì trả kết quả giả, còn lại (server test) đi qua bình thường */
+function fakeMomo(t, queryResult) {
+  const real = globalThis.fetch, sent = [];
+  globalThis.fetch = async (url, init) => {
+    if (!String(url).startsWith('https://test-payment.momo.vn')) return real(url, init);
+    const body = JSON.parse(init.body); sent.push({ url: String(url), body });
+    const reply = String(url).endsWith('/create')
+      ? { partnerCode: 'MOMO', orderId: body.orderId, requestId: body.requestId, amount: body.amount, resultCode: 0, message: 'Thành công.', payUrl: 'https://test-payment.momo.vn/v2/gateway/pay?t=x' }
+      : { partnerCode: 'MOMO', orderId: body.orderId, requestId: body.requestId, extraData: '', payType: 'napas', ...queryResult(body) };
+    return new Response(JSON.stringify(reply), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  t.after(() => { globalThis.fetch = real; });
+  return sent;
+}
+
+async function momoOrder(t, queryResult) {
+  const f = await checkoutFixture(t, { ebook: true });
+  f.allowAtomicWrites(); // lưu momoAttempts là một updateOne có điều kiện, không cần transaction
+  const sent = fakeMomo(t, queryResult);
+  const created = await f.request('/orders', f.body);
+  assert.equal(created.status, 201); assert.equal(created.body.paymentMethod, 'momo');
+  const link = await f.request('/orders/' + created.body._id + '/momo', {});
+  return { f, sent, order: created.body, link };
+}
+
+test('MoMo: tạo link có chữ ký đúng, lưu mã giao dịch; MoMo chưa có kết quả thì đơn vẫn chờ, chưa cấp ebook', async t => {
+  let code = 1000;
+  const { f, sent, order, link } = await momoOrder(t, (b) => ({ amount: order.total, transId: 0, resultCode: code, message: 'Đang chờ' }));
+  assert.equal(link.status, 200); assert.match(link.body.payUrl, /^https:\/\/test-payment\.momo\.vn\//); assert.equal(link.body.test, true);
+  const create = sent[0].body;
+  assert.equal(create.amount, order.total); assert.equal(create.requestType, 'payWithATM'); assert.equal(create.redirectUrl, 'http://localhost:4200/checkout');
+  assert.equal(create.signature, momoSign(`accessKey=${MOMO_ACCESS}&amount=${create.amount}&extraData=&ipnUrl=${create.ipnUrl}&orderId=${create.orderId}` +
+    `&orderInfo=${create.orderInfo}&partnerCode=MOMO&redirectUrl=${create.redirectUrl}&requestId=${create.requestId}&requestType=payWithATM`));
+  await f.request('/orders/' + order._id + '/momo', { method: 'wallet' });
+  assert.equal(sent.at(-1).body.requestType, 'captureWallet');
+  assert.equal(f.records.orders[0].momoAttempts[0].orderId, link.body.momoOrderId);
+  const pending = await f.request('/payments/momo/verify', { momoOrderId: link.body.momoOrderId });
+  assert.equal(pending.status, 200); assert.equal(pending.body.status, 'pending'); assert.equal(pending.body.order.paymentStatus, 'unpaid');
+  assert.equal(sent.at(-1).body.signature, momoSign(`accessKey=${MOMO_ACCESS}&orderId=${create.orderId}&partnerCode=MOMO&requestId=${create.requestId}`));
+  assert.equal(f.records.personalBooks.length, 0); assert.equal(f.records.payments.length, 0);
+});
+
+test('MoMo xác nhận thành công: đơn paid + ebook vào tủ sách, gọi lại không tạo bản trùng, người khác không xác nhận được', async t => {
+  let order;
+  const ctx = await momoOrder(t, () => ({ amount: order.total, transId: 4123456789, resultCode: 0, message: 'Thành công.' }));
+  order = ctx.order; const { f, link } = ctx;
+  assert.equal((await f.request('/payments/momo/verify', { momoOrderId: link.body.momoOrderId }, { other: true })).status, 404);
+  const paid = await f.request('/payments/momo/verify', { momoOrderId: link.body.momoOrderId });
+  assert.equal(paid.status, 200); assert.equal(paid.body.status, 'paid'); assert.equal(paid.body.order.paymentStatus, 'paid');
+  assert.equal(paid.body.order.status, 'delivered', 'Đơn chỉ có ebook: trả tiền xong là hoàn tất, không chờ xác nhận');
+  assert.equal(paid.body.order.statusHistory.at(-1).status, 'delivered');
+  const stored = f.records.orders[0];
+  assert.deepEqual({ source: stored.paymentVerification.source, provider: stored.paymentVerification.provider, transactionId: stored.paymentVerification.transactionId },
+    { source: 'provider_webhook', provider: 'momo', transactionId: '4123456789' });
+  assert.equal(f.records.payments.length, 1); assert.equal(f.records.personalBooks.length, 1);
+  assert.equal(f.records.personalBooks[0].acquisitionType, 'purchase');
+  const shelf = await f.request('/account/ebooks', null, { method: 'GET' });
+  assert.equal(shelf.status, 200); assert.deepEqual(shelf.body.map((e) => e.bookId), [String(f.bookId)]);
+  const again = await f.request('/payments/momo/verify', { momoOrderId: link.body.momoOrderId });
+  assert.equal(again.body.status, 'paid'); assert.equal(f.records.personalBooks.length, 1); assert.equal(f.records.payments.length, 1);
+});
+
+test('MoMo: sai số tiền hoặc giao dịch thất bại thì không ghi paid; IPN sai chữ ký bị bỏ qua', async t => {
+  let reply;
+  const { f, link, order } = await momoOrder(t, () => reply);
+  reply = { amount: 1000, transId: 1, resultCode: 0, message: 'Thành công.' };
+  const wrongAmount = await f.request('/payments/momo/verify', { momoOrderId: link.body.momoOrderId });
+  assert.equal(wrongAmount.body.status, 'failed'); assert.equal(f.records.orders[0].paymentStatus, 'unpaid');
+  reply = { amount: order.total, transId: 0, resultCode: 1006, message: 'Người dùng đã từ chối xác nhận thanh toán.' };
+  const refused = await f.request('/payments/momo/verify', { momoOrderId: link.body.momoOrderId });
+  assert.equal(refused.body.status, 'failed'); assert.match(refused.body.message, /từ chối/);
+  reply = { amount: order.total, transId: 99, resultCode: 0, message: 'Thành công.' };
+  // IPN trả 204 không có body nên fixture không đọc được JSON — chỉ cần dữ liệu không đổi
+  await f.request('/payments/momo/ipn', { partnerCode: 'MOMO', orderId: link.body.momoOrderId, requestId: link.body.momoOrderId,
+    amount: order.total, resultCode: 0, transId: 99, signature: 'gia-mao' }, { authenticated: false }).catch(() => null);
+  assert.equal(f.records.orders[0].paymentStatus, 'unpaid'); assert.equal(f.records.personalBooks.length, 0);
+});
+test('Đơn MoMo bỏ dở quá 2 giờ: xem danh sách đơn thì tự hủy, trả lượt mã giảm giá; MoMo báo đã trả thì ghi nhận thay vì hủy', async t => {
+  let reply = { amount: 0, transId: 0, resultCode: 1005, message: 'Giao dịch thất bại do url hoặc QR code đã hết hạn.' };
+  const { f, order } = await momoOrder(t, () => reply);
+  const usedBefore = f.records.vouchers[0].usedCount;
+  // Đơn mới tạo: chưa quá hạn thì vẫn chờ thanh toán
+  let list = await f.request('/account/orders', null, { method: 'GET' });
+  assert.equal(list.body[0].status, 'pending');
+  f.records.orders[0].createdAt = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  list = await f.request('/account/orders', null, { method: 'GET' });
+  assert.equal(list.body[0].status, 'cancelled'); assert.equal(list.body[0].statusHistory.at(-1).note, 'Tự hủy vì quá hạn thanh toán');
+  assert.equal(f.records.vouchers[0].usedCount, usedBefore - 1, 'Trả lại lượt dùng mã giảm giá');
+
+  // Đơn thứ hai: khách đã trả trên MoMo nhưng không quay lại web → không được hủy, ghi nhận đã trả
+  const again = await f.request('/orders', f.body, { key: 'fixture-order-key-0002' });
+  assert.equal(again.status, 201);
+  await f.request('/orders/' + again.body._id + '/momo', {});
+  const stored = f.records.orders.find((o) => String(o._id) === again.body._id);
+  stored.createdAt = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  reply = { amount: again.body.total, transId: 555, resultCode: 0, message: 'Thành công.' };
+  list = await f.request('/account/orders', null, { method: 'GET' });
+  const settled = list.body.find((o) => o._id === again.body._id);
+  assert.equal(settled.paymentStatus, 'paid'); assert.equal(settled.status, 'delivered');
 });

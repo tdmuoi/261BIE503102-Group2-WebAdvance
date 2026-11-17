@@ -7,6 +7,7 @@
 //   PUT  /api/account/orders/:id/cancel   chỉ đơn "pending"
 //   POST /api/orders/:id/confirm-payment  trả 409 chờ xác minh, không ghi paid hoặc cấp ebook
 //   POST /api/orders/:id/demo-payment     QR Demo riêng; chỉ database QA/demo local được bật rõ ràng
+//   MoMo (cổng thật, mặc định môi trường test): xem customer-momo-payment.js
 // Tiền luôn tính lại ở đây từ giá trong collection books + vouchers (không tin số tiền trang gửi lên).
 // Cấu trúc đơn theo my-server/routes/admin-orders.js.
 // =====================================================================
@@ -15,6 +16,9 @@ const { requireCustomer, toObjectId } = require('../middleware/customer-auth');
 const { computeTotals, voucherProblem, publicVoucher } = require('./customer-pricing');
 
 const PAYMENT_METHODS = ['momo', 'vnpay', 'bank_transfer', 'cod', 'qr_demo'];
+/** Trả online: chưa trả tiền sau thời gian này thì đơn tự hủy (xem expireUnpaid) */
+const ONLINE_METHODS = ['momo', 'vnpay', 'bank_transfer'];
+const UNPAID_TTL_MS = 2 * 60 * 60 * 1000;
 const demoMode = require('../middleware/demo-mode');
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const iso = (d) => (d ? new Date(d).toISOString() : null);
@@ -230,6 +234,7 @@ module.exports = function customerOrderRoutes(getDb) {
   });
   router.get('/account/orders', auth, async (req, res, next) => {
     try {
+      await expireUnpaid(req.customer.userId);
       const list = await db().collection('orders').find(readable(req)).sort({ createdAt: -1 }).limit(100).toArray();
       res.json(list.map(orderView));
     } catch (error) { next(error); }
@@ -251,29 +256,55 @@ module.exports = function customerOrderRoutes(getDb) {
         const order = await require('./customer-demo-payment').settle(db(),req.customer.userId,id,'cancelled');
         return res.json(orderView(order));
       }
-      const order = await transaction(db(), async (session) => {
-        const current = await db().collection('orders').findOne({ _id: id, ...mine(req) }, { session });
-        if (!current) throw failure(404, 'Không tìm thấy đơn hàng');
-        if (current.isDemo === true) throw failure(409, 'Đơn demo chỉ được xem');
-        if (current.status === 'cancelled') return current;
-        if (current.status !== 'pending' || current.paymentStatus !== 'unpaid')
-          throw failure(409, 'Đơn đã xác nhận/đã thanh toán cần quy trình hủy hoặc hoàn trả');
-        if (current.stockDeducted === true && !current.restocked) await adjustStock(db(), session, current.items, 1);
-        await releaseVoucher(db(), session, current);
-        const now = new Date();
-        const set = { status: 'cancelled', updatedAt: now,
-          restocked: current.restocked === true || current.stockDeducted === true,
-          ...(current.voucherCode ? { voucherReleased: true } : {}) };
-        const changed = await db().collection('orders').updateOne({ _id: id, ...mine(req), status: 'pending', isDemo: { $ne: true } },
-          { $set: set, $push: { statusHistory: { status: 'cancelled', at: now, note: 'Khách hủy đơn' } } }, { session });
-        if (changed.modifiedCount !== 1) throw failure(409, 'Đơn hàng vừa thay đổi');
-        await notify(req.customer.userId, { type: 'order', icon: 'box', title: 'Đã hủy đơn #' + current.orderCode,
-          message: 'Đơn hàng đã được hủy theo yêu cầu của bạn.', action: null }, session);
-        return { ...current, ...set };
-      });
+      const order = await cancelPending(req.customer.userId, id, 'Khách hủy đơn', 'Đơn hàng đã được hủy theo yêu cầu của bạn.');
       res.json(orderView(order));
     } catch (error) { next(error); }
   });
+
+  /** Hủy đơn đang chờ, chưa trả tiền: trả lại tồn kho + lượt mã giảm giá, ghi lịch sử, báo cho khách */
+  async function cancelPending(userId, id, note, message) {
+    return transaction(db(), async (session) => {
+      const current = await db().collection('orders').findOne({ _id: id, userId }, { session });
+      if (!current) throw failure(404, 'Không tìm thấy đơn hàng');
+      if (current.isDemo === true) throw failure(409, 'Đơn demo chỉ được xem');
+      if (current.status === 'cancelled') return current;
+      if (current.status !== 'pending' || current.paymentStatus !== 'unpaid')
+        throw failure(409, 'Đơn đã xác nhận/đã thanh toán cần quy trình hủy hoặc hoàn trả');
+      if (current.stockDeducted === true && !current.restocked) await adjustStock(db(), session, current.items, 1);
+      await releaseVoucher(db(), session, current);
+      const now = new Date();
+      const set = { status: 'cancelled', updatedAt: now,
+        restocked: current.restocked === true || current.stockDeducted === true,
+        ...(current.voucherCode ? { voucherReleased: true } : {}) };
+      const changed = await db().collection('orders').updateOne({ _id: id, userId, status: 'pending', paymentStatus: 'unpaid', isDemo: { $ne: true } },
+        { $set: set, $push: { statusHistory: { status: 'cancelled', at: now, note } } }, { session });
+      if (changed.modifiedCount !== 1) throw failure(409, 'Đơn hàng vừa thay đổi');
+      await notify(userId, { type: 'order', icon: 'box', title: 'Đã hủy đơn #' + current.orderCode, message, action: null }, session);
+      return { ...current, ...set };
+    });
+  }
+
+  /**
+   * Đơn trả online (MoMo / VNPay / chuyển khoản) quá hạn mà chưa trả tiền thì tự hủy, để không đọng đơn
+   * "Chờ thanh toán" và không giữ tồn kho. Hạn dài hơn thời gian sống của link MoMo (~100 phút).
+   * Đơn MoMo: hỏi MoMo lần cuối trước khi hủy — đã trả thì ghi nhận thay vì hủy; không hỏi được thì để lần sau.
+   */
+  async function expireUnpaid(userId) {
+    const cutoff = Date.now() - UNPAID_TTL_MS;
+    const candidates = await db().collection('orders').find({ userId, status: 'pending', paymentStatus: 'unpaid',
+      paymentMethod: { $in: ONLINE_METHODS }, isDemo: { $ne: true } }).limit(50).toArray();
+    for (const order of candidates.filter((o) => +new Date(o.createdAt) < cutoff)) {
+      try {
+        if (order.paymentMethod === 'momo' && order.momoAttempts?.length) {
+          const result = await require('./customer-momo-payment').verifyOrder(db(), order);
+          if (result.status === 'paid') continue;
+        }
+        await cancelPending(userId, order._id, 'Tự hủy vì quá hạn thanh toán', 'Đơn chưa được thanh toán trong 2 giờ nên đã tự hủy. Bạn có thể đặt lại bất cứ lúc nào.');
+      } catch (error) {
+        console.error('Không tự hủy được đơn quá hạn', String(order._id), error.message);
+      }
+    }
+  }
   // Customer clicks are never settlement proof. No online payment writes or ebook
   // grants until a separately authenticated provider verification is implemented.
   router.post('/orders/:id/confirm-payment', auth, async (req, res, next) => {

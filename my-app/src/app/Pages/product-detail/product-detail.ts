@@ -44,8 +44,12 @@ export class ProductDetail {
     return book ? this.cart.quantityOf(book._id) : 0;
   });
 
-  /** Số cuốn còn thêm được (tồn kho trừ số đã có trong giỏ) */
-  protected readonly maxQuantity = computed(() => Math.max(0, (this.book()?.stock ?? 0) - this.inCart()));
+  /** Số cuốn còn thêm được: sách giấy = tồn kho trừ số trong giỏ; ebook không có tồn kho, mỗi đơn 1 bản */
+  protected readonly maxQuantity = computed(() => {
+    const book = this.book();
+    const limit = book?.type === 'ebook' ? 1 : (book?.stock ?? 0);
+    return Math.max(0, limit - this.inCart());
+  });
 
   /** Đổi sách thì số lượng về 1 */
   protected readonly quantity = linkedSignal({ source: this.book, computation: () => 1 });

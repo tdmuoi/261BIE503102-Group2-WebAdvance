@@ -29,7 +29,7 @@ describe('AboutUs', () => {
     expect(el.querySelectorAll('.timeline li').length).toBe(4);
     expect(el.querySelectorAll('.value').length).toBe(4);
     expect(el.querySelectorAll('.stat').length).toBe(4);
-    expect(el.querySelectorAll('.member').length).toBe(4);
+    expect(el.querySelectorAll('.member').length).toBe(5);
     expect(el.querySelectorAll('.partner').length).toBe(8);
   });
 

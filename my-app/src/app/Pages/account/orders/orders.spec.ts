@@ -53,6 +53,21 @@ describe('Orders', () => {
     expect(component.orders().find((o) => o.orderCode === 'LB-24201')?.status).toBe('cancelled');
   });
 
+  it('đơn MoMo chưa trả tiền: hiện "Chờ thanh toán" và nút Thanh toán tiếp (không phải đặt lại đơn mới)', () => {
+    const order = component.orders().find((o) => o.orderCode === 'LB-24201')!;
+    const unpaid = { ...order, paymentMethod: 'momo' as const, paymentStatus: 'unpaid' as const };
+    component.orders.update((list) => list.map((o) => (o._id === order._id ? unpaid : o)));
+    fixture.detectChanges();
+    const card = Array.from(el.querySelectorAll('article.order')).find((a) => a.textContent?.includes('LB-24201'))!;
+    expect(card.querySelector('.status')?.textContent).toContain('Chờ thanh toán');
+    expect(component.canPay(unpaid)).toBe(true);
+    const redirect = vi.spyOn(component, 'openExternal').mockImplementation(() => undefined);
+    component.pay(unpaid);
+    vi.advanceTimersByTime(500);
+    expect(redirect).toHaveBeenCalledWith(expect.stringContaining('https://test-payment.momo.vn/'));
+    expect(component.canPay({ ...unpaid, paymentStatus: 'paid' })).toBe(false);
+  });
+
   it('Xem chi tiết mở lịch sử, địa chỉ, thanh toán; "Theo dõi đơn" với đơn đang giao', () => {
     const order = component.orders().find((o) => o.orderCode === 'LB-24186')!;
     component.toggleDetail(order);

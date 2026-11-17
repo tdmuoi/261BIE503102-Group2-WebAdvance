@@ -74,7 +74,9 @@
 <div class="info-qty">
   <span class="qty-label" id="qty-label">Số lượng</span>
   <app-quantity-stepper role="group" aria-labelledby="qty-label" [(value)]="quantity" [max]="maxQuantity()"></app-quantity-stepper>
-  <span class="qty-stock" [class.is-out]="maxQuantity() <= 0">{{ stockText() }}</span>
+  @if (!isEbook()) {
+    <span class="qty-stock" [class.is-out]="maxQuantity() <= 0">{{ stockText() }}</span>
+  }
 </div>
 
 <div class="info-actions">
@@ -82,7 +84,7 @@
     <img src="images/icons/shopping-bag.svg" alt="" width="20" height="20" />
     Thêm {{ quantity() }} cuốn vào giỏ
   </button>
-  <button class="cta cta-buy" type="button" [disabled]="item.stock <= 0" (click)="buy.emit()">
+  <button class="cta cta-buy" type="button" [disabled]="!isEbook() && item.stock <= 0" (click)="buy.emit()">
     Mua ngay <img src="images/icons/arrow-right-inverse.svg" alt="" width="20" height="20" />
   </button>
   <button class="share" type="button" aria-label="Chia sẻ sách" (click)="share.emit()">

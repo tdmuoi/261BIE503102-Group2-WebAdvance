@@ -16,6 +16,14 @@
       </app-status-card>
     </section>
   }
+  @case ('pdferror') {
+    <section class="state container">
+      <app-status-card tone="error" title="Chưa mở được sách" [message]="pdfError()">
+        <button type="button" class="btn-pill" (click)="retry()">Thử lại</button>
+        <a class="btn-pill" routerLink="/account/bookshelf-ebooks">Về tủ sách</a>
+      </app-status-card>
+    </section>
+  }
   @case ('notfound') {
     <section class="state container">
       <app-status-card title="Không tìm thấy ebook trong tủ sách" message="Có thể bạn chưa mua cuốn này hoặc đường dẫn không đúng.">
@@ -32,7 +40,7 @@
             <a class="pill" routerLink="/account/bookshelf-ebooks"><img src="images/reader/back.svg" alt="" width="14" height="14" />Tủ sách</a>
             <div class="book-title">
               <h1>{{ e.title }}</h1>
-              <p>{{ e.author }} · {{ current().chapter.title }} / {{ chapters().length }}</p>
+              <p>{{ e.author }} · {{ chapter()?.title || 'Trang ' + page() }}</p>
             </div>
           </div>
           <div class="tools" role="toolbar" aria-label="Công cụ đọc">
@@ -59,13 +67,16 @@
               <h2 class="panel-title">Mục lục</h2>
               <ol class="toc">
                 @for (c of chapters(); track c.index) {
-                  @let isCurrent = current().chapter.index === c.index;
-                  @let done = c.index < current().chapter.index;
+                  @let currentIndex = chapter()?.index ?? 0;
+                  @let isCurrent = currentIndex === c.index;
+                  @let done = c.index < currentIndex;
                   <li>
                     <button type="button" class="toc-item" [class.is-current]="isCurrent" [class.is-done]="done" (click)="goTo(c.startPage)" [attr.aria-current]="isCurrent ? 'true' : null">
                       <span>{{ done ? '✓  ' : '' }}{{ c.title }}</span><span class="toc-page">tr. {{ c.startPage }}</span>
                     </button>
                   </li>
+                } @empty {
+                  <li class="muted">File PDF này không có mục lục.</li>
                 }
               </ol>
               <hr class="divider" />
@@ -90,7 +101,9 @@
                 <img src="images/account/search.svg" alt="" width="16" height="16" />
                 <input type="search" [value]="query()" (input)="query.set($any($event.target).value)" placeholder="Nhập từ cần tìm…" autofocus />
               </label>
-              @if (query().trim().length >= 2) {
+              @if (query().trim().length >= 2 && searchResults().searching) {
+                <p class="muted">Đang tìm…</p>
+              } @else if (query().trim().length >= 2) {
                 <ul class="results">
                   @for (r of searchResults().items; track $index) {
                     <li><button type="button" (click)="goTo(r.page)"><b>Trang {{ r.page }}</b>{{ r.snippet }}</button></li>
@@ -106,19 +119,21 @@
           }
 
           <!-- Trang sách -->
-          <main class="pages" [class.is-scroll]="settings().mode === 'scroll'" (mouseup)="onTextSelect($event)"
-            [style.--reader-size.px]="settings().fontSize" [style.--reader-line]="lineRatio()" [attr.data-font]="settings().font">
-            @for (p of visiblePages(); track p.number) {
-              <article class="page" [attr.data-page]="p.number" [attr.aria-label]="'Trang ' + p.number">
-                <p class="kicker">{{ p.chapter.title }}</p>
-                <h2 class="chapter">{{ p.heading }}</h2>
-                @for (para of p.paragraphs; track $index) {
-                  <p class="para">@for (seg of segments(para, p.number); track $index) {<span [class.hl]="seg.mark">{{ seg.text }}</span>}</p>
-                }
-                @if (settings().mode === 'scroll') { <p class="page-no">{{ p.number }}</p> }
+          <main class="pages" [class.is-scroll]="isScroll()" [class.is-spread]="twoUp()" (mouseup)="onTextSelect($event)">
+            @for (n of visiblePages(); track n; let first = $first, last = $last, count = $count) {
+              <!-- Lật trang: trang mới "đáp xuống" từ gáy sách. Sang trang sau: trang trái; về trang trước: trang phải -->
+              <article class="page" [attr.data-page]="n" [attr.aria-label]="'Trang ' + n"
+                [class.is-left]="twoUp() && first && count > 1" [class.is-right]="twoUp() && last && count > 1"
+                [class.turn-next]="flip() === 'next' && first" [class.turn-prev]="flip() === 'prev' && last">
+                <!-- Trang PDF: canvas là hình trang, .textLayer là chữ trong suốt phủ lên để bôi đen / sao chép -->
+                <div class="sheet" [style.width.px]="pageWidth()" [style.height.px]="pageHeight()">
+                  <canvas aria-hidden="true"></canvas>
+                  <div class="textLayer"></div>
+                </div>
+                @if (isScroll()) { <p class="page-no">{{ n }}</p> }
 
                 @if (selection(); as sel) {
-                  @if (sel.page === p.number) {
+                  @if (sel.page === n) {
                     <div class="selection-bar" role="toolbar" aria-label="Với đoạn đã chọn" [style.top.px]="sel.top" [style.left.px]="sel.left" (mousedown)="$event.preventDefault()">
                       <button type="button" (click)="highlight()">Tô sáng</button><span></span>
                       <button type="button" (click)="startNote()">Ghi chú</button><span></span>
@@ -128,7 +143,7 @@
                   }
                 }
                 @if (noteDraft(); as d) {
-                  @if (d.page === p.number) {
+                  @if (d.page === n) {
                     <form class="note-pop" [style.top.px]="d.top" [style.left.px]="d.left" (submit)="$event.preventDefault(); saveNote()">
                       <p class="note-quote">“{{ d.quote }}”</p>
                       <textarea [value]="d.text" (input)="onNoteInput($event)" maxlength="300" placeholder="Ghi chú của bạn…" aria-label="Ghi chú"></textarea>
@@ -151,28 +166,12 @@
                 <button type="button" class="icon-x" (click)="settingsOpen.set(false)" aria-label="Đóng tuỳ chỉnh">×</button>
               </div>
               <div class="setting">
-                <label class="setting-label" for="reader-size">Cỡ chữ</label>
+                <label class="setting-label" for="reader-zoom">Thu phóng · {{ settings().zoom }}%</label>
                 <div class="size-row">
                   <span class="a-sm">A</span>
-                  <input id="reader-size" class="range" type="range" [min]="fontMin" [max]="fontMax" step="1" [value]="settings().fontSize" (input)="onFontSize($event)"
-                    [style.--fill.%]="((settings().fontSize - fontMin) / (fontMax - fontMin)) * 100" />
+                  <input id="reader-zoom" class="range" type="range" [min]="zoomMin" [max]="zoomMax" step="10" [value]="settings().zoom" (input)="onZoom($event)"
+                    [style.--fill.%]="((settings().zoom - zoomMin) / (zoomMax - zoomMin)) * 100" />
                   <span class="a-lg">A</span>
-                </div>
-              </div>
-              <div class="setting">
-                <p class="setting-label">Giãn dòng</p>
-                <div class="opts">
-                  @for (o of lineOptions; track o.value) {
-                    <button type="button" class="opt" [class.is-active]="settings().lineSpacing === o.value" [attr.aria-pressed]="settings().lineSpacing === o.value" (click)="setSetting('lineSpacing', o.value)">{{ o.label }}</button>
-                  }
-                </div>
-              </div>
-              <div class="setting">
-                <p class="setting-label">Phông chữ</p>
-                <div class="opts">
-                  @for (o of fontOptions; track o.value) {
-                    <button type="button" class="opt" [class.is-active]="settings().font === o.value" [attr.aria-pressed]="settings().font === o.value" (click)="setSetting('font', o.value)">{{ o.label }}</button>
-                  }
                 </div>
               </div>
               <div class="setting">
@@ -199,15 +198,15 @@
 
         <!-- Thanh dưới -->
         <footer class="bottombar">
-          <button type="button" class="pill" (click)="prev()" [disabled]="page() <= 1">‹&nbsp; {{ settings().mode === 'scroll' ? 'Chương trước' : 'Trang trước' }}</button>
+          <button type="button" class="pill" (click)="prev()" [disabled]="atStart">‹&nbsp; Trang trước</button>
           <div class="progress">
             <input class="range" type="range" min="1" [max]="total()" [value]="page()" (change)="onSlider($event)" aria-label="Đi tới trang" [style.--fill.%]="percent()" />
             <div class="progress-labels">
-              <b>Trang {{ page() }} / {{ total() }} · {{ percent() }}%</b>
+              <b>Trang {{ pageLabel() }} / {{ total() }} · {{ percent() }}%</b>
               <span>{{ remaining() }}</span>
             </div>
           </div>
-          <button type="button" class="pill pill-mint" (click)="next()" [disabled]="page() >= total()">{{ settings().mode === 'scroll' ? 'Chương sau' : 'Trang sau' }} &nbsp;›</button>
+          <button type="button" class="pill pill-mint" (click)="next()" [disabled]="atEnd">Trang sau &nbsp;›</button>
         </footer>
       </div>
     }

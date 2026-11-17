@@ -162,23 +162,33 @@ describe('Checkout', () => {
     expect(component.payment()).toBe('momo');
   });
 
-  it('Ví MoMo: đặt hàng mở bước quét mã; bấm "Tôi đã thanh toán" thì xong, xoá sách khỏi giỏ', async () => {
+  it('Ví MoMo: đặt hàng → chuyển sang trang MoMo; quay lại thì server xác nhận, xong đơn, xoá sách khỏi giỏ', async () => {
     await setup([{ bookId: 'a', price: 240000, quantity: 2 }, { bookId: 'e', price: 65000, quantity: 1 }]);
+    const redirect = vi.spyOn(component, 'openExternal').mockImplementation(() => undefined);
     component.placeOrder();
     vi.advanceTimersByTime(800);
     fixture.detectChanges();
     const pending = component.paying()!;
     expect(pending.orderCode).toBe('LB-26117');
     expect(pending.paymentStatus).toBe('unpaid');
-    expect(el.querySelector('.pay-modal')?.textContent).toContain('LB26117');
+    expect(el.querySelector('.pay-modal')?.textContent).toContain('Trả bằng thẻ ATM qua MoMo');
+    expect(el.querySelector('.pay-modal')?.textContent).not.toContain('9704'); // không lộ thẻ test cho khách
     expect(db.calls).toContain('POST /orders');
     expect(TestBed.inject(CartService).items().length).toBe(2); // chưa trả tiền thì giỏ còn nguyên
-    component.confirmPaid();
+    component.payWithMomo();
+    vi.advanceTimersByTime(900);
+    expect(db.calls).toContain(`POST /orders/${pending._id}/momo`);
+    expect(redirect).toHaveBeenCalledWith('https://test-payment.momo.vn/v2/gateway/pay?t=LB26117-test');
+
+    // MoMo đưa khách về /checkout?partnerCode=MOMO&orderId=LB26117-test&…
+    component.verifyMomo('LB26117-test');
+    expect(component.momoCheck()?.state).toBe('verifying');
     vi.advanceTimersByTime(900);
     fixture.detectChanges();
     const order = component.placed()!;
     expect(order.paymentStatus).toBe('paid');
-    expect(db.calls).toContain(`POST /orders/${order._id}/confirm-payment`);
+    expect(component.momoCheck()).toBeNull();
+    expect(db.calls).toContain('POST /payments/momo/verify');
     expect(el.textContent).toContain('Đặt hàng thành công');
     expect(el.textContent).toContain('Sách điện tử trong đơn đã có trong tủ sách của bạn.');
     expect(TestBed.inject(CartService).items().length).toBe(0);

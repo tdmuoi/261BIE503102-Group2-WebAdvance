@@ -40,7 +40,7 @@ export class SuggestedBooks {
     if (s.status !== 'ready') return [];
     const exclude = new Set(this.excludeIds());
     return s.books
-      .filter((b) => !exclude.has(b._id) && b.stock !== 0)
+      .filter((b) => !exclude.has(b._id) && (b.type === 'ebook' || b.stock !== 0)) // ebook không có tồn kho
       .sort((a, b) => b.discountPercent - a.discountPercent || Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .slice(0, this.limit());
   });

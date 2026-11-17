@@ -31,6 +31,20 @@ export interface BuybackRequest {
   note: string;
 }
 
+/** Link thanh toán MoMo của một đơn; test = đang dùng môi trường test của MoMo (tiền ảo) */
+export interface MomoPaymentLink {
+  payUrl: string;
+  momoOrderId: string;
+  test: boolean;
+}
+
+/** Kết quả server tra MoMo: paid = đã ghi nhận (ebook đã vào tủ sách), pending = MoMo chưa có kết quả */
+export interface MomoVerifyResult {
+  status: 'paid' | 'pending' | 'failed';
+  message: string | null;
+  order: Order;
+}
+
 /** Tiến độ đọc ebook lưu trên server — GET/PUT /api/account/ebooks/:bookId/progress */
 export interface EbookProgress {
   page: number;
@@ -162,6 +176,18 @@ export class AccountService {
   /** Bản demo: người dùng bấm "Tôi đã thanh toán" (chưa nối cổng MoMo/VNPay thật) */
   confirmPayment(id: string): Observable<Order> {
     return this.http.post<Order>(`${environment.apiUrl}/orders/${id}/confirm-payment`, {}, { headers: this.headers() }).pipe(this.on401());
+  }
+
+  /** Tạo link thanh toán MoMo cho đơn đang chờ — POST /api/orders/:id/momo */
+  createMomoPayment(id: string, method: 'atm' | 'wallet' = 'atm'): Observable<MomoPaymentLink> {
+    return this.http.post<MomoPaymentLink>(`${environment.apiUrl}/orders/${id}/momo`, { method }, { headers: this.headers() }).pipe(this.on401());
+  }
+
+  /** Khách quay lại từ MoMo: server tự hỏi MoMo rồi mới ghi "đã thanh toán" — POST /api/payments/momo/verify */
+  verifyMomoPayment(momoOrderId: string): Observable<MomoVerifyResult> {
+    return this.http
+      .post<MomoVerifyResult>(`${environment.apiUrl}/payments/momo/verify`, { momoOrderId }, { headers: this.headers() })
+      .pipe(this.on401());
   }
 
   /** Kiểm tra mã giảm giá với giỏ hiện tại — POST /api/vouchers/apply */
