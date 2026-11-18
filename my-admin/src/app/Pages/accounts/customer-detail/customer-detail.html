@@ -39,7 +39,7 @@
         <span class="avatar">
           @if (customer.avatar) {
             <img [src]="customer.avatar" [alt]="customer.fullName" width="80" height="80"
-                 style="border-radius: inherit; object-fit: cover" (error)="customer.avatar = null" />
+                 style="width: 100%; height: 100%; border-radius: inherit; object-fit: cover" (error)="customer.avatar = null" />
           } @else { {{ initials(customer.fullName) }} }
         </span>
         <h2>{{ customer.fullName }}</h2>
@@ -65,6 +65,7 @@
       <div class="contact">
         <p>✉ {{ customer.email || 'Chưa có email' }}</p>
         <p>☎ {{ customer.phone || 'Chưa có số điện thoại' }}</p>
+        <p>⚥ Giới tính: {{ genderLabel(customer.gender) }}</p>
         <p>⌖ {{ customer.address || 'Chưa có địa chỉ' }}</p>
         <p>
           ▦ Sinh nhật {{ customer.birthday ? (customer.birthday | date: 'dd/MM' : '+0700') : '—' }}

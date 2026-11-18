@@ -85,6 +85,10 @@ export class CustomerDetail {
   get locked(): boolean {
     return this.customer()?.status === 'locked';
   }
+  genderLabel(gender: string | null | undefined): string {
+    return gender === 'female' ? 'Nữ' : gender === 'male' ? 'Nam' : gender === 'other' ? 'Khác' : 'Chưa cập nhật';
+  }
+
   initials(name: string): string {
     return name
       .trim()

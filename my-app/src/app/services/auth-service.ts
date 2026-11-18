@@ -7,9 +7,12 @@ import {
   AuthResponse,
   ForgotPasswordResponse,
   LoginRequest,
+  LoginResponse,
+  OtpChallenge,
   RegisterRequest,
   RegisterResponse,
   User,
+  VerifiedResponse,
 } from '../models/user';
 
 const STORAGE_KEY = 'lightbook.auth';
@@ -34,19 +37,37 @@ export class AuthService {
     return this.session()?.token ?? null;
   }
 
-  /** Gọi API đăng nhập. Thành công thì trang gọi tiếp setSession() */
-  login(body: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/login`, body);
+  /**
+   * Gọi API đăng nhập. Có token thì trang gọi tiếp setSession();
+   * có challengeId (needsOtp) thì phải nhập mã OTP gửi qua email trước.
+   */
+  login(body: LoginRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.baseUrl}/login`, body);
   }
 
-  /** Gọi API đăng ký. Thành công thì trang gọi tiếp setSession() để đăng nhập luôn */
+  /** Gọi API đăng ký. Server gửi OTP xác minh email; nhập đúng mã (verifyOtp) mới đăng nhập */
   register(body: RegisterRequest): Observable<RegisterResponse> {
     return this.http.post<RegisterResponse>(`${this.baseUrl}/register`, body);
   }
 
-  /** Gửi email chứa liên kết đặt lại mật khẩu */
+  /** Xác nhận mã OTP (xác minh email / xác thực 2 lớp). Đúng mã thì trả token để setSession() */
+  verifyOtp(challengeId: string, code: string): Observable<VerifiedResponse> {
+    return this.http.post<VerifiedResponse>(`${this.baseUrl}/otp/verify`, { challengeId, code });
+  }
+
+  /** Gửi lại mã OTP mới (chờ 60 giây giữa 2 lần) */
+  resendOtp(challengeId: string): Observable<OtpChallenge> {
+    return this.http.post<OtpChallenge>(`${this.baseUrl}/otp/resend`, { challengeId });
+  }
+
+  /** Gửi mã OTP đặt lại mật khẩu về email */
   forgotPassword(email: string): Observable<ForgotPasswordResponse> {
     return this.http.post<ForgotPasswordResponse>(`${this.baseUrl}/forgot-password`, { email });
+  }
+
+  /** Đặt mật khẩu mới bằng mã OTP; thành công thì mọi thiết bị bị đăng xuất */
+  resetPassword(challengeId: string, code: string, newPassword: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/reset-password`, { challengeId, code, newPassword });
   }
 
   setSession(res: AuthResponse, remember: boolean): void {

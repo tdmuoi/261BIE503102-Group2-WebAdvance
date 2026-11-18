@@ -129,7 +129,7 @@
         >
           <option value="">Hạng thành viên</option>
           @for (option of customers()?.tiers ?? []; track option) {
-            <option [value]="option">{{ option }}</option>
+            <option [value]="option">Thành viên {{ option }}</option>
           }
         </select>
         <select
@@ -166,7 +166,8 @@
               >
                 <td>
                   <span class="person"
-                    ><span class="avatar">{{ initials(customer.fullName) }}</span
+                    ><span class="avatar">@if (customer.avatar) {<img [src]="customer.avatar" [alt]="customer.fullName" width="38" height="38"
+                      style="width: 100%; height: 100%; border-radius: inherit; object-fit: cover" (error)="customer.avatar = null" />} @else { {{ initials(customer.fullName) }} }</span
                     ><span
                       ><strong>{{ customer.fullName }}</strong
                       ><small>{{ customer.email }}</small></span
@@ -240,10 +241,15 @@
           ×
         </button>
         <div class="profile">
-          <span class="avatar avatar-large">{{ initials(customer.fullName) }}</span>
+          <span class="avatar avatar-large">
+            @if (customer.avatar) {
+              <img [src]="customer.avatar" [alt]="customer.fullName" width="64" height="64"
+                   style="width: 100%; height: 100%; border-radius: inherit; object-fit: cover" (error)="customer.avatar = null" />
+            } @else { {{ initials(customer.fullName) }} }
+          </span>
           <h2>{{ customer.fullName }}</h2>
           <p>
-            {{ customer.tier || 'Khách hàng' }} ·
+            {{ customer.tier ? 'Thành viên ' + customer.tier : 'Khách hàng' }} ·
             <span class="status" [class]="'status status-' + statusClass(customer.status)">{{
               statusLabel(customer.status)
             }}</span>
@@ -255,6 +261,9 @@
           </p>
           <p>
             ☎ <span>{{ customer.phone || 'Chưa có số điện thoại' }}</span>
+          </p>
+          <p>
+            ⚥ <span>Giới tính: {{ genderLabel(customer.gender) }}</span>
           </p>
           <p>
             ▦ <span>Tham gia {{ formatDate(customer.createdAt) }}</span>

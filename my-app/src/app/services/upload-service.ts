@@ -5,8 +5,8 @@ import { Observable, from, switchMap, map } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth-service';
 
-/** avatar: ảnh đại diện; buyback: ảnh sách trong phiếu thanh lý */
-export type UploadPurpose = 'avatar' | 'buyback';
+/** avatar: ảnh đại diện; buyback: ảnh sách trong phiếu thanh lý; review: ảnh đính kèm đánh giá */
+export type UploadPurpose = 'avatar' | 'buyback' | 'review';
 
 interface UploadSignature {
   uploadUrl: string;
@@ -18,7 +18,7 @@ interface UploadSignature {
 }
 
 /** Cạnh dài nhất sau khi thu nhỏ (px) */
-const MAX_SIDE: Record<UploadPurpose, number> = { avatar: 400, buyback: 1400 };
+const MAX_SIDE: Record<UploadPurpose, number> = { avatar: 400, buyback: 1400, review: 1400 };
 const JPEG_QUALITY = 0.85;
 
 /**

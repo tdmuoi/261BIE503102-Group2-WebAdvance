@@ -25,6 +25,8 @@
         </a>
         <a class="btn btn-ghost auth-cta auth-cta--ghost" routerLink="/">Về trang chủ</a>
       </div>
+    } @else if (otp(); as challenge) {
+      <app-otp-verify [challenge]="challenge" (verified)="onVerified($event)" (back)="cancelOtp()" />
     } @else {
       <span class="auth-tag auth-tag--pink">Thành viên mới -10%</span>
 

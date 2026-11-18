@@ -17,6 +17,11 @@ export const FAKE_DELAY = 300;
 
 export const FAKE_USER = { _id: 'u1', fullName: 'Nguyễn Thùy Dung', email: 'dung@lightbook.vn', phone: '0909123268', avatar: null };
 const DEMO_LOGIN = { email: 'demo@lightbook.vn', phone: '0901234567', password: 'lightbook123' };
+/** Tài khoản đã bật xác thực 2 lớp; mã OTP đúng trong mọi API giả là FAKE_OTP */
+const DEMO_2FA = { email: 'otp@lightbook.vn', password: 'lightbook123' };
+export const FAKE_OTP = '123456';
+const challenge = (purpose: 'verify_email' | 'login_2fa' | 'reset_password') =>
+  ({ challengeId: `c-${purpose}`, purpose, email: 'de**o@lightbook.vn', resendAfter: 60, expiresIn: 600 });
 
 const ADDRESS: ShippingAddress = { fullName: 'Nguyễn Thùy Dung', phone: '0909123268', address: '12 Nguyễn Văn Bảo', ward: 'Phường Hạnh Thông', province: 'TP. Hồ Chí Minh' };
 const item = (bookId: string, title: string, author: string, price: number, format: 'print' | 'ebook', variant: string, quantity = 1): OrderItem =>
@@ -164,6 +169,7 @@ function handle(db: FakeDb, req: HttpRequest<unknown>): Reply | null {
   // ---- Đăng nhập / đăng ký (không cần token) ----
   if (m === 'POST' && path === '/auth/login') {
     const id = String(body['identifier'] ?? '').trim().toLowerCase();
+    if (id === DEMO_2FA.email && body['password'] === DEMO_2FA.password) return ok({ twoFactorRequired: true, ...challenge('login_2fa') });
     const matched = body['type'] === 'phone' ? id === DEMO_LOGIN.phone : id === DEMO_LOGIN.email;
     if (matched && body['password'] === DEMO_LOGIN.password) {
       db.failedLogins = 0;
@@ -179,9 +185,19 @@ function handle(db: FakeDb, req: HttpRequest<unknown>): Reply | null {
   if (m === 'POST' && path === '/auth/register') {
     if (String(body['email']).toLowerCase() === DEMO_LOGIN.email) return fail(409, { field: 'email', message: 'Email này đã được đăng ký' });
     if (body['phone'] === DEMO_LOGIN.phone) return fail(409, { field: 'phone', message: 'Số điện thoại này đã được đăng ký' });
-    return ok({ token: 'f'.repeat(64), user: { _id: 'u-new', fullName: body['fullName'], email: body['email'], phone: body['phone'] }, coupon: { code: 'WELCOME10' } }, 201);
+    return ok({ verificationRequired: true, ...challenge('verify_email') }, 201);
   }
-  if (m === 'POST' && path === '/auth/forgot-password') return ok({ message: 'ok', resendAfter: 30 });
+  if (m === 'POST' && path === '/auth/otp/verify') {
+    if (body['code'] !== FAKE_OTP) return fail(400, { message: 'Mã OTP chưa đúng. Bạn còn 4 lần thử.', code: 'OTP_INVALID', remainingAttempts: 4 });
+    const verifying = body['challengeId'] === 'c-verify_email';
+    return ok({ token: 'f'.repeat(64), user: { ...FAKE_USER, email: verifying ? 'mai.tran@gmail.com' : DEMO_2FA.email }, ...(verifying ? { coupon: { code: 'WELCOME10' } } : {}) });
+  }
+  if (m === 'POST' && path === '/auth/otp/resend') return ok(challenge(String(body['challengeId']).slice(2) as 'verify_email'));
+  if (m === 'POST' && path === '/auth/forgot-password') return ok({ deliveryAvailable: true, ...challenge('reset_password') });
+  if (m === 'POST' && path === '/auth/reset-password') {
+    if (body['code'] !== FAKE_OTP) return fail(400, { message: 'Mã OTP chưa đúng. Bạn còn 4 lần thử.', code: 'OTP_INVALID', remainingAttempts: 4 });
+    return ok({ message: 'Đã đặt lại mật khẩu. Bạn đăng nhập bằng mật khẩu mới nhé.' });
+  }
   if (m === 'POST' && path === '/auth/logout') return ok({ message: 'Đã đăng xuất' });
 
   if (!authed) return fail(401, { message: 'Bạn cần đăng nhập để tiếp tục' });

@@ -1,6 +1,6 @@
 'use strict';
 // =====================================================================
-// GET /api/uploads/signature?purpose=avatar|buyback   (cần đăng nhập)
+// GET /api/uploads/signature?purpose=avatar|buyback|review   (cần đăng nhập)
 //   → tham số đã ký để trình duyệt tải 1 ảnh thẳng lên Cloudinary
 //     { uploadUrl, api_key, timestamp, signature, folder, allowed_formats }
 // Xem middleware/cloudinary.js

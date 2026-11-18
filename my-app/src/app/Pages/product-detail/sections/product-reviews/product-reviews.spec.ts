@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 
@@ -22,6 +24,7 @@ describe('ProductReviews', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([])],
       declarations: [ProductReviews],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
     fixture = TestBed.createComponent(ProductReviews);
   });
@@ -45,5 +48,24 @@ describe('ProductReviews', () => {
     el().querySelector<HTMLButtonElement>('.reviews-all')!.click();
     await fixture.whenStable();
     expect(el().querySelectorAll('.review').length).toBe(4);
+  });
+
+  it('có ảnh đại diện thì hiện ảnh, không có thì hiện chữ viết tắt', async () => {
+    fixture.componentRef.setInput('reviews', [{ ...review('1', 5), userAvatar: 'https://res.cloudinary.com/x/avatar.jpg' }, review('2', 4)]);
+    await fixture.whenStable();
+
+    const heads = el().querySelectorAll('.review-head');
+    expect(heads[0].querySelector<HTMLImageElement>('img.avatar')?.getAttribute('src')).toBe('https://res.cloudinary.com/x/avatar.jpg');
+    expect(heads[1].querySelector('span.avatar')?.textContent?.trim()).toBe('TH');
+  });
+
+  it('đánh giá của chính mình thì không bấm Hữu ích được', async () => {
+    fixture.componentRef.setInput('reviews', [{ ...review('1', 5), isMine: true }]);
+    await fixture.whenStable();
+
+    const buttons = el().querySelectorAll<HTMLButtonElement>('.helpful-btn');
+    expect(buttons.length).toBe(2);
+    expect([...buttons].every((b) => b.disabled)).toBe(true);
+    TestBed.inject(HttpTestingController).verify();
   });
 });

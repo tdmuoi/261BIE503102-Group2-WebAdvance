@@ -6,12 +6,14 @@
 //   GET /api/account/ebooks   PUT /api/account/ebooks/:bookId (explicit free claim)
 //   GET /api/account/ebooks/:bookId/content   GET/PUT /api/account/ebooks/:bookId/progress
 //   GET /api/account/reviews  POST /api/reviews   GET /api/books/:bookId/reviews (công khai)
+//   POST /api/reviews/:id/vote  { value: 1 | -1 | 0 }  — hữu ích / không hữu ích / bỏ vote
 //   GET /api/account/buybacks
 // Collections: users, accounts, addresses, notifications, personalBooks, reviews, liquidation, orders
 // =====================================================================
 const express = require('express');
+const { tierLabel, tierOrderQuery } = require('./customer-tier');
 const { ObjectId } = require('mongodb');
-const { hashPassword, verifyPassword, requireCustomer, toObjectId } = require('../middleware/customer-auth');
+const { hashPassword, verifyPassword, requireCustomer, optionalCustomer, toObjectId } = require('../middleware/customer-auth');
 const { publicUser } = require('./customer-auth');
 const { hasEbookEntitlement, freeEbookClaimId, verifiedPaymentDate } = require('../middleware/admin-safe-status');
 const transaction = require('../middleware/admin-transaction');
@@ -22,12 +24,6 @@ const NOTIFICATION_PAGE = 6;
 const ADDRESS_TYPES = { home: 'Nhà riêng', office: 'Văn phòng', school: 'Trường học' };
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const iso = (d) => (d ? new Date(d).toISOString() : null);
-
-function tierOf(spent) {
-  if (spent >= 5000000) return 'Thành viên Vàng';
-  if (spent >= 1000000) return 'Thành viên Bạc';
-  return 'Thành viên Đồng';
-}
 
 function addressView(a) {
   const type = a.type || Object.keys(ADDRESS_TYPES).find((k) => ADDRESS_TYPES[k] === a.label) || 'home';
@@ -60,12 +56,13 @@ module.exports = function customerAccountRoutes(getDb) {
   const router = express.Router();
   const db = () => getDb();
   const auth = requireCustomer(getDb);
+  const optionalAuth = optionalCustomer(getDb);
 
   // ---------------- Hồ sơ ----------------
   async function profileOf(req) {
     const { account, user, email } = req.customer;
     const delivered = await db().collection('orders')
-      .find({ $or: [{ userId: user._id }, { 'customer.email': email }], status: 'delivered' }, { projection: { total: 1 } })
+      .find(tierOrderQuery(user._id, email), { projection: { total: 1 } })
       .toArray();
     const spent = delivered.reduce((s, o) => s + (Number(o.total) || 0), 0);
     return {
@@ -78,7 +75,7 @@ module.exports = function customerAccountRoutes(getDb) {
       birthday: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().slice(0, 10) : null,
       gender: ['female', 'male', 'other'].includes(user.gender) ? user.gender : null,
       avatar: user.avatar || null,
-      tier: tierOf(spent),
+      tier: tierLabel(spent),
       memberId: String(user._id).slice(-7).toUpperCase(),
       passwordChangedAt: iso(account.passwordChangedAt),
       twoFactorEnabled: !!user.twoFactorEnabled,
@@ -458,6 +455,12 @@ module.exports = function customerAccountRoutes(getDb) {
         return res.status(403).json({ message: 'Bạn chỉ đánh giá được sách đã nhận và đã xác minh thanh toán' });
       const book = await db().collection('books').findOne({ _id: bookId, isDemo: { $ne: true } }, { projection: { _id: 1 } });
       if (!book) return res.status(404).json({ message: 'Không tìm thấy sách hợp lệ để đánh giá' });
+      // Ảnh đính kèm: tối đa 3 link Cloudinary trong thư mục đánh giá của chính khách này
+      const rawImages = req.body?.images ?? [];
+      if (!Array.isArray(rawImages) || rawImages.length > 3 ||
+        rawImages.some((url) => !cloudinary.isOwnImageUrl(url, 'review', userId)))
+        return res.status(400).json({ message: 'Ảnh đánh giá không hợp lệ (tối đa 3 ảnh đã tải lên)' });
+      const images = [...new Set(rawImages)];
       const now = new Date();
       const anonymous = req.body?.anonymous === true;
       await db().collection('reviews').updateOne(
@@ -465,7 +468,7 @@ module.exports = function customerAccountRoutes(getDb) {
         {
           $set: {
             rating, tags: (Array.isArray(req.body?.tags) ? req.body.tags : []).map(text).filter(Boolean).slice(0, 8),
-            content: text(req.body?.content).slice(0, 500), anonymous,
+            content: text(req.body?.content).slice(0, 500), images, anonymous,
             userName: anonymous ? 'Độc giả ẩn danh' : req.customer.user.fullName || 'Độc giả', verifiedPurchase: realPurchase, demoPurchase:!realPurchase && demoPurchase, updatedAt: now,
           },
           $setOnInsert: { reviewCode: `RV-${Date.now().toString(36).toUpperCase()}`, helpfulCount: 0, createdAt: now },
@@ -478,23 +481,71 @@ module.exports = function customerAccountRoutes(getDb) {
     }
   });
 
-  /** Công khai — trang chi tiết sách có thể dùng (BookService.getReviews) */
-  router.get('/books/:bookId/reviews', async (req, res, next) => {
+  /** Ai đã vote hữu ích (1) / không hữu ích (-1) — lưu trong reviews.votes: [{ userId, value, at }] */
+  const voteCounts = (votes) => ({
+    helpfulCount: votes.filter((v) => v.value === 1).length,
+    notHelpfulCount: votes.filter((v) => v.value === -1).length,
+  });
+
+  /** Công khai — trang chi tiết sách dùng (BookService.getReviews). Có đăng nhập thì kèm myVote / isMine */
+  router.get('/books/:bookId/reviews', optionalAuth, async (req, res, next) => {
     try {
       const bookId = toObjectId(req.params.bookId);
       if (!bookId) return res.json([]);
       const list = await db().collection('reviews').find({ bookId: { $in: [bookId, String(bookId)] } }).sort({ createdAt: -1 }).limit(50).toArray();
+      // Ảnh đại diện lấy từ hồ sơ hiện tại của người viết (đổi avatar thì review cũng đổi theo)
+      const authorIds = [...new Set(list.filter((r) => r.userId && !r.anonymous).map((r) => String(r.userId)))]
+        .map(toObjectId).filter(Boolean);
+      const authors = authorIds.length
+        ? await db().collection('users').find({ _id: { $in: authorIds } }, { projection: { avatar: 1 } }).toArray()
+        : [];
+      const avatarOf = new Map(authors.map((u) => [String(u._id), u.avatar]));
+      const me = req.customer ? String(req.customer.userId) : null;
       res.json(
-        list.map((r) => ({
-          _id: String(r._id),
-          userName: r.userName || r.customerName || 'Độc giả',
-          rating: r.rating || r.stars || 5,
-          content: r.content || '',
-          createdAt: iso(r.createdAt),
-          verifiedPurchase: r.verifiedPurchase === true,
-          helpfulCount: r.helpfulCount || r.helpful || 0,
-        })),
+        list.map((r) => {
+          const votes = Array.isArray(r.votes) ? r.votes : [];
+          const avatar = r.anonymous ? null : avatarOf.get(String(r.userId));
+          const counts = votes.length ? voteCounts(votes) : { helpfulCount: r.helpfulCount || r.helpful || 0, notHelpfulCount: 0 };
+          return {
+            _id: String(r._id),
+            userName: r.userName || r.customerName || 'Độc giả',
+            userAvatar: typeof avatar === 'string' && avatar.startsWith('https://res.cloudinary.com/') ? avatar : null,
+            rating: r.rating || r.stars || 5,
+            content: r.content || '',
+            images: (Array.isArray(r.images) ? r.images : []).filter((url) => typeof url === 'string' && url.startsWith('https://res.cloudinary.com/')),
+            createdAt: iso(r.createdAt),
+            verifiedPurchase: r.verifiedPurchase === true,
+            ...counts,
+            myVote: me ? (votes.find((v) => String(v.userId) === me)?.value ?? 0) : 0,
+            isMine: !!me && String(r.userId) === me,
+          };
+        }),
       );
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /** Đánh dấu một đánh giá là hữu ích (1) / không hữu ích (-1) / bỏ vote (0). Không tự vote đánh giá của mình */
+  router.post('/reviews/:id/vote', auth, async (req, res, next) => {
+    try {
+      const reviewId = toObjectId(req.params.id);
+      const value = req.body?.value;
+      if (!reviewId || ![1, -1, 0].includes(value)) return res.status(400).json({ message: 'Lựa chọn không hợp lệ' });
+      const userId = req.customer.userId;
+      const reviews = db().collection('reviews');
+      const review = await reviews.findOne({ _id: reviewId }, { projection: { userId: 1 } });
+      if (!review) return res.status(404).json({ message: 'Không tìm thấy đánh giá' });
+      if (String(review.userId) === String(userId)) return res.status(403).json({ message: 'Bạn không thể tự đánh giá nhận xét của mình' });
+
+      // Bỏ vote cũ của người này rồi thêm vote mới (nếu có) — mỗi người tối đa 1 vote / đánh giá
+      await reviews.updateOne({ _id: reviewId }, { $pull: { votes: { userId: { $in: [userId, String(userId)] } } } });
+      if (value) await reviews.updateOne({ _id: reviewId }, { $push: { votes: { userId, value, at: new Date() } } });
+
+      const updated = await reviews.findOne({ _id: reviewId }, { projection: { votes: 1 } });
+      const counts = voteCounts(Array.isArray(updated?.votes) ? updated.votes : []);
+      await reviews.updateOne({ _id: reviewId }, { $set: { helpfulCount: counts.helpfulCount } });
+      res.json({ ...counts, myVote: value });
     } catch (error) {
       next(error);
     }

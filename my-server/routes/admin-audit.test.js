@@ -365,10 +365,17 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       const data = await r.json();
       assert.equal(data.items[0].orderCount, 2);
       assert.equal(data.items[0].totalSpent, 100000);
+      // Hạng thành viên dùng chung quy tắc với web khách: 900.000đ đơn đã giao → Đồng
+      assert.equal(data.items[0].tier, "Đồng");
+      assert.deepEqual(data.tiers, ["Đồng", "Bạc", "Vàng"]);
+      assert.equal(data.stats.goldMembers, 0);
+      assert.equal(data.items[0].avatar, null);
+      assert.equal(data.items[0].gender, null);
       const detail = await (
         await request("/api/admin/accounts/customers/" + customerProfile)
       ).json();
       assert.equal(detail.orders.length, 2);
+      assert.equal(detail.tier, "Đồng");
       assert.equal(detail.metrics.averageOrderValue, 100000);
       assert.equal(detail.buybacks.items.length, 0);
       const csv = await request("/api/admin/accounts/customers/export");

@@ -1,9 +1,10 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, timeout } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { Author, Book, BookType, Catalog, CatalogBook, Category, Review } from '../models/book';
+import { Author, Book, BookType, Catalog, CatalogBook, Category, Review, ReviewVote, ReviewVoteResult } from '../models/book';
+import { AuthService } from './auth-service';
 import { AuthorService } from './author-service';
 import { CategoryService } from './category-service';
 
@@ -35,6 +36,7 @@ export class BookService {
   private readonly http = inject(HttpClient);
   private readonly authorService = inject(AuthorService);
   private readonly categoryService = inject(CategoryService);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/books`;
 
   getBooks(query: BookQuery = {}): Observable<Book[]> {
@@ -67,7 +69,24 @@ export class BookService {
    * Lỗi thì coi như chưa có đánh giá, trang chi tiết vẫn hiện sách.
    */
   getReviews(bookId: string): Observable<Review[]> {
-    return this.http.get<Review[]>(`${this.baseUrl}/${encodeURIComponent(bookId)}/reviews`).pipe(catchError(() => of<Review[]>([])));
+    // Gửi kèm token (nếu có) để server trả về vote của chính mình (myVote / isMine)
+    return this.http
+      .get<Review[]>(`${this.baseUrl}/${encodeURIComponent(bookId)}/reviews`, { headers: this.authHeaders() })
+      .pipe(catchError(() => of<Review[]>([])));
+  }
+
+  /** Đánh dấu đánh giá hữu ích (1) / không hữu ích (-1) / bỏ vote (0) — POST /api/reviews/:id/vote, cần đăng nhập */
+  voteReview(reviewId: string, value: ReviewVote): Observable<ReviewVoteResult> {
+    return this.http.post<ReviewVoteResult>(
+      `${environment.apiUrl}/reviews/${encodeURIComponent(reviewId)}/vote`,
+      { value },
+      { headers: this.authHeaders() },
+    );
+  }
+
+  private authHeaders(): HttpHeaders | undefined {
+    const token = this.auth.token;
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
   }
 }
 

@@ -82,12 +82,11 @@ describe('ProfileInfo', () => {
     expect(component.avatarError()).toBe('Ảnh phải là JPG hoặc PNG, tối đa 1MB');
   });
 
-  it('bật xác thực 2 lớp mà xoá số điện thoại thì không cho lưu', () => {
+  it('xác thực 2 lớp gửi mã qua email nên không bắt buộc số điện thoại', () => {
     component.form.controls.phone.setValue('');
     component.form.markAsDirty();
     component.save();
-    expect(component.twoFactorError()).toBe(true);
-    expect(toast.show).toHaveBeenCalledWith('Còn thông tin chưa hợp lệ, bạn kiểm tra các ô màu đỏ nhé');
+    expect(toast.show).not.toHaveBeenCalledWith('Còn thông tin chưa hợp lệ, bạn kiểm tra các ô màu đỏ nhé');
   });
 
   it('lưu thay đổi thì cập nhật hồ sơ và báo "Đã lưu thay đổi"', () => {

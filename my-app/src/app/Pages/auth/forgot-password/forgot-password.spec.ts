@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap, RouterModule, provideRouter } from '@angular/router';
 
-import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
+import { FAKE_OTP, provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { AuthArt } from '../auth-art/auth-art';
 import { ForgotPassword } from './forgot-password';
 
@@ -27,6 +27,13 @@ describe('ForgotPassword', () => {
     await fixture.whenStable();
   }
 
+  /** Bước 1 xong: đã gửi mã, đang ở bước nhập OTP */
+  function sendCode() {
+    component.form.controls.email.setValue('Mai.Tran@gmail.com');
+    component.submit();
+    vi.advanceTimersByTime(700);
+  }
+
   afterEach(() => vi.useRealTimers());
 
   it('should create', async () => {
@@ -47,22 +54,50 @@ describe('ForgotPassword', () => {
     expect(component.sentTo()).toBeNull();
   });
 
-  it('gửi xong thì hiện "Kiểm tra hộp thư", đếm ngược 30s rồi mới cho gửi lại', async () => {
+  it('gửi mã xong thì sang bước nhập OTP, đếm ngược 60s rồi mới cho gửi lại', async () => {
     await setup();
     vi.useFakeTimers();
-    component.form.controls.email.setValue('Mai.Tran@gmail.com');
-    component.submit();
-    vi.advanceTimersByTime(700);
-    expect(component.sentTo()).toBe('mai.tran@gmail.com');
-    expect(component.countdownText()).toBe('00:30');
+    sendCode();
+    expect(component.sentTo()).toBe('de**o@lightbook.vn');
+    expect(component.countdownText()).toBe('01:00');
 
-    vi.advanceTimersByTime(29_000);
+    vi.advanceTimersByTime(59_000);
     expect(component.countdown()).toBe(1);
     vi.advanceTimersByTime(1_000);
     expect(component.countdown()).toBe(0);
 
     component.resend();
     vi.advanceTimersByTime(700);
-    expect(component.countdownText()).toBe('00:30');
+    expect(component.countdownText()).toBe('01:00');
+  });
+
+  it('mật khẩu mới phải đủ 8 ký tự, có chữ và số, nhập lại khớp', async () => {
+    await setup();
+    vi.useFakeTimers();
+    sendCode();
+    component.resetForm.setValue({ code: '12', password: 'abc', confirmPassword: 'abd' });
+    component.reset();
+    expect(component.resetError('code')).toBe('Mã OTP gồm đúng 6 chữ số');
+    expect(component.resetError('password')).toBe('Mật khẩu phải có ít nhất 8 ký tự');
+    expect(component.resetError('confirmPassword')).toBe('Mật khẩu nhập lại chưa khớp');
+  });
+
+  it('sai mã thì báo lỗi; đúng mã thì đổi mật khẩu xong', async () => {
+    await setup();
+    vi.useFakeTimers();
+    sendCode();
+    component.resetForm.setValue({ code: '000000', password: 'lightbook9', confirmPassword: 'lightbook9' });
+    component.reset();
+    vi.advanceTimersByTime(700);
+    expect(component.serverError()).toContain('Mã OTP chưa đúng');
+    expect(component.done()).toBe(false);
+
+    component.resetForm.patchValue({ code: FAKE_OTP });
+    component.reset();
+    vi.advanceTimersByTime(700);
+    expect(component.done()).toBe(true);
+    vi.useRealTimers();
+    await fixture.whenStable();
+    expect(el.textContent).toContain('đăng xuất trên mọi thiết bị');
   });
 });

@@ -1,8 +1,10 @@
 import { Component, DestroyRef, OnDestroy, computed, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, of, switchMap } from 'rxjs';
 
 import { AccountService } from '../../../../services/account-service';
 import { ToastService } from '../../../../services/toast-service';
+import { UploadService } from '../../../../services/upload-service';
 
 /** Sách được đánh giá */
 export interface ReviewTarget {
@@ -24,7 +26,7 @@ const MAX_PHOTO_MB = 5;
 /**
  * Pop-up "Viết đánh giá" (Figma 908:15047). Dùng lại được ở trang chi tiết sách:
  *   @if (reviewing(); as b) { <app-review-popup [book]="b" (closed)="reviewing.set(null)" (submitted)="..." /> }
- * Ảnh chỉ xem trước, gửi lên khi có API.
+ * Ảnh được tải lên Cloudinary trước, đánh giá chỉ gửi kèm đường link ảnh.
  */
 @Component({
   selector: 'app-review-popup',
@@ -36,6 +38,7 @@ const MAX_PHOTO_MB = 5;
 export class ReviewPopup implements OnDestroy {
   private readonly account = inject(AccountService);
   private readonly toast = inject(ToastService);
+  private readonly uploads = inject(UploadService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly book = input.required<ReviewTarget>();
@@ -116,8 +119,13 @@ export class ReviewPopup implements OnDestroy {
     };
     this.sending.set(true);
     this.error.set(null);
-    // TODO: ảnh đính kèm chưa gửi lên — my-server chưa có chỗ lưu ảnh đánh giá
-    this.account.submitReview(body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    // Tải ảnh lên Cloudinary trước (forkJoin([]) không phát giá trị nên không có ảnh thì dùng of([]))
+    const photos = this.photos();
+    const images$ = photos.length ? forkJoin(photos.map((p) => this.uploads.uploadImage(p.file, 'review'))) : of<string[]>([]);
+    images$.pipe(
+      switchMap((images) => this.account.submitReview({ ...body, images })),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next: (res) => {
         this.sending.set(false);
         this.toast.show('Cảm ơn bạn đã đánh giá!');

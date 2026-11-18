@@ -171,12 +171,6 @@ export class ProfileInfo {
     return 'Ngày sinh chưa hợp lệ (dd/mm/yyyy)';
   }
 
-  /** Bật xác thực 2 lớp nhưng chưa có số điện thoại */
-  twoFactorError(): boolean {
-    const v = this.form.getRawValue();
-    return v.twoFactorEnabled && !v.phone.trim() && (this.form.controls.twoFactorEnabled.dirty || this.submitted());
-  }
-
   passwordError(field: 'current' | 'next' | 'confirm'): string | null {
     const g = this.passwordForm;
     const e = g.errors;
@@ -217,7 +211,7 @@ export class ProfileInfo {
     this.submitted.set(true);
     this.form.markAllAsTouched();
     this.passwordForm.markAllAsTouched();
-    if (this.form.invalid || this.passwordForm.invalid || this.twoFactorError()) {
+    if (this.form.invalid || this.passwordForm.invalid) {
       this.toast.show('Còn thông tin chưa hợp lệ, bạn kiểm tra các ô màu đỏ nhé');
       return;
     }

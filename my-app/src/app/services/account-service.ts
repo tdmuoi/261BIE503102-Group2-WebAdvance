@@ -260,8 +260,8 @@ export class AccountService {
     return this.http.get<Record<string, number>>(`${this.baseUrl}/reviews`, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** Ảnh đính kèm chưa gửi lên (server chưa có chỗ lưu ảnh) */
-  submitReview(body: { bookId: string; rating: number; tags: string[]; content: string; anonymous: boolean }): Observable<{ bookId: string; rating: number }> {
+  /** images: link Cloudinary đã tải lên bằng UploadService (purpose 'review') */
+  submitReview(body: { bookId: string; rating: number; tags: string[]; content: string; anonymous: boolean; images: string[] }): Observable<{ bookId: string; rating: number }> {
     return this.http.post<{ bookId: string; rating: number }>(`${environment.apiUrl}/reviews`, body, { headers: this.headers() }).pipe(this.on401());
   }
 

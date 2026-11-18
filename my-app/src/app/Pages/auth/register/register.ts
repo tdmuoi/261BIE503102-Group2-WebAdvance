@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { RegisterError, RegisterRequest } from '../../../models/user';
+import { OtpChallenge, RegisterError, RegisterRequest, VerifiedResponse } from '../../../models/user';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
 
@@ -48,7 +48,9 @@ export class Register implements OnInit {
   readonly submitted = signal(false);
   /** Lỗi server không gắn được vào ô nào (mất mạng, lỗi lạ) */
   readonly serverError = signal<string | null>(null);
-  /** Đăng ký xong: hiện màn hình chào mừng thay cho form */
+  /** Đã tạo tài khoản, đang chờ nhập OTP xác minh email */
+  readonly otp = signal<OtpChallenge | null>(null);
+  /** Xác minh email xong: hiện màn hình chào mừng thay cho form */
   readonly done = signal<{ email: string; coupon: string | null } | null>(null);
 
   readonly form = this.fb.nonNullable.group({
@@ -137,17 +139,30 @@ export class Register implements OnInit {
 
     this.loading.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ token, user, coupon }) => {
-        // Đăng ký xong thì đăng nhập luôn
-        this.auth.setSession({ token, user }, true);
+      next: (challenge) => {
+        // Tài khoản đã tạo, chờ nhập mã OTP gửi về email rồi mới đăng nhập
         this.loading.set(false);
-        this.done.set({ email: user.email, coupon: coupon?.code ?? null });
+        this.otp.set(challenge);
       },
       error: (err: unknown) => {
         this.loading.set(false);
         this.handleError(err);
       },
     });
+  }
+
+  /** Nhập đúng OTP: email đã xác minh → đăng nhập luôn và hiện mã giảm giá */
+  onVerified(res: VerifiedResponse): void {
+    this.auth.setSession({ token: res.token, user: res.user }, true);
+    this.otp.set(null);
+    this.done.set({ email: res.user.email, coupon: res.coupon?.code ?? null });
+  }
+
+  /** Quay lại form từ bước OTP (tài khoản đã tạo — đăng nhập sau sẽ được gửi mã mới) */
+  cancelOtp(): void {
+    this.otp.set(null);
+    this.toast.show('Tài khoản đã được tạo. Bạn đăng nhập lại để nhận mã xác minh mới nhé.');
+    this.router.navigateByUrl('/login');
   }
 
   copyCoupon(code: string): void {

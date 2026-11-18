@@ -1,6 +1,6 @@
 'use strict';
 // =====================================================================
-// Cloudinary: ảnh khách tải lên (avatar, ảnh sách thanh lý) lưu trên Cloudinary,
+// Cloudinary: ảnh khách tải lên (avatar, ảnh sách thanh lý, ảnh đánh giá) lưu trên Cloudinary,
 // MongoDB chỉ lưu đường link. Trình duyệt tải thẳng lên Cloudinary bằng chữ ký
 // do server tạo (signed upload), nên API secret không bao giờ ra khỏi server
 // và ảnh không đi qua server.
@@ -12,7 +12,7 @@ const { createHash } = require('node:crypto');
 const ROOT_FOLDER = 'lightbook';
 const ALLOWED_FORMATS = 'jpg,jpeg,png,webp';
 /** Mục đích tải ảnh → thư mục con trên Cloudinary */
-const PURPOSES = { avatar: 'avatars', buyback: 'buyback' };
+const PURPOSES = { avatar: 'avatars', buyback: 'buyback', review: 'reviews' };
 
 function config() {
   const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();

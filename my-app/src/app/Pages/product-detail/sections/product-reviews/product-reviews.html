@@ -41,7 +41,12 @@
           @for (review of visible(); track review._id; let i = $index) {
             <article class="review">
               <div class="review-head">
-                <span class="avatar" [attr.data-tone]="tones[i % tones.length]" aria-hidden="true">{{ initials(review.userName) }}</span>
+                @if (review.userAvatar && !brokenAvatars().has(review._id)) {
+                  <img class="avatar avatar-img" [src]="review.userAvatar" alt="" width="32" height="32" loading="lazy"
+                       referrerpolicy="no-referrer" (error)="markAvatarBroken(review._id)" />
+                } @else {
+                  <span class="avatar" [attr.data-tone]="tones[i % tones.length]" aria-hidden="true">{{ initials(review.userName) }}</span>
+                }
                 <strong>{{ review.userName }}</strong>
                 <span class="review-meta">{{ review.rating }} ★ · {{ formatDate(review.createdAt) }}</span>
                 @if (review.verifiedPurchase) {
@@ -50,8 +55,31 @@
                   </span>
                 }
               </div>
-              <p class="review-body">“{{ review.content }}”</p>
-              <span class="review-helpful">Hữu ích ({{ review.helpfulCount }})</span>
+              @if (review.content) {
+                <p class="review-body">“{{ review.content }}”</p>
+              }
+              @if (review.images?.length) {
+                <div class="review-photos">
+                  @for (src of review.images; track src) {
+                    <a [href]="src" target="_blank" rel="noopener">
+                      <img [src]="src" alt="Ảnh đánh giá của {{ review.userName }}" loading="lazy" width="88" height="88" />
+                    </a>
+                  }
+                </div>
+              }
+              <div class="review-helpful" role="group" aria-label="Đánh giá này có hữu ích không?">
+                <span class="review-helpful-label">Đánh giá này có hữu ích?</span>
+                <button type="button" class="helpful-btn" [class.is-active]="review.myVote === 1" [attr.aria-pressed]="review.myVote === 1"
+                        [disabled]="review.isMine || pendingVote() === review._id"
+                        [title]="review.isMine ? 'Đây là đánh giá của bạn' : 'Hữu ích'" (click)="vote(review, 1)">
+                  👍 Hữu ích ({{ review.helpfulCount }})
+                </button>
+                <button type="button" class="helpful-btn" [class.is-active]="review.myVote === -1" [attr.aria-pressed]="review.myVote === -1"
+                        [disabled]="review.isMine || pendingVote() === review._id"
+                        [title]="review.isMine ? 'Đây là đánh giá của bạn' : 'Không hữu ích'" (click)="vote(review, -1)">
+                  👎 Không hữu ích ({{ review.notHelpfulCount ?? 0 }})
+                </button>
+              </div>
             </article>
           }
           @if (!showAll() && list.length > visible().length) {

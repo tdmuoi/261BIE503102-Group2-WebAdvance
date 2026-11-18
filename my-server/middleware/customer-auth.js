@@ -97,8 +97,31 @@ function requireCustomer(getDb) {
   };
 }
 
+/** Middleware: đăng nhập KHÔNG bắt buộc. Token hợp lệ thì gắn req.customer như requireCustomer, không thì cho qua */
+function optionalCustomer(getDb) {
+  return async (req, _res, next) => {
+    try {
+      const token = tokenOf(req);
+      const db = getDb();
+      if (!token || !db) return next();
+      const session = await db.collection('customer_sessions').findOne({ tokenHash: digest(token), expiresAt: { $gt: new Date() } });
+      if (!session) return next();
+      const [account, user] = await Promise.all([
+        db.collection('accounts').findOne({ _id: session.accountId }),
+        db.collection('users').findOne({ _id: session.userId }),
+      ]);
+      if (account && user && account.roleCode === 'CUSTOMER' && account.status === 'active') {
+        req.customer = { accountId: account._id, userId: user._id, email: account.email, account, user };
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
 function toObjectId(value) {
   return typeof value === 'string' && /^[a-f\d]{24}$/i.test(value) ? new ObjectId(value) : null;
 }
 
-module.exports = { hashPassword, verifyPassword, createSession, deleteSession, requireCustomer, toObjectId, digest };
+module.exports = { hashPassword, verifyPassword, createSession, deleteSession, requireCustomer, optionalCustomer, toObjectId, digest };

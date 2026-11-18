@@ -2,6 +2,7 @@
 const { ObjectId } = require("mongodb");
 const createAdminAuth = require("../middleware/admin-auth");
 const rolePermissions = require('../middleware/admin-role-permissions');
+const { TIER_NAMES, tierName, tierOrderQuery, spentFromOrders } = require('./customer-tier');
 const text = (value) => (typeof value === "string" ? value.trim() : "");
 const id = (value) => (value == null ? "" : String(value));
 const asDate = (value) =>
@@ -25,6 +26,7 @@ const PUBLIC_PROFILE = {
   username: 1,
   avatar: 1,
   phone: 1,
+  gender: 1,
   dateOfBirth: 1,
   createdAt: 1,
 };
@@ -204,11 +206,13 @@ module.exports = function adminAccountsRoutes(getDb, options) {
         createdAt: 1,
         items: 1,
         isDemo: 1,
+        "customer.email": 1,
       })
       .sort({ createdAt: -1 })
       .toArray();
   }
-  function customerView(account, profile, orders) {
+  // tierOrders: các đơn dùng để xếp hạng (mặc định là orders). Cùng quy tắc với web khách (customer-tier.js).
+  function customerView(account, profile, orders, tierOrders = orders) {
     const own = orders?.filter((order) => id(order.userId) === id(profile._id));
     const amounts = own?.filter(paid).map(totalOf);
     return {
@@ -218,7 +222,11 @@ module.exports = function adminAccountsRoutes(getDb, options) {
         text(profile.fullName) || text(profile.username) || "Chưa có tên",
       email: text(account.email),
       phone: text(profile.phone) || null,
-      tier: null,
+      avatar: text(profile.avatar) || null,
+      gender: ["female", "male", "other"].includes(profile.gender)
+        ? profile.gender
+        : null,
+      tier: tierName(spentFromOrders(tierOrders, profile._id, account.email)),
       points: null,
       status: account.status,
       createdAt: asDate(profile.createdAt),
@@ -359,12 +367,12 @@ module.exports = function adminAccountsRoutes(getDb, options) {
             ).length
           : null,
         activeChangePercent: null,
-        goldMembers: null,
+        goldMembers: items.filter((item) => item.tier === "Vàng").length,
         lockedAccounts: customers.filter(
           (account) => account.status === "locked",
         ).length,
       },
-      tiers: [],
+      tiers: TIER_NAMES,
       statuses: STATUSES,
       capabilities: {
         sendEmail: false,
@@ -398,6 +406,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           "Tên",
           "Email",
           "Số điện thoại",
+          "Hạng",
           "Đơn đã liên kết",
           "Chi tiêu đã liên kết",
           "Trạng thái",
@@ -406,6 +415,7 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           item.fullName,
           item.email,
           item.phone,
+          item.tier,
           item.orderCount,
           item.totalSpent,
           item.status,
@@ -446,7 +456,14 @@ module.exports = function adminAccountsRoutes(getDb, options) {
       if (!profile || !account)
         throw fail(404, "Không tìm thấy hồ sơ khách hàng.");
       const orders = await ordersFor(source, profile._id),
-        view = customerView(account, profile, orders),
+        tierOrders = source.names.has("orders")
+          ? await source.db
+              .collection("orders")
+              .find(tierOrderQuery(profile._id, account.email))
+              .project({ userId: 1, total: 1, status: 1, "customer.email": 1 })
+              .toArray()
+          : [],
+        view = customerView(account, profile, orders, tierOrders),
         completed = orders?.filter(paid);
       const [addresses, returns, buybacks, reviews] = await Promise.all([
         related(
@@ -510,7 +527,6 @@ module.exports = function adminAccountsRoutes(getDb, options) {
           (addresses?.find((address) => address.isDefault) || addresses?.[0])
             ?.addressLine || null,
         birthday: asDate(profile.dateOfBirth),
-        avatar: text(profile.avatar) || null,
         customerCode: id(profile._id),
         vip: false,
         internalNote: null,

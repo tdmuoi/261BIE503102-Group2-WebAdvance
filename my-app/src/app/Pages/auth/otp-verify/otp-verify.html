@@ -1,0 +1,67 @@
+<span class="auth-tag" [class.auth-tag--yellow]="isTwoFactor()" [class.auth-tag--pink]="!isTwoFactor()">
+  {{ isTwoFactor() ? 'Xác thực 2 lớp' : 'Xác minh email' }}
+</span>
+
+<h1 class="auth-title">
+  <span>Nhập mã OTP</span>
+  <span class="accent-h1">check your inbox.</span>
+</h1>
+
+<p class="auth-subtitle body-lead">
+  Mã 6 số đã được gửi tới <strong>{{ challenge().email }}</strong>.
+  {{ isTwoFactor() ? 'Nhập mã để hoàn tất đăng nhập.' : 'Nhập mã để kích hoạt tài khoản.' }}
+  Mã có hiệu lực trong 10 phút, nhớ xem cả mục Quảng cáo/Spam nhé.
+</p>
+
+@if (error(); as message) {
+  <div class="auth-alert" role="alert">
+    <img src="images/auth/alert-circle.svg" alt="" width="20" height="20" />
+    <div>
+      <p class="auth-alert-title label-small">{{ expired() ? 'Phiên xác thực đã hết hạn' : 'Xác thực chưa thành công' }}</p>
+      <p class="body-sm">{{ message }}</p>
+    </div>
+  </div>
+}
+
+@if (expired()) {
+  <button type="button" class="btn btn-primary auth-cta" (click)="back.emit()">
+    Thực hiện lại từ đầu <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
+  </button>
+} @else {
+  <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="field" [class.field--error]="codeError()">
+      <label class="label-small" for="otp-code">Mã OTP</label>
+      <div class="field-box">
+        <img src="images/auth/lock.svg" alt="" width="20" height="20" />
+        <input id="otp-code" class="otp-input" type="text" inputmode="numeric" autocomplete="one-time-code"
+          maxlength="6" placeholder="••••••" formControlName="code" (input)="onInput()"
+          [attr.aria-invalid]="!!codeError()" />
+      </div>
+      @if (codeError(); as err) {
+        <p class="field-helper"><img src="images/auth/alert-circle-sm.svg" alt="" width="14" height="14" />{{ err }}</p>
+      }
+    </div>
+
+    <button type="submit" class="btn btn-primary auth-cta" [disabled]="loading()">
+      {{ loading() ? 'Đang xác thực…' : 'Xác nhận' }}
+      @if (!loading()) {
+        <img src="images/auth/arrow-right-white.svg" alt="" width="20" height="20" />
+      }
+    </button>
+  </form>
+
+  <p class="resend" aria-live="polite">
+    Chưa nhận được mã?
+    @if (countdown() > 0) {
+      <span class="resend-wait">Gửi lại sau {{ countdownText() }}</span>
+    } @else {
+      <button type="button" class="resend-btn auth-link" [disabled]="resending()" (click)="resend()">
+        {{ resending() ? 'Đang gửi…' : 'Gửi lại mã' }}
+      </button>
+    }
+  </p>
+}
+
+<button type="button" class="auth-link back-link" (click)="back.emit()">
+  <img src="images/auth/arrow-left.svg" alt="" width="16" height="16" />Quay lại
+</button>

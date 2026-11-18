@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../services/auth-service';
 import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { AuthArt } from '../auth-art/auth-art';
+import { OtpVerify } from '../otp-verify/otp-verify';
 import { Register } from './register';
 
 describe('Register', () => {
@@ -30,7 +31,7 @@ describe('Register', () => {
   beforeEach(async () => {
     auth = { isLoggedIn: () => false, setSession: vi.fn(), register: vi.fn((body: object) => TestBed.inject(HttpClient).post('/api/auth/register', body)) };
     await TestBed.configureTestingModule({
-      declarations: [Register, AuthArt],
+      declarations: [Register, AuthArt, OtpVerify],
       imports: [ReactiveFormsModule, RouterModule],
       providers: [provideRouter([]), provideFakeCustomerApi(), { provide: AuthService, useValue: auth }],
     }).compileComponents();
@@ -90,12 +91,17 @@ describe('Register', () => {
     expect(auth.setSession).not.toHaveBeenCalled();
   });
 
-  it('đăng ký thành công thì đăng nhập luôn và hiện mã giảm giá', async () => {
+  it('đăng ký xong thì chờ nhập OTP xác minh email, chưa đăng nhập', () => {
     vi.useFakeTimers();
     fill();
     component.submit();
     vi.advanceTimersByTime(700);
-    vi.useRealTimers();
+    expect(component.otp()?.purpose).toBe('verify_email');
+    expect(auth.setSession).not.toHaveBeenCalled();
+  });
+
+  it('nhập đúng OTP thì đăng nhập luôn và hiện mã giảm giá', async () => {
+    component.onVerified({ token: 'f'.repeat(64), user: { _id: 'u-new', fullName: 'Trần Mai Anh', email: 'mai.tran@gmail.com' }, coupon: { code: 'WELCOME10' } });
     expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ token: 'f'.repeat(64) }), true);
     await fixture.whenStable();
     expect(el.textContent).toContain('WELCOME10');

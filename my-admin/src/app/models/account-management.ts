@@ -15,6 +15,8 @@ export interface CustomerAccount {
   email: string;
   phone: string | null;
   tier: string | null;
+  avatar?: string | null;
+  gender?: 'female' | 'male' | 'other' | null;
   orderCount: number | null;
   totalSpent: number | null;
   points: number | null;
@@ -32,7 +34,6 @@ export interface CustomerOrderSummary {
 }
 
 export interface CustomerAccountDetail extends CustomerAccount {
-  avatar?: string | null;
   orders: CustomerOrderSummary[];
   returns?: {
     available: boolean;

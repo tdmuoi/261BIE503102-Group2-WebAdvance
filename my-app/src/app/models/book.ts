@@ -83,13 +83,31 @@ export interface Catalog {
   categories: Category[];
 }
 
-/** Đánh giá của độc giả (chưa có API — xem BookService.getReviews) */
+/** Đánh giá của độc giả (GET /api/books/:id/reviews — xem BookService.getReviews) */
 export interface Review {
   _id: string;
   userName: string;
   rating: number;
   content: string;
+  /** Link ảnh đính kèm (Cloudinary), tối đa 3 */
+  images?: string[];
   createdAt: string;
   verifiedPurchase: boolean;
+  /** Ảnh đại diện hiện tại của người viết (null khi ẩn danh / chưa đặt ảnh) */
+  userAvatar?: string | null;
   helpfulCount: number;
+  notHelpfulCount?: number;
+  /** Vote của người đang đăng nhập: 1 hữu ích, -1 không hữu ích, 0 chưa vote */
+  myVote?: ReviewVote;
+  /** Đánh giá do chính người đang đăng nhập viết (không tự vote được) */
+  isMine?: boolean;
+}
+
+export type ReviewVote = 1 | -1 | 0;
+
+/** Kết quả POST /api/reviews/:id/vote */
+export interface ReviewVoteResult {
+  helpfulCount: number;
+  notHelpfulCount: number;
+  myVote: ReviewVote;
 }

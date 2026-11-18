@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { LoginError, LoginMethod, LoginRequest } from '../../../models/user';
+import { LoginError, LoginMethod, LoginRequest, OtpChallenge, VerifiedResponse, needsOtp } from '../../../models/user';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
 
@@ -33,6 +33,9 @@ export class Login implements OnInit {
   readonly submitted = signal(false);
   /** Lỗi từ server (sai thông tin, bị khoá, mất mạng) — hiện ở khung đỏ đầu form */
   readonly alert = signal<string | null>(null);
+  /** Đúng mật khẩu nhưng còn phải nhập OTP (email chưa xác minh / xác thực 2 lớp) */
+  readonly otp = signal<OtpChallenge | null>(null);
+  private remember = true;
 
   readonly form = this.fb.nonNullable.group({
     identifier: ['', [Validators.required, Validators.pattern(EMAIL_PATTERN)]],
@@ -91,9 +94,15 @@ export class Login implements OnInit {
     const body: LoginRequest = { identifier: identifier.trim(), type: this.method(), password, remember };
     const request$ = this.auth.login(body);
 
+    this.remember = remember;
     this.loading.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
+        if (needsOtp(res)) {
+          this.loading.set(false);
+          this.otp.set(res);
+          return;
+        }
         this.auth.setSession(res, remember);
         this.loading.set(false);
         this.router.navigateByUrl(this.returnUrl(), { replaceUrl: true });
@@ -103,6 +112,20 @@ export class Login implements OnInit {
         this.alert.set(this.errorMessage(err));
       },
     });
+  }
+
+  /** Nhập đúng OTP thì đăng nhập (giữ lựa chọn "Ghi nhớ đăng nhập") */
+  onVerified(res: VerifiedResponse): void {
+    this.auth.setSession({ token: res.token, user: res.user }, this.remember);
+    if (res.coupon?.code) this.toast.show(`Email đã được xác minh. Mã ưu đãi thành viên mới: ${res.coupon.code}`);
+    this.router.navigateByUrl(this.returnUrl(), { replaceUrl: true });
+  }
+
+  /** Quay lại form đăng nhập từ bước OTP */
+  cancelOtp(): void {
+    this.otp.set(null);
+    this.form.controls.password.setValue('');
+    this.submitted.set(false);
   }
 
   /** Đã gõ email hợp lệ thì mang sang trang Quên mật khẩu để điền sẵn */

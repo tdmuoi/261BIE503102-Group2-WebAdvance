@@ -18,6 +18,7 @@ import { Checkout } from './Pages/checkout/checkout';
 import { Login } from './Pages/auth/login/login';
 import { Register } from './Pages/auth/register/register';
 import { ForgotPassword } from './Pages/auth/forgot-password/forgot-password';
+import { OtpVerify } from './Pages/auth/otp-verify/otp-verify';
 import { Account } from './Pages/account/account';
 import { ProfileInfo } from './Pages/account/profile-info/profile-info';
 import { Address } from './Pages/account/address/address';
@@ -63,6 +64,7 @@ import { FooterLegal } from './Components/footer-legal/footer-legal';
     Login,
     Register,
     ForgotPassword,
+    OtpVerify,
     Account,
     ProfileInfo,
     Address,

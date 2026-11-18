@@ -164,13 +164,11 @@
 
       <div class="two-factor" [formGroup]="form">
         <div>
-          <p class="two-factor-title">Xác thực 2 lớp qua SMS</p>
-          <p class="muted-sm" [class.helper--error]="twoFactorError()">
-            {{ twoFactorError() ? 'Cần có số điện thoại để bật xác thực 2 lớp.' : 'Nhập mã gửi về số điện thoại mỗi khi đăng nhập trên thiết bị mới.' }}
-          </p>
+          <p class="two-factor-title">Xác thực 2 lớp qua email</p>
+          <p class="muted-sm">Mỗi lần đăng nhập, nhập thêm mã OTP 6 số gửi về email của bạn.</p>
         </div>
         <label class="switch">
-          <input type="checkbox" role="switch" formControlName="twoFactorEnabled" aria-label="Xác thực 2 lớp qua SMS" />
+          <input type="checkbox" role="switch" formControlName="twoFactorEnabled" aria-label="Xác thực 2 lớp qua email" />
           <span class="switch-track"></span>
         </label>
       </div>

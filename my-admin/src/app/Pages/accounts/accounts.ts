@@ -544,6 +544,10 @@ export class Accounts implements OnInit {
     this.page.set(1);
     this.load();
   }
+  genderLabel(gender: string | null | undefined): string {
+    return gender === 'female' ? 'Nữ' : gender === 'male' ? 'Nam' : gender === 'other' ? 'Khác' : 'Chưa cập nhật';
+  }
+
   initials(name: string): string {
     return name
       .trim()

@@ -1,15 +1,24 @@
 // =====================================================================
 // Đăng ký / đăng nhập cho web khách hàng
 //   POST /api/auth/register         { fullName, email, phone?, password, newsletter }
+//                                   → 201 { verificationRequired, challengeId, email, resendAfter } (gửi OTP xác minh email)
 //   POST /api/auth/login            { identifier, type: 'email'|'phone', password, remember }
+//                                   → { token, user } hoặc, nếu cần OTP:
+//                                     { verificationRequired | twoFactorRequired, challengeId, email, resendAfter }
+//   POST /api/auth/otp/verify       { challengeId, code }  → { token, user, coupon? }
+//   POST /api/auth/otp/resend       { challengeId }        → { challengeId, email, resendAfter }
+//   POST /api/auth/forgot-password  { email }  → luôn 200 { challengeId, email, resendAfter } (không lộ email nào đã đăng ký)
+//   POST /api/auth/reset-password   { challengeId, code, newPassword } → đổi mật khẩu, đăng xuất mọi thiết bị
 //   POST /api/auth/logout           (Bearer token)
 //   GET  /api/auth/me               (Bearer token)
-//   POST /api/auth/forgot-password  { email }  — luôn trả 200 (chưa gửi email thật)
-// Tài khoản: accounts { email, passwordHash, provider:'local', roleCode:'CUSTOMER', status }
-//            users    { accountId, fullName, username, phone, gender, avatar, dateOfBirth }
+// Tài khoản: accounts { email, passwordHash, provider:'local', roleCode:'CUSTOMER', status,
+//                       emailVerified, emailVerificationPending }
+//            users    { accountId, fullName, username, phone, gender, avatar, dateOfBirth, twoFactorEnabled }
+// Tài khoản tạo trước khi có OTP không có emailVerificationPending nên vẫn đăng nhập bình thường.
 // =====================================================================
 const express = require('express');
 const { hashPassword, verifyPassword, createSession, deleteSession, requireCustomer } = require('../middleware/customer-auth');
+const { OtpError, startChallenge, resendChallenge, consumeChallenge } = require('../middleware/customer-otp');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^0\d{9}$/;
@@ -19,6 +28,13 @@ const WELCOME_CODE = 'WELCOME10';
 
 const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const escapeRegex = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const weakPassword = (p) => p.length < 8 || !/[A-Za-z]/.test(p) || !/\d/.test(p) || Buffer.byteLength(p) > 72;
+
+/** Lỗi OTP (sai mã, hết hạn, gửi quá nhiều…) trả đúng mã HTTP; lỗi khác chuyển cho Express */
+function otpFailure(res, next, error) {
+  if (error instanceof OtpError) return res.status(error.status).json(error.body);
+  return next(error);
+}
 
 /** User trả cho trang (models/user.ts) */
 function publicUser(account, user) {
@@ -38,7 +54,7 @@ module.exports = function customerAuthRoutes(getDb) {
       if (fullName.length < 2 || fullName.length > 80) return res.status(400).json({ message: 'Họ tên cần từ 2 đến 80 ký tự' });
       if (!EMAIL_PATTERN.test(email) || email.length > 254) return res.status(400).json({ message: 'Email không hợp lệ', field: 'email' });
       if (phone && !PHONE_PATTERN.test(phone)) return res.status(400).json({ message: 'Số điện thoại không hợp lệ', field: 'phone' });
-      if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password) || Buffer.byteLength(password) > 72) {
+      if (weakPassword(password)) {
         return res.status(400).json({ message: 'Mật khẩu cần ít nhất 8 ký tự, có cả chữ và số' });
       }
       const exists = await db().collection('accounts').findOne({ email: { $regex: `^${escapeRegex(email)}$`, $options: 'i' } });
@@ -50,7 +66,8 @@ module.exports = function customerAuthRoutes(getDb) {
       const now = new Date();
       const account = {
         email, passwordHash: await hashPassword(password), provider: 'local', providerId: null,
-        roleCode: 'CUSTOMER', status: 'active', lastLogin: now, createdAt: now, updatedAt: now,
+        roleCode: 'CUSTOMER', status: 'active', emailVerified: false, emailVerificationPending: true,
+        lastLogin: null, createdAt: now, updatedAt: now,
       };
       account._id = (await db().collection('accounts').insertOne(account)).insertedId;
       const user = {
@@ -75,9 +92,20 @@ module.exports = function customerAuthRoutes(getDb) {
         read: false, action: { label: 'Khám phá sách', link: '/books' }, createdAt: now,
       });
 
-      const welcome = await db().collection('vouchers').findOne({ code: WELCOME_CODE, status: 'active' });
-      const { token } = await createSession(db(), { accountId: account._id, userId: user._id, remember: true });
-      res.status(201).json({ token, user: publicUser(account, user), coupon: welcome ? { code: WELCOME_CODE } : null });
+      // Chưa đăng nhập ngay: phải nhập mã OTP gửi về email trước (POST /auth/otp/verify)
+      try {
+        const challenge = await startChallenge(db(), {
+          purpose: 'verify_email', accountId: account._id, userId: user._id, email, remember: true,
+        });
+        res.status(201).json({ verificationRequired: true, ...challenge });
+      } catch (error) {
+        if (!(error instanceof OtpError)) throw error;
+        // Tài khoản đã tạo nhưng email chưa gửi được: đăng nhập lại sẽ được gửi mã mới
+        res.status(error.status).json({
+          message: 'Tài khoản đã được tạo nhưng chưa gửi được mã xác minh. Bạn hãy đăng nhập lại sau ít phút để nhận mã mới.',
+          accountCreated: true,
+        });
+      }
     } catch (error) {
       next(error);
     }
@@ -117,11 +145,69 @@ module.exports = function customerAuthRoutes(getDb) {
         return res.status(401).json({ ...wrong, remainingAttempts: MAX_FAILS - fails });
       }
 
-      await db().collection('accounts').updateOne({ _id: account._id }, { $set: { failedLogins: 0, lockedUntil: null, lastLogin: new Date() } });
-      const { token } = await createSession(db(), { accountId: account._id, userId: user._id, remember: req.body?.remember === true });
+      const remember = req.body?.remember === true;
+      await db().collection('accounts').updateOne({ _id: account._id }, { $set: { failedLogins: 0, lockedUntil: null } });
+
+      // Đúng mật khẩu nhưng còn phải nhập OTP: chưa tạo phiên đăng nhập
+      if (account.emailVerificationPending === true) {
+        const challenge = await startChallenge(db(), {
+          purpose: 'verify_email', accountId: account._id, userId: user._id, email: account.email, remember,
+        });
+        return res.json({ verificationRequired: true, ...challenge });
+      }
+      if (user.twoFactorEnabled === true) {
+        const challenge = await startChallenge(db(), {
+          purpose: 'login_2fa', accountId: account._id, userId: user._id, email: account.email, remember,
+        });
+        return res.json({ twoFactorRequired: true, ...challenge });
+      }
+
+      await db().collection('accounts').updateOne({ _id: account._id }, { $set: { lastLogin: new Date() } });
+      const { token } = await createSession(db(), { accountId: account._id, userId: user._id, remember });
       res.json({ token, user: publicUser(account, user) });
     } catch (error) {
-      next(error);
+      otpFailure(res, next, error);
+    }
+  });
+
+  // Nhập mã OTP sau khi đăng ký (verify_email) hoặc khi đăng nhập có xác thực 2 lớp (login_2fa)
+  router.post('/auth/otp/verify', async (req, res, next) => {
+    try {
+      const challenge = await consumeChallenge(db(), {
+        challengeId: req.body?.challengeId, code: req.body?.code, purposes: ['verify_email', 'login_2fa'],
+      });
+      const account = await db().collection('accounts').findOne({ _id: challenge.accountId });
+      const user = account ? await db().collection('users').findOne({ accountId: account._id }) : null;
+      if (!account || !user || account.roleCode !== 'CUSTOMER') {
+        return res.status(410).json({ message: 'Tài khoản không còn tồn tại.', code: 'OTP_SESSION_EXPIRED' });
+      }
+      if (account.status !== 'active') return res.status(403).json({ message: 'Tài khoản đang bị khoá, vui lòng liên hệ Lightbook' });
+
+      const now = new Date();
+      const verifying = challenge.purpose === 'verify_email';
+      await db().collection('accounts').updateOne(
+        { _id: account._id },
+        verifying
+          ? { $set: { emailVerified: true, emailVerifiedAt: now, lastLogin: now, updatedAt: now }, $unset: { emailVerificationPending: '' } }
+          : { $set: { lastLogin: now } },
+      );
+      const { token } = await createSession(db(), { accountId: account._id, userId: user._id, remember: challenge.remember === true });
+      const body = { token, user: publicUser(account, user) };
+      if (verifying) {
+        const welcome = await db().collection('vouchers').findOne({ code: WELCOME_CODE, status: 'active' });
+        body.coupon = welcome ? { code: WELCOME_CODE } : null;
+      }
+      res.json(body);
+    } catch (error) {
+      otpFailure(res, next, error);
+    }
+  });
+
+  router.post('/auth/otp/resend', async (req, res, next) => {
+    try {
+      res.json(await resendChallenge(db(), req.body?.challengeId));
+    } catch (error) {
+      otpFailure(res, next, error);
     }
   });
 
@@ -138,9 +224,52 @@ module.exports = function customerAuthRoutes(getDb) {
     res.json({ user: publicUser(req.customer.account, req.customer.user) });
   });
 
-  // Chưa có dịch vụ gửi email: luôn trả 200 để không lộ email nào đã đăng ký
-  router.post('/auth/forgot-password', (req, res) => {
-    res.json({ message: 'Chức năng gửi email đặt lại mật khẩu chưa được tích hợp. Vui lòng liên hệ hỗ trợ.', deliveryAvailable: false, resendAfter: 30 });
+  // Gửi OTP đặt lại mật khẩu. Email chưa đăng ký vẫn trả 200 giống hệt (mã giả, không gửi)
+  // để người ngoài không dò được email nào có tài khoản.
+  router.post('/auth/forgot-password', async (req, res, next) => {
+    try {
+      const email = text(req.body?.email).toLowerCase();
+      if (!EMAIL_PATTERN.test(email) || email.length > 254) return res.status(400).json({ message: 'Email không hợp lệ', field: 'email' });
+      const account = await db().collection('accounts').findOne({ email: { $regex: `^${escapeRegex(email)}$`, $options: 'i' } });
+      const user = account ? await db().collection('users').findOne({ accountId: account._id }) : null;
+      const real = account && user && account.roleCode === 'CUSTOMER' && account.status === 'active';
+      const challenge = await startChallenge(db(), real
+        ? { purpose: 'reset_password', accountId: account._id, userId: user._id, email: account.email }
+        : { purpose: 'reset_password', accountId: null, email });
+      res.json({ deliveryAvailable: true, ...challenge });
+    } catch (error) {
+      otpFailure(res, next, error);
+    }
+  });
+
+  router.post('/auth/reset-password', async (req, res, next) => {
+    try {
+      const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+      if (weakPassword(newPassword)) {
+        return res.status(400).json({ message: 'Mật khẩu mới cần ít nhất 8 ký tự, có cả chữ và số', field: 'newPassword' });
+      }
+      const challenge = await consumeChallenge(db(), {
+        challengeId: req.body?.challengeId, code: req.body?.code, purposes: ['reset_password'],
+      });
+      const account = await db().collection('accounts').findOne({ _id: challenge.accountId });
+      if (!account || account.roleCode !== 'CUSTOMER') {
+        return res.status(410).json({ message: 'Tài khoản không còn tồn tại.', code: 'OTP_SESSION_EXPIRED' });
+      }
+      const now = new Date();
+      await db().collection('accounts').updateOne(
+        { _id: account._id },
+        {
+          // Nhận được mã qua email cũng là đã chứng minh sở hữu email
+          $set: { passwordHash: await hashPassword(newPassword), passwordChangedAt: now, failedLogins: 0, lockedUntil: null, emailVerified: true, updatedAt: now },
+          $unset: { emailVerificationPending: '' },
+        },
+      );
+      // Đăng xuất mọi thiết bị đang dùng mật khẩu cũ
+      await db().collection('customer_sessions').deleteMany({ accountId: account._id });
+      res.json({ message: 'Đã đặt lại mật khẩu. Bạn đăng nhập bằng mật khẩu mới nhé.', passwordChangedAt: now.toISOString() });
+    } catch (error) {
+      otpFailure(res, next, error);
+    }
   });
 
   return router;

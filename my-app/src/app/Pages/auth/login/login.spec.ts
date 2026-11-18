@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../services/auth-service';
 import { provideFakeCustomerApi } from '../../../testing/fake-customer-api';
 import { AuthArt } from '../auth-art/auth-art';
+import { OtpVerify } from '../otp-verify/otp-verify';
 import { Login } from './login';
 
 describe('Login', () => {
@@ -18,7 +19,7 @@ describe('Login', () => {
   beforeEach(async () => {
     auth = { isLoggedIn: () => false, setSession: vi.fn(), login: vi.fn((body: object) => TestBed.inject(HttpClient).post('/api/auth/login', body)) };
     await TestBed.configureTestingModule({
-      declarations: [Login, AuthArt],
+      declarations: [Login, AuthArt, OtpVerify],
       imports: [ReactiveFormsModule, RouterModule],
       providers: [provideRouter([]), provideFakeCustomerApi(), { provide: AuthService, useValue: auth }],
     }).compileComponents();
@@ -78,6 +79,20 @@ describe('Login', () => {
     component.form.setValue({ identifier: 'demo@lightbook.vn', password: 'lightbook123', remember: false });
     component.submit();
     vi.advanceTimersByTime(700);
+    expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ token: 'f'.repeat(64) }), false);
+    expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
+  });
+
+  it('tài khoản bật xác thực 2 lớp: đúng mật khẩu thì chuyển sang bước nhập OTP, chưa lưu phiên', () => {
+    vi.useFakeTimers();
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    component.form.setValue({ identifier: 'otp@lightbook.vn', password: 'lightbook123', remember: false });
+    component.submit();
+    vi.advanceTimersByTime(700);
+    expect(component.otp()?.purpose).toBe('login_2fa');
+    expect(auth.setSession).not.toHaveBeenCalled();
+
+    component.onVerified({ token: 'f'.repeat(64), user: { _id: 'u1', fullName: 'A', email: 'otp@lightbook.vn' } });
     expect(auth.setSession).toHaveBeenCalledWith(expect.objectContaining({ token: 'f'.repeat(64) }), false);
     expect(navigate).toHaveBeenCalledWith('/', { replaceUrl: true });
   });

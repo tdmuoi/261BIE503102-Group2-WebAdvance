@@ -1,17 +1,36 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs';
 
-import { ForgotPasswordResponse } from '../../../models/user';
+import { OtpError } from '../../../models/user';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const PASSWORD_MIN = 8;
 /** Thời gian chờ mặc định trước khi được gửi lại (giây) */
-const RESEND_SECONDS = 30;
+const RESEND_SECONDS = 60;
 
+/** Mật khẩu phải có cả chữ và số */
+function letterAndDigit(control: AbstractControl): ValidationErrors | null {
+  const value = String(control.value ?? '');
+  return !value || (/\p{L}/u.test(value) && /\d/.test(value)) ? null : { letterDigit: true };
+}
+
+/** Ô "Nhập lại mật khẩu" phải trùng ô "Mật khẩu mới" */
+function sameAsPassword(control: AbstractControl): ValidationErrors | null {
+  const password = control.parent?.get('password')?.value;
+  return !control.value || control.value === password ? null : { mismatch: true };
+}
+
+/**
+ * Quên mật khẩu, 3 bước:
+ *   1. Nhập email → server gửi mã OTP 6 số
+ *   2. Nhập mã OTP + mật khẩu mới
+ *   3. Xong → quay lại đăng nhập (mọi thiết bị khác bị đăng xuất)
+ */
 @Component({
   selector: 'app-forgot-password',
   standalone: false,
@@ -27,20 +46,34 @@ export class ForgotPassword implements OnInit {
 
   readonly loading = signal(false);
   readonly submitted = signal(false);
+  readonly resetSubmitted = signal(false);
   readonly serverError = signal<string | null>(null);
-  /** Email đã gửi liên kết — có giá trị thì hiện màn hình "Kiểm tra hộp thư" */
+  /** Email (đã che bớt) vừa gửi mã — có giá trị thì hiện bước nhập OTP */
   readonly sentTo = signal<string | null>(null);
-  /** Số giây còn lại trước khi được bấm "Gửi lại email" */
+  /** Đổi mật khẩu thành công */
+  readonly done = signal(false);
+  readonly showPassword = signal(false);
+  /** Số giây còn lại trước khi được bấm "Gửi lại mã" */
   readonly countdown = signal(0);
+
+  private challengeId: string | null = null;
+  private timer: ReturnType<typeof setInterval> | null = null;
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.pattern(EMAIL_PATTERN)]],
   });
 
-  private timer: ReturnType<typeof setInterval> | null = null;
+  readonly resetForm = this.fb.nonNullable.group({
+    code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+    password: ['', [Validators.required, Validators.minLength(PASSWORD_MIN), letterAndDigit]],
+    confirmPassword: ['', [Validators.required, sameAsPassword]],
+  });
 
   constructor() {
     this.destroyRef.onDestroy(() => this.stopTimer());
+    this.resetForm.controls.password.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.resetForm.controls.confirmPassword.updateValueAndValidity({ emitEvent: false }));
   }
 
   ngOnInit(): void {
@@ -55,12 +88,37 @@ export class ForgotPassword implements OnInit {
     return c.hasError('required') ? 'Vui lòng nhập email' : 'Email chưa đúng định dạng';
   }
 
-  /** 00:30 */
+  resetError(name: 'code' | 'password' | 'confirmPassword'): string | null {
+    const c = this.resetForm.controls[name];
+    if (c.valid || !(c.touched || this.resetSubmitted())) return null;
+    const e = c.errors ?? {};
+    if (name === 'code') return e['required'] ? 'Vui lòng nhập mã OTP' : 'Mã OTP gồm đúng 6 chữ số';
+    if (name === 'password') {
+      if (e['required']) return 'Vui lòng nhập mật khẩu mới';
+      if (e['minlength']) return `Mật khẩu phải có ít nhất ${PASSWORD_MIN} ký tự`;
+      return 'Mật khẩu cần có cả chữ và số';
+    }
+    return e['required'] ? 'Vui lòng nhập lại mật khẩu' : 'Mật khẩu nhập lại chưa khớp';
+  }
+
+  /** Chỉ giữ chữ số trong ô mã OTP */
+  onCodeInput(): void {
+    const c = this.resetForm.controls.code;
+    const digits = c.value.replace(/\D/g, '').slice(0, 6);
+    if (digits !== c.value) c.setValue(digits);
+  }
+
+  togglePassword(): void {
+    this.showPassword.update((v) => !v);
+  }
+
+  /** 01:00 */
   countdownText(): string {
     const s = this.countdown();
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   }
 
+  /** Bước 1: gửi mã */
   submit(): void {
     this.submitted.set(true);
     this.serverError.set(null);
@@ -68,48 +126,99 @@ export class ForgotPassword implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const email = this.form.controls.email.value.trim().toLowerCase();
-    this.send(email, () => this.sentTo.set(email));
-  }
-
-  resend(): void {
-    const email = this.sentTo();
-    if (!email || this.countdown() > 0 || this.loading()) return;
-    this.send(email, () => this.toast.show(`Đã gửi lại email tới ${email}`));
-  }
-
-  private send(email: string, onSuccess: () => void): void {
     if (this.loading()) return;
-    // TODO: my-server chưa gửi email thật (dịch vụ email) — API luôn trả 200
-    const request$: Observable<ForgotPasswordResponse> = this.auth.forgotPassword(email);
-
+    const email = this.form.controls.email.value.trim().toLowerCase();
     this.loading.set(true);
-    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (res) => {
-        this.loading.set(false);
-        if (res.deliveryAvailable === false) {
-          this.serverError.set(res.message || 'Chức năng gửi email đặt lại mật khẩu chưa được tích hợp.');
-          return;
-        }
-        onSuccess();
-        this.startCountdown(res.resendAfter ?? RESEND_SECONDS);
-      },
-      error: (err: { status?: number }) => {
-        this.loading.set(false);
-        const message =
-          err?.status === 0
-            ? 'Không kết nối được máy chủ. Vui lòng thử lại sau.'
-            : 'Đã có lỗi xảy ra. Vui lòng thử lại.';
-        // Đang ở màn hình "đã gửi" thì báo bằng toast, còn lại hiện khung lỗi trên form
-        if (this.sentTo()) this.toast.show(message);
-        else this.serverError.set(message);
-      },
-    });
+    this.auth
+      .forgotPassword(email)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.loading.set(false);
+          this.challengeId = res.challengeId ?? null;
+          this.sentTo.set(res.email || email);
+          this.startCountdown(res.resendAfter ?? RESEND_SECONDS);
+        },
+        error: (err: unknown) => {
+          this.loading.set(false);
+          this.serverError.set(this.message(err));
+        },
+      });
+  }
+
+  /** Gửi lại mã cho cùng email */
+  resend(): void {
+    if (!this.challengeId || this.countdown() > 0 || this.loading()) return;
+    this.loading.set(true);
+    this.auth
+      .resendOtp(this.challengeId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.loading.set(false);
+          this.serverError.set(null);
+          this.resetForm.controls.code.setValue('');
+          this.toast.show(`Đã gửi lại mã tới ${this.sentTo()}`);
+          this.startCountdown(res.resendAfter ?? RESEND_SECONDS);
+        },
+        error: (err: unknown) => {
+          this.loading.set(false);
+          const body = (err instanceof HttpErrorResponse ? err.error : null) as OtpError | null;
+          if (body?.retryAfter) this.startCountdown(body.retryAfter);
+          this.serverError.set(this.message(err));
+        },
+      });
+  }
+
+  /** Bước 2: mã OTP + mật khẩu mới */
+  reset(): void {
+    this.resetSubmitted.set(true);
+    this.serverError.set(null);
+    this.onCodeInput();
+    if (this.resetForm.invalid) {
+      this.resetForm.markAllAsTouched();
+      return;
+    }
+    if (!this.challengeId || this.loading()) return;
+    const { code, password } = this.resetForm.getRawValue();
+    this.loading.set(true);
+    this.auth
+      .resetPassword(this.challengeId, code, password)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.loading.set(false);
+          this.stopTimer();
+          this.done.set(true);
+        },
+        error: (err: unknown) => {
+          this.loading.set(false);
+          this.resetForm.controls.code.setValue('');
+          this.serverError.set(this.message(err));
+        },
+      });
+  }
+
+  /** Quay lại bước nhập email (đổi email khác / phiên OTP hết hạn) */
+  startOver(): void {
+    this.stopTimer();
+    this.challengeId = null;
+    this.sentTo.set(null);
+    this.serverError.set(null);
+    this.resetSubmitted.set(false);
+    this.resetForm.reset();
+  }
+
+  private message(err: unknown): string {
+    if (!(err instanceof HttpErrorResponse)) return 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+    if (err.status === 0) return 'Không kết nối được máy chủ. Vui lòng thử lại sau.';
+    return ((err.error ?? {}) as OtpError).message ?? 'Đã có lỗi xảy ra. Vui lòng thử lại.';
   }
 
   private startCountdown(seconds: number): void {
     this.stopTimer();
-    this.countdown.set(seconds);
+    this.countdown.set(Math.max(0, Math.round(seconds)));
+    if (this.countdown() === 0) return;
     this.timer = setInterval(() => {
       const next = this.countdown() - 1;
       this.countdown.set(Math.max(0, next));
