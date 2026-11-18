@@ -38,6 +38,7 @@ function fakeDb() {
     collection(name) {
       return {
         async createIndex() {},
+        listIndexes: () => ({ toArray: async () => [] }),
         async findOne(q) { const d = col(name).find((x) => matches(x, q)); return d ? { ...d } : null; }, // bản sao như MongoDB thật
         async insertOne(d) { const _id = d._id || new ObjectId(); col(name).push({ ...d, _id }); return { insertedId: _id }; },
         async updateOne(q, u, opts) {
@@ -78,7 +79,7 @@ async function setup(t) {
   };
   const lastCode = () => /(\d{6})/.exec(sent.at(-1).subject)[1];
   // Cho phép "gửi lại" ngay mà không phải đợi 60 giây thật
-  const skipCooldown = () => db.data.otp_challenges.forEach((c) => { c.lastSentAt = new Date(Date.now() - 61000); });
+  const skipCooldown = () => db.data.otp.forEach((c) => { c.lastSentAt = new Date(Date.now() - 61000); });
   return { db, sent, post, lastCode, skipCooldown };
 }
 
@@ -95,7 +96,7 @@ test('đăng ký: chưa đăng nhập ngay, gửi OTP xác minh email; nhập đ
   assert.equal(reg.body.email, 'kh******u@gmail.com');
   assert.equal(sent.length, 1);
   assert.equal(sent[0].to, 'khach.thu@gmail.com');
-  assert.equal(db.data.otp_challenges[0].codeHash.includes(lastCode()), false, 'database không lưu mã gốc');
+  assert.equal(db.data.otp[0].codeHash.includes(lastCode()), false, 'database không lưu mã gốc');
 
   // Đăng nhập khi chưa xác minh → được yêu cầu OTP, không có token
   const login = await post('/auth/login', { identifier: account.email, type: 'email', password: account.password, remember: true });
@@ -229,5 +230,5 @@ test('gửi email lỗi thì báo 502, không để lại mã treo', async (t) =
   const reg = await post('/auth/register', account);
   assert.equal(reg.status, 502);
   assert.equal(reg.body.accountCreated, true);
-  assert.equal((db.data.otp_challenges || []).length, 0);
+  assert.equal((db.data.otp || []).length, 0);
 });

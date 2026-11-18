@@ -4,7 +4,7 @@
 //   login_2fa      — xác thực 2 lớp khi đăng nhập (khách bật trong hồ sơ)
 //   reset_password — quên mật khẩu
 //
-// Collection otp_challenges (tự xoá 1 giờ sau khi hết hạn — TTL index):
+// Collection otp (tự xoá 1 giờ sau khi hết hạn — TTL index):
 //   { challengeId, purpose, accountId, userId, email, remember, codeHash, attempts,
 //     sendCount, lastSentAt, expiresAt, consumedAt, createdAt }
 // Database chỉ lưu SHA-256 của mã, không lưu mã gốc. challengeId là chuỗi ngẫu nhiên
@@ -14,7 +14,7 @@ const { randomBytes, randomInt, timingSafeEqual } = require('node:crypto');
 const { digest } = require('./customer-auth');
 const { sendMail } = require('./mailer');
 
-const COLLECTION = 'otp_challenges';
+const COLLECTION = 'otp';
 const CODE_MINUTES = 10;
 const RESEND_SECONDS = 60;
 const MAX_ATTEMPTS = 5;
@@ -36,10 +36,7 @@ class OtpError extends Error {
 
 let indexesReady = null;
 function ensureIndexes(db) {
-  indexesReady ??= Promise.all([
-    db.collection(COLLECTION).createIndex({ challengeId: 1 }, { unique: true }),
-    db.collection(COLLECTION).createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),
-  ]).catch((error) => {
+  indexesReady ??= require('./prepare-data-flows').prepareOtpStorage(db).catch((error) => {
     indexesReady = null;
     throw error;
   });
@@ -115,7 +112,7 @@ async function startChallenge(db, { purpose, accountId = null, userId = null, em
   const code = newCode();
   const doc = {
     challengeId, purpose, accountId, userId, email, remember: remember === true,
-    codeHash: accountId ? hashCode(challengeId, code) : null,
+    codeHash: hashCode(challengeId, code),
     attempts: 0, sendCount: 1, lastSentAt: now,
     expiresAt: new Date(now.getTime() + CODE_MINUTES * 60 * 1000),
     consumedAt: null, createdAt: now,
@@ -150,7 +147,7 @@ async function resendChallenge(db, challengeId) {
   }
   const code = newCode();
   const update = {
-    codeHash: doc.accountId ? hashCode(doc.challengeId, code) : null,
+    codeHash: hashCode(doc.challengeId, code),
     attempts: 0, lastSentAt: now, expiresAt: new Date(now.getTime() + CODE_MINUTES * 60 * 1000),
   };
   if (doc.accountId) await deliver(doc.email, code, doc.purpose);
@@ -174,7 +171,7 @@ async function consumeChallenge(db, { challengeId, code, purposes }) {
     throw new OtpError(429, `Bạn đã nhập sai ${MAX_ATTEMPTS} lần. Bấm "Gửi lại mã" để nhận mã mới.`, { code: 'OTP_TOO_MANY_ATTEMPTS', remainingAttempts: 0 });
   }
   const value = typeof code === 'string' ? code.trim() : '';
-  const expected = doc.codeHash ? Buffer.from(doc.codeHash, 'hex') : null;
+  const expected = doc.accountId && doc.codeHash ? Buffer.from(doc.codeHash, 'hex') : null;
   const given = /^\d{6}$/.test(value) ? Buffer.from(hashCode(doc.challengeId, value), 'hex') : null;
   const ok = !!expected && !!given && expected.length === given.length && timingSafeEqual(expected, given);
   if (!ok) {

@@ -333,6 +333,7 @@ async function transition(db, client, kind, id, body) {
                   { session },
                 );
               if (refunded.modifiedCount !== 1) throw failure(409, 'Original payment changed; reload');
+              await require('./shipment-sync')(db, { ...order, status: 'returned', updatedAt: now }, session);
               if (order.paymentMode === 'demo') {
                 const payment = await db.collection('payments').updateOne({_id:order._id,source:'demo_confirmation',status:'paid'},
                   {$set:{status:'refunded',refundedAt:now}},{session});
@@ -355,6 +356,7 @@ async function transition(db, client, kind, id, body) {
         if (update.modifiedCount !== 1)
           throw failure(409, "Concurrent status change");
         result = await collection.findOne({ _id: doc._id }, { session });
+        if (kind === 'orders') await require('./shipment-sync')(db, result, session);
       },
       {
         readConcern: { level: "snapshot" },

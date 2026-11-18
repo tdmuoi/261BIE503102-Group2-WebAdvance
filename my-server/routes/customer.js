@@ -13,6 +13,8 @@ const customerWishlistRoutes = require('./customer-wishlist');
 module.exports = function customerRoutes(getDb) {
   const router = express.Router();
   router.use(require('./admin-settings').publicRoutes(getDb));
+  router.use(require('./customer-cart')(getDb));
+  router.use(require('./event-registrations')(getDb));
   router.use(customerAuthRoutes(getDb));
   router.use(customerAccountRoutes(getDb));
   router.use(customerOrderRoutes(getDb));

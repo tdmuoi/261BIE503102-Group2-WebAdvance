@@ -115,6 +115,8 @@ async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quot
   const book = { _id: bookId, title: 'Fixture', bookType: ebook ? 'ebook' : used ? 'used' : 'new', status: 'active', price: 100000, stock,
     ...(ebook ? { ebookFileId: new ObjectId() } : {}) };
   let records = {
+    shipments: [],
+    carts: [], events: [], event_registrations: [],
     users: [{ _id: userId, accountId, fullName: 'Fixture' }, { _id: secondUser, accountId: secondAccount, fullName: 'Other' }],
     accounts: [{ _id: accountId, roleCode: 'CUSTOMER', status: 'active', email: 'a@example.invalid' },
       { _id: secondAccount, roleCode: 'CUSTOMER', status: 'active', email: 'b@example.invalid' }],
@@ -166,6 +168,19 @@ async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quot
         find(query = {}, opts) { return { project() { return this; }, sort() { return this; }, limit() { return this; },
           toArray: async () => { maybeFail('find'); return clone(rows(opts).filter((doc) => matches(doc, query))); } }; },
         async countDocuments(query, opts) { return rows(opts).filter((doc) => matches(doc, query)).length; },
+        async findOneAndUpdate(query, update, opts) {
+          assert.ok(atomicWrites, 'Cart writes must be explicitly atomic');
+          let doc = rows(opts).find(row => matches(row, query));
+          if (!doc && opts?.upsert) {
+            if (rows(opts).some(row => equal(row._id, query._id))) throw Object.assign(new Error('Duplicate'), { code: 11000 });
+            doc = clone({ ...query, ...update.$setOnInsert }); rows(opts).push(doc);
+          }
+          if (!doc) return null;
+          Object.assign(doc, clone(update.$set));
+          for (const [key, amount] of Object.entries(update.$inc || {})) doc[key] = (doc[key] || 0) + amount;
+          version++;
+          return clone(doc);
+        },
         async insertOne(doc, opts) {
           maybeFail('insertOne'); assert.ok(opts?.session, 'Mutation must carry session');
           if (rows(opts).some((row) => equal(row._id, doc._id) || (name === 'personalBooks' && equal(row.userId, doc.userId) && equal(row.bookId, doc.bookId))))
@@ -176,7 +191,13 @@ async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quot
           if (updateHook?.name === name) { const work = updateHook.work; updateHook = null; await work(); }
           maybeFail('updateOne'); assert.ok(opts?.session || atomicWrites, 'Mutation must carry session or be explicitly atomic');
           const doc = rows(opts).find((row) => matches(row, query));
-          if (!doc) return { matchedCount: 0, modifiedCount: 0 };
+          if (!doc) {
+            if (opts?.upsert) {
+              rows(opts).push(clone({ ...query, ...update.$setOnInsert, ...update.$set }));
+              return { matchedCount: 0, modifiedCount: 0, upsertedCount: 1 };
+            }
+            return { matchedCount: 0, modifiedCount: 0 };
+          }
           Object.assign(doc, clone(update.$set || {}));
           for (const [key, amount] of Object.entries(update.$inc || {})) doc[key] = (doc[key] || 0) + amount;
           for (const [key, value] of Object.entries(update.$push || {})) (doc[key] ??= []).push(clone(value));
@@ -205,6 +226,84 @@ async function checkoutFixture(t, { used = false, ebook = false, stock = 5, quot
     beforeNextUpdate(name, work) { updateHook = { name, work }; },
     concurrentNext() { gate = { waiting: 0 }; gate.promise = new Promise((resolve) => { gate.resume = resolve; }); } };
 }
+
+test('Cart persistence: account isolation, canonical prices, revisions, validation and clear', async t => {
+  const f = await checkoutFixture(t); f.allowAtomicWrites();
+  const put = body => f.request('/cart', body, { method: 'PUT' });
+  const get = options => f.request('/cart', null, { method: 'GET', ...options });
+  assert.equal((await get({ authenticated: false })).status, 401);
+  assert.deepEqual((await get()).body, { revision: null, items: [] });
+  const items = [{ bookId: String(f.bookId), quantity: 2, price: 1, title: 'Forged' }];
+  const saved = await put({ revision: null, items });
+  assert.equal(saved.status, 200); assert.equal(saved.body.revision, 1);
+  assert.equal(saved.body.items[0].price, 100000); assert.equal(saved.body.items[0].title, 'Fixture');
+  assert.equal(f.records.carts[0].userId.toString(), f.records.users[0]._id.toString());
+  assert.equal((await get({ other: true })).body.items.length, 0);
+  assert.equal((await put({ revision: null, items })).status, 409, 'stale tab cannot overwrite');
+  for (const quantity of [0, -1, 1.5, 1000]) assert.equal((await put({ revision: 1, items: [{ ...items[0], quantity }] })).status, 400);
+  assert.equal((await put({ revision: 1, items: [items[0], items[0]] })).status, 400);
+  assert.equal((await put({ revision: 1, items: [], userId: f.records.users[1]._id })).status, 400);
+  assert.equal((await put({ revision: 1, items: [] })).status, 200);
+  assert.deepEqual((await get()).body, { revision: 2, items: [] });
+});
+
+test('Event registration persists once, refuses invalid/full/past bookings, and rolls back on failure', async t => {
+  const f = await checkoutFixture(t), eventId = new ObjectId();
+  f.records.events.push({ _id: eventId, status: 'published', startAt: new Date(Date.now() + 86400000), capacity: 2, registeredCount: 0 });
+  const body = { eventId: String(eventId), fullName: 'Khách thử', email: 'guest@example.invalid', phone: '0912345678', seats: 2 };
+  const reserve = b => f.request('/event-registrations', b, { authenticated: false });
+  f.failNext('event_registrations.insertOne');
+  assert.equal((await reserve(body)).status, 500);
+  assert.equal(f.records.events[0].registeredCount, 0); assert.equal(f.records.event_registrations.length, 0);
+  const first = await reserve(body); assert.equal(first.status, 201);
+  assert.equal(f.records.events[0].registeredCount, 2); assert.equal(f.records.event_registrations.length, 1);
+  assert.equal((await reserve({ ...body, email: body.email.toUpperCase() })).status, 200);
+  assert.equal(f.records.events[0].registeredCount, 2);
+  assert.equal((await reserve({ ...body, email: 'other@example.invalid' })).status, 409);
+  assert.equal((await reserve({ ...body, seats: 6 })).status, 400);
+  assert.equal((await reserve({ ...body, registeredCount: 0 })).status, 400);
+  f.records.events[0].startAt = new Date(Date.now() - 1000);
+  assert.equal((await reserve({ ...body, email: 'other@example.invalid' })).status, 409);
+});
+
+test('Concurrent bookings cannot overbook the last seats', async t => {
+  const f = await checkoutFixture(t), eventId = new ObjectId();
+  f.records.events.push({ _id: eventId, status: 'published', startAt: new Date(Date.now() + 86400000), capacity: 1 });
+  f.concurrentNext();
+  const body = { eventId: String(eventId), fullName: 'Khách thử', email: 'one@example.invalid', phone: '0912345678', seats: 1 };
+  const replies = await Promise.all([body, { ...body, email: 'two@example.invalid' }].map(b => f.request('/event-registrations', b, { authenticated: false })));
+  assert.deepEqual(replies.map(r => r.status).sort(), [201, 409]);
+  assert.equal(f.records.events[0].registeredCount, 1); assert.equal(f.records.event_registrations.length, 1);
+});
+
+test('Physical checkout, replay, shipping and cancellation keep one shipment in the same transaction', async t => {
+  const f = await checkoutFixture(t);
+  f.failNext('shipments.updateOne'); const before = clone(f.records);
+  assert.equal((await f.request('/orders', f.body)).status, 500); assert.deepEqual(f.records, before);
+  const order = await f.request('/orders', f.body); assert.equal(order.status, 201);
+  await f.request('/orders', f.body); assert.equal(f.records.shipments.length, 1);
+  assert.equal(f.records.shipments[0].status, 'pending');
+  f.failNext('shipments.updateOne'); const committed = clone(f.records);
+  assert.equal((await f.request('/account/orders/' + order.body._id + '/cancel', {}, { method: 'PUT' })).status, 500);
+  assert.deepEqual(f.records, committed);
+  assert.equal((await f.request('/account/orders/' + order.body._id + '/cancel', {}, { method: 'PUT' })).status, 200);
+  assert.equal(f.records.shipments[0].status, 'cancelled');
+});
+
+test('Admin shipping transitions update shipment timestamps atomically with COD delivery', async t => {
+  const f = await checkoutFixture(t);
+  const created = await f.request('/orders', f.body); assert.equal(created.status, 201);
+  const transition = require('../middleware/admin-safe-status');
+  const change = body => transition(f.db, f.db.client, 'orders', created.body._id, body);
+  const before = clone(f.records); f.failNext('shipments.updateOne');
+  await assert.rejects(change({ status: 'confirmed' })); assert.deepEqual(f.records, before);
+  await change({ status: 'confirmed' }); await change({ status: 'shipping', trackingCode: 'ACTUAL-TRACKING' });
+  assert.equal(f.records.shipments[0].trackingCode, 'ACTUAL-TRACKING');
+  assert.ok(f.records.shipments[0].shippedAt instanceof Date);
+  await change({ status: 'delivered' });
+  assert.equal(f.records.shipments[0].status, 'delivered'); assert.ok(f.records.shipments[0].deliveredAt instanceof Date);
+  assert.equal(f.records.orders[0].paymentStatus, 'paid'); assert.equal(f.records.shipments.length, 1);
+});
 
 test('Unconfigured VNPay and bank transfer cannot create orders or reserve stock/vouchers', async t => {
   const f = await checkoutFixture(t), before = clone(f.records);

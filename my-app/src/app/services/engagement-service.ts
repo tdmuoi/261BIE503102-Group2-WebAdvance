@@ -6,11 +6,11 @@ import { environment } from '../../environments/environment';
 import { AuthService } from './auth-service';
 
 /**
- * my-server chưa có API giữ chỗ sự kiện: backend thêm endpoint thì điền đường dẫn vào đây.
+ * Giữ chỗ sự kiện lưu vào event_registrations qua API.
  * Theo dõi tác giả: /api/account/followed-authors (cần đăng nhập, xem my-server/routes/customer-follows.js).
  */
 const ENDPOINTS: { reserveEvent: string | null; newsletter: string | null } = {
-  reserveEvent: null, // ví dụ `${environment.apiUrl}/event-registrations`
+  reserveEvent: `${environment.apiUrl}/event-registrations`,
   newsletter: `${environment.apiUrl}/newsletter`,
 };
 

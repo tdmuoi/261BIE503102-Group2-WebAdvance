@@ -332,6 +332,7 @@ module.exports = function createAdminAuth(getDb, options = {}) {
       const duration = req.body.rememberMe ? 7 * 86400000 : 8 * 3600000;
       const session = {
         userId: user._id,
+        roleCode: user.roleCode,
         csrf: randomBytes(32).toString("hex"),
         seen: now,
         expires: now + duration,
@@ -343,6 +344,8 @@ module.exports = function createAdminAuth(getDb, options = {}) {
         ...cookieOptions(req),
         ...(req.body.rememberMe ? { maxAge: duration } : {}),
       });
+      // Audit actor is assigned only after credentials and the role are verified.
+      req.admin = safeUser(user);
       return res.json(response(session, user));
     } catch (error) {
       if (error.code === "AUTH_BCRYPT_UNAVAILABLE")
@@ -371,6 +374,9 @@ module.exports = function createAdminAuth(getDb, options = {}) {
       return res
         .status(403)
         .json({ message: "Yêu cầu đăng xuất không hợp lệ (CSRF)." });
+    const now = Date.now();
+    if (session && session.expires > now && session.seen + IDLE > now)
+      req.admin = { _id: String(session.userId), roleCode: session.roleCode };
     if (key) sessions.delete(key);
     res.clearCookie(COOKIE, cookieOptions(req));
     return res.sendStatus(204);

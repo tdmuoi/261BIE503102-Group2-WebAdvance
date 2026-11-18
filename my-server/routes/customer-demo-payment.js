@@ -68,6 +68,7 @@ async function settle(db, userId, id, outcome = 'succeeded') {
     const changed = await orders.updateOne({_id:orderId,userId,status:'pending',paymentStatus:'unpaid'},
       {$set:set,...(result === 'succeeded' ? {} : {$push:{statusHistory:{status:'cancelled',at:now,note:'QR Demo: '+result}}})},{session});
     if (changed.modifiedCount !== 1) throw failure(409,'Đơn vừa thay đổi; tải lại trước khi thử lại.');
+    await require('../middleware/shipment-sync')(db, { ...current, ...set }, session);
     return {...current,...set};
   }); } catch (error) {
     if (error.code !== 11000) throw error;

@@ -219,6 +219,7 @@ module.exports = function customerOrderRoutes(getDb) {
             statusHistory: [{ status: 'pending', at: now, note: null }], note: text(b.note).slice(0, 300),
             stockDeducted: lines.some((line) => !line.ebook), restocked: false, createdAt: now, updatedAt: now };
           await db().collection('orders').insertOne(document, { session });
+          await require('../middleware/shipment-sync')(db(), document, session);
           await notify(req.customer.userId, { type: 'order', icon: 'box', title: 'Đặt hàng thành công #' + document.orderCode,
             message: b.paymentMethod === 'cod' ? 'Lightbook sẽ xác nhận và giao đơn sớm nhất.' : 'Đơn đang chờ xác minh thanh toán.',
             action: { label: 'Xem đơn', link: '/account/orders' } }, session);
@@ -283,6 +284,7 @@ module.exports = function customerOrderRoutes(getDb) {
       const changed = await db().collection('orders').updateOne({ _id: id, userId, status: 'pending', paymentStatus: 'unpaid', isDemo: { $ne: true } },
         { $set: set, $push: { statusHistory: { status: 'cancelled', at: now, note } } }, { session });
       if (changed.modifiedCount !== 1) throw failure(409, 'Đơn hàng vừa thay đổi');
+      await require('../middleware/shipment-sync')(db(), { ...current, ...set }, session);
       await notify(userId, { type: 'order', icon: 'box', title: 'Đã hủy đơn #' + current.orderCode, message, action: null }, session);
       return { ...current, ...set };
     });

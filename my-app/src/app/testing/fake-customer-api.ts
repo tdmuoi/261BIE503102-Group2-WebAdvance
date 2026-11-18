@@ -99,6 +99,7 @@ function seedNotifications(): AccountNotification[] {
 }
 
 export interface FakeDb {
+  cart: { revision: number | null; items: { bookId: string; title: string; image: string; price: number; quantity: number }[] };
   profile: AccountProfile;
   addresses: Address[];
   orders: Order[];
@@ -114,6 +115,7 @@ export interface FakeDb {
 
 function seed(): FakeDb {
   return {
+    cart: { revision: null, items: [] },
     profile: {
       _id: FAKE_USER._id, fullName: FAKE_USER.fullName, username: 'dung', email: FAKE_USER.email, emailVerified: true, phone: FAKE_USER.phone,
       birthday: '2005-02-14', gender: 'female', avatar: null, tier: 'Thành viên Bạc', memberId: '7904217',
@@ -160,6 +162,16 @@ function handle(db: FakeDb, req: HttpRequest<unknown>): Reply | null {
   const authed = !!req.headers.get('Authorization');
   db.calls.push(`${m} ${path}`);
   const seg = path.split('/').filter(Boolean);
+
+  if (path === '/cart') {
+    if (!authed) return fail(401, { message: 'Bạn cần đăng nhập.' });
+    if (m === 'GET') return ok(structuredClone(db.cart));
+    if (m === 'PUT') {
+      if (body['revision'] !== db.cart.revision) return fail(409, { message: 'Giỏ hàng vừa thay đổi.' });
+      db.cart = { revision: (db.cart.revision || 0) + 1, items: body['items'].map((i: any) => ({ ...i, title: i.bookId, image: '', price: 0 })) };
+      return ok(structuredClone(db.cart));
+    }
+  }
 
   if (m === 'GET' && path === '/settings') return ok({
     shipping: { standardFee: 30000, expressFee: 45000, freeShippingThreshold: 500000 },

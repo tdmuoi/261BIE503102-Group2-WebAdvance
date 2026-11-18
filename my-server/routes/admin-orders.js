@@ -287,9 +287,16 @@ module.exports = function adminOrdersRoutes(getDb, getClient) {
       if (!Object.keys(set).length) return res.status(400).json({ message: 'Không có gì để cập nhật' });
 
       set.updatedAt = revisions.nextUpdatedAt(doc);
-      const result = await orders().updateOne({ _id: doc._id, ...revisions.snapshot(doc) }, { $set: set });
-      if (!result.matchedCount) throw revisions.conflict();
-      res.json(await presentOne(await orders().findOne({ _id: doc._id })));
+      const save = async session => {
+        const result = await orders().updateOne({ _id: doc._id, ...revisions.snapshot(doc) }, { $set: set }, { session });
+        if (!result.matchedCount) throw revisions.conflict();
+        const row = await orders().findOne({ _id: doc._id }, { session });
+        if (Object.hasOwn(set, 'trackingCode')) await require('../middleware/shipment-sync')(getDb(), row, session);
+        return row;
+      };
+      const updated = Object.hasOwn(set, 'trackingCode') && doc.shippingAddress
+        ? await require('../middleware/admin-transaction')(getDb(), save) : await save(undefined);
+      res.json(await presentOne(updated));
     } catch (error) {
       console.error('PATCH /api/admin/orders/:id failed:', error.message);
       res.status(error.status || 500).json({ message: error.status ? error.message : 'Không cập nhật được đơn hàng' });

@@ -39,6 +39,7 @@ app.use('/media/events', express.static(require('node:path').join(__dirname, 'pu
 let database;
 let client;
 
+app.use('/api/admin', require('./middleware/admin-audit-log')(() => database));
 app.use('/api/admin', require('./middleware/admin-qa-access')(adminAuth));
 
 app.use('/api/admin/auth', adminAuthRoutes(() => database));
@@ -218,12 +219,15 @@ async function startServer() {
     database = client.db(dbName);
     await database.command({ ping: 1 });
     await database.collection('newsletters').createIndex({ email: 1 }, { unique: true });
+    await require('./middleware/prepare-data-flows')(database);
 
     console.log('MongoDB connected successfully');
     console.log('Database:', dbName);
 
     app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
+      require('./middleware/admin-audit-log').recordServerStart(database, port)
+        .catch(error => console.error('Không ghi được audit log khởi động:', error.message));
     });
   } catch (error) {
     console.error('Cannot start server:', error.message);

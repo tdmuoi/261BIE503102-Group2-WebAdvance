@@ -11,8 +11,6 @@ import { CartItem, CartService } from '../../services/cart-service';
 import { ComboService } from '../../services/combo-service';
 import { ComboTotals } from './pricing';
 
-/** PHẢI trùng STORAGE_KEY trong services/cart-service.ts (file của bạn khác, không sửa) */
-const CART_KEY = 'lightbook.cart';
 const DESELECTED_KEY = 'lightbook.cart.deselected';
 const VOUCHER_KEY = 'lightbook.cart.voucher';
 
@@ -42,9 +40,7 @@ const VARIANT = { new: 'Sách mới', used: 'Sách cũ', ebook: 'Sách điện t
 /**
  * Lớp làm việc với giỏ hàng cho các trang Giỏ hàng / Thanh toán / Mua lại.
  *
- * CartService (của bạn khác) mới có hàm add(), nên đổi số lượng / xoá được làm ở đây bằng cách
- * ghi lại localStorage cùng key rồi phát sự kiện "storage" — CartService đã sẵn lắng nghe sự kiện này
- * nên badge giỏ hàng ở header vẫn cập nhật. Khi CartService có setQuantity/remove thì thay bằng hàm đó.
+ * Mọi cập nhật đi qua CartService.replace() để badge, cache và MongoDB đồng bộ.
  */
 @Injectable({ providedIn: 'root' })
 export class CartFacade {
@@ -188,13 +184,7 @@ export class CartFacade {
   }
 
   private write(items: CartItem[]): void {
-    try {
-      localStorage.setItem(CART_KEY, JSON.stringify(items));
-    } catch {
-      return;
-    }
-    // CartService chỉ đọc lại localStorage khi có sự kiện "storage" → tự phát cho tab hiện tại
-    window.dispatchEvent(new StorageEvent('storage', { key: CART_KEY }));
+    this.cart.replace(items);
   }
 }
 
