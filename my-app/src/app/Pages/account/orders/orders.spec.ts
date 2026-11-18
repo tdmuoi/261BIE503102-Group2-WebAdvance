@@ -76,7 +76,21 @@ describe('Orders', () => {
     expect(detail).toContain('Lịch sử đơn');
     expect(detail).toContain('Nguyễn Thùy Dung');
     expect(detail).toContain('Ví MoMo');
-    expect(component.mailto(order)).toContain('mailto:hello@lightbook.vn');
+    expect(component.mailto(order)).toContain('mail.google.com/mail/?view=cm&fs=1&to=lightbook14@gmail.com');
+  });
+
+  it('tab Thanh lý: "Xem báo giá" hiện giá thu mua admin đã định, "Liên hệ shop" mở Gmail', () => {
+    component.setTab('buyback');
+    fixture.detectChanges();
+    const b = component.buybacks()[0];
+    const btn = Array.from(el.querySelectorAll('button')).find((x) => x.textContent?.trim() === 'Xem báo giá')!;
+    btn.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.quote-detail')?.textContent).toContain('Giá thu mua của Lightbook');
+    expect(component.quoteOpen()).toBe(b.code);
+    const contact = Array.from(el.querySelectorAll('a')).find((x) => x.textContent?.trim() === 'Liên hệ shop')!;
+    expect(contact.getAttribute('href')).toContain('to=lightbook14@gmail.com');
+    expect(contact.getAttribute('target')).toBe('_blank');
   });
 
   it('đơn đã đánh giá hiện "Đã đánh giá ★ 5", đơn ebook có nút "Đọc trong tủ sách"', () => {

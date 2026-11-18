@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
+import { of } from 'rxjs';
 
 import { VndPipe } from '../../../../pipes/vnd-pipe';
 import { TrimCover } from '../../../../directives/trim-cover';
 import { makeBook } from '../../../../testing/mock-books';
+import { BookService } from '../../../../services/book-service';
 import { HomeBestPanel } from './home-best-panel';
 
 describe('HomeBestPanel', () => {
@@ -13,6 +15,7 @@ describe('HomeBestPanel', () => {
     await TestBed.configureTestingModule({
       imports: [RouterModule.forRoot([])],
       declarations: [HomeBestPanel, VndPipe, TrimCover],
+      providers: [{ provide: BookService, useValue: { getReviews: () => of([]) } }],
     }).compileComponents();
     fixture = TestBed.createComponent(HomeBestPanel);
     fixture.componentRef.setInput('book', makeBook({ title: 'Kitchen' }));

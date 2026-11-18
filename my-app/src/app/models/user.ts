@@ -45,7 +45,8 @@ export interface RegisterRequest {
 }
 
 /** Mục đích của mã OTP gửi qua email */
-export type OtpPurpose = 'verify_email' | 'login_2fa' | 'reset_password';
+/** register: đăng ký mới (tài khoản chỉ được tạo khi nhập đúng mã) */
+export type OtpPurpose = 'register' | 'verify_email' | 'login_2fa' | 'reset_password';
 
 /** Server đã gửi mã OTP 6 số qua email; trang gửi lại challengeId kèm mã khi xác nhận */
 export interface OtpChallenge {

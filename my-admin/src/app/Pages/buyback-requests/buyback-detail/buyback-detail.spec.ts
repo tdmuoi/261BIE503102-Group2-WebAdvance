@@ -86,6 +86,17 @@ describe('BuybackDetail', () => {
     expect(page.error()).toContain('Giá');
   });
 
+  it('lets admin type the buyback price on a pending request, but not on a rejected one', async () => {
+    const page = fixture.componentInstance;
+    page.row.set({ ...row, status: 'pending' });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('fieldset').disabled).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Lưu định giá sẽ duyệt luôn');
+    page.row.set({ ...row, status: 'rejected' });
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('fieldset').disabled).toBe(true);
+  });
+
   it('keeps a demo readable and prevents all mutation actions', async () => {
     const page = fixture.componentInstance;
     page.row.set({ ...row, isDemo: true });

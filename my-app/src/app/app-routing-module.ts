@@ -77,8 +77,9 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  // scrollPositionRestoration: chuyển trang thì tự cuộn lên đầu; anchorScrolling: link có #fragment (vd. /#flashsale) cuộn tới đúng phần
-  imports: [RouterModule.forRoot(routes, { scrollPositionRestoration: 'top', anchorScrolling: 'enabled' })],
+  // Vị trí cuộn do services/scroll-memory.ts lo: nút Back/Forward (và F5) về đúng chỗ đã rời, bấm link chuyển trang thì lên đầu.
+  // anchorScrolling: link có #fragment (vd. /#flashsale) cuộn tới đúng phần
+  imports: [RouterModule.forRoot(routes, { scrollPositionRestoration: 'disabled', anchorScrolling: 'enabled' })],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }

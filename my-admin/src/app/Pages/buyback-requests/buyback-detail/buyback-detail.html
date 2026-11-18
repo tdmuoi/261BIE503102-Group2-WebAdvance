@@ -109,13 +109,11 @@
       </header>
       <form #valuation="ngForm" (ngSubmit)="act('quote', valuation)">
         <fieldset
-          [disabled]="saving() || request.isDemo || request.status !== 'reviewing'"
+          [disabled]="saving() || request.isDemo || (request.status !== 'pending' && request.status !== 'reviewing')"
           style="border: 0; padding: 0; margin: 0"
         >
           <div class="price-grid">
             <label
-              >Giá khách đề xuất<span>{{ money(request.price) }}</span></label
-            ><label
               >Giá thu mua *<input
                 class="input"
                 type="number"
@@ -144,6 +142,13 @@
           <button type="submit" class="btn btn-primary" [disabled]="saving() || valuation.invalid">
             Lưu định giá
           </button>
+          @if (request.isDemo) {
+            <p class="form-hint">Phiếu demo chỉ được xem, không nhập giá được.</p>
+          } @else if (request.status !== 'pending' && request.status !== 'reviewing') {
+            <p class="form-hint">Phiếu đã {{ request.status === 'rejected' ? 'bị từ chối' : 'xử lý xong' }}, không sửa giá được nữa.</p>
+          } @else if (request.status === 'pending') {
+            <p class="form-hint">Lưu định giá sẽ duyệt luôn phiếu này.</p>
+          }
         </fieldset>
       </form>
       <label class="field-label" for="admin-note">Ghi chú / lý do từ chối</label

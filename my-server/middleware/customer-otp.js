@@ -1,6 +1,8 @@
 // =====================================================================
 // Mã OTP 6 số gửi qua email cho web khách hàng.
-//   verify_email   — xác minh email sau khi đăng ký
+//   register       — xác minh email khi đăng ký: tài khoản CHỈ được tạo sau khi nhập đúng mã
+//                    (thông tin đăng ký lưu tạm trong challenge.pending, mật khẩu đã băm)
+//   verify_email   — tài khoản cũ còn "chờ xác minh" (tạo theo luồng trước đây) khi đăng nhập
 //   login_2fa      — xác thực 2 lớp khi đăng nhập (khách bật trong hồ sơ)
 //   reset_password — quên mật khẩu
 //
@@ -21,6 +23,7 @@ const MAX_ATTEMPTS = 5;
 const MAX_SENDS = 5;
 
 const PURPOSES = {
+  register: { subject: 'Mã xác minh email Lightbook', action: 'hoàn tất đăng ký tài khoản Lightbook mới của bạn' },
   verify_email: { subject: 'Mã xác minh email Lightbook', action: 'xác minh email cho tài khoản Lightbook mới của bạn' },
   login_2fa: { subject: 'Mã đăng nhập Lightbook', action: 'đăng nhập vào tài khoản Lightbook (xác thực 2 lớp)' },
   reset_password: { subject: 'Mã đặt lại mật khẩu Lightbook', action: 'đặt lại mật khẩu tài khoản Lightbook' },
@@ -90,8 +93,10 @@ function publicChallenge(doc, resendAfter = RESEND_SECONDS) {
  * (quên mật khẩu): trả về giống hệt nhưng không gửi gì, để không lộ email nào có tài khoản.
  * Gọi lại trong vòng 60 giây thì dùng lại mã vừa gửi, không gửi thêm.
  */
-async function startChallenge(db, { purpose, accountId = null, userId = null, email, remember = false }) {
+async function startChallenge(db, { purpose, accountId = null, userId = null, email, remember = false, pending = null }) {
   if (!PURPOSES[purpose]) throw new Error(`OTP purpose không hợp lệ: ${purpose}`);
+  // Mã thật (gửi email) khi gắn với tài khoản có sẵn hoặc với thông tin đăng ký đang chờ
+  const real = !!accountId || !!pending;
   await ensureIndexes(db);
   const col = db.collection(COLLECTION);
   const now = new Date();
@@ -101,7 +106,9 @@ async function startChallenge(db, { purpose, accountId = null, userId = null, em
   if (recent) {
     const wait = RESEND_SECONDS - Math.floor((now.getTime() - new Date(recent.lastSentAt).getTime()) / 1000);
     if (wait > 0) {
-      if (recent.remember !== remember) await col.updateOne({ _id: recent._id }, { $set: { remember } });
+      // Đăng ký lại trong 60 giây: dùng mã vừa gửi nhưng lấy thông tin đăng ký mới nhất
+      const set = { remember, ...(pending ? { pending } : {}) };
+      await col.updateOne({ _id: recent._id }, { $set: set });
       return publicChallenge(recent, wait);
     }
   }
@@ -111,14 +118,14 @@ async function startChallenge(db, { purpose, accountId = null, userId = null, em
   const challengeId = randomBytes(24).toString('hex');
   const code = newCode();
   const doc = {
-    challengeId, purpose, accountId, userId, email, remember: remember === true,
+    challengeId, purpose, accountId, userId, email, remember: remember === true, pending,
     codeHash: hashCode(challengeId, code),
     attempts: 0, sendCount: 1, lastSentAt: now,
     expiresAt: new Date(now.getTime() + CODE_MINUTES * 60 * 1000),
     consumedAt: null, createdAt: now,
   };
   doc._id = (await col.insertOne(doc)).insertedId;
-  if (accountId) {
+  if (real) {
     try {
       await deliver(email, code, purpose);
     } catch (error) {
@@ -150,7 +157,7 @@ async function resendChallenge(db, challengeId) {
     codeHash: hashCode(doc.challengeId, code),
     attempts: 0, lastSentAt: now, expiresAt: new Date(now.getTime() + CODE_MINUTES * 60 * 1000),
   };
-  if (doc.accountId) await deliver(doc.email, code, doc.purpose);
+  if (doc.accountId || doc.pending) await deliver(doc.email, code, doc.purpose);
   await col.updateOne({ _id: doc._id }, { $set: update, $inc: { sendCount: 1 } });
   return publicChallenge({ ...doc, ...update });
 }
@@ -171,7 +178,8 @@ async function consumeChallenge(db, { challengeId, code, purposes }) {
     throw new OtpError(429, `Bạn đã nhập sai ${MAX_ATTEMPTS} lần. Bấm "Gửi lại mã" để nhận mã mới.`, { code: 'OTP_TOO_MANY_ATTEMPTS', remainingAttempts: 0 });
   }
   const value = typeof code === 'string' ? code.trim() : '';
-  const expected = doc.accountId && doc.codeHash ? Buffer.from(doc.codeHash, 'hex') : null;
+  // Mã giả (email chưa đăng ký) không bao giờ đúng; mã đăng ký mới thì chưa có accountId nhưng có pending
+  const expected = (doc.accountId || doc.pending) && doc.codeHash ? Buffer.from(doc.codeHash, 'hex') : null;
   const given = /^\d{6}$/.test(value) ? Buffer.from(hashCode(doc.challengeId, value), 'hex') : null;
   const ok = !!expected && !!given && expected.length === given.length && timingSafeEqual(expected, given);
   if (!ok) {
@@ -189,7 +197,7 @@ async function consumeChallenge(db, { challengeId, code, purposes }) {
 }
 
 module.exports = {
-  OtpError, startChallenge, resendChallenge, consumeChallenge, maskEmail,
+  OtpError, startChallenge, resendChallenge, consumeChallenge, maskEmail, OTP_COLLECTION: COLLECTION,
   OTP_SETTINGS: { CODE_MINUTES, RESEND_SECONDS, MAX_ATTEMPTS, MAX_SENDS },
   _resetIndexesForTest: () => { indexesReady = null; },
 };

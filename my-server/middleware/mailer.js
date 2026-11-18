@@ -63,9 +63,34 @@ async function sendMail({ to, subject, text, html }) {
   return { delivered: true };
 }
 
+/**
+ * Gọi lúc khởi động server: in rõ đang gửi mail thật hay chế độ thử,
+ * và thử đăng nhập Gmail/SMTP ngay để biết sai mật khẩu ứng dụng / bị chặn mạng.
+ */
+async function checkMailer() {
+  const settings = config();
+  if (!settings) {
+    console.log('[mailer] Chế độ THỬ: chưa có GMAIL_USER/GMAIL_APP_PASSWORD trong .env → mã OTP chỉ in ra terminal này, không gửi email.');
+    return false;
+  }
+  const who = settings.transport.auth.user;
+  try {
+    if (!transport) transport = require('nodemailer').createTransport(settings.transport);
+    await transport.verify();
+    console.log(`[mailer] Gửi email THẬT qua ${settings.transport.service || settings.transport.host} bằng ${who} — kết nối OK.`);
+    return true;
+  } catch (error) {
+    console.error(`[mailer] Đã cấu hình ${who} nhưng KHÔNG đăng nhập được máy chủ mail: ${error.message}`);
+    if (/Invalid login|Username and Password not accepted|535/i.test(error.message)) {
+      console.error('[mailer] → GMAIL_APP_PASSWORD sai hoặc đã bị thu hồi. Tạo lại Mật khẩu ứng dụng 16 ký tự cho đúng tài khoản GMAIL_USER.');
+    }
+    return false;
+  }
+}
+
 /** Cho test thay transport giả */
 function _setTransportForTest(fake) {
   transport = fake;
 }
 
-module.exports = { sendMail, mailConfigured, _setTransportForTest };
+module.exports = { sendMail, mailConfigured, checkMailer, _setTransportForTest };

@@ -169,7 +169,7 @@ module.exports = function buybackRoutes(getDb) {
           .json({ message: "Yêu cầu đã thay đổi. Tải lại trước khi xử lý." });
       if (
         (body.action === "approve" && doc.status !== "pending") ||
-        (body.action === "quote" && doc.status !== "reviewing") ||
+        (body.action === "quote" && !["pending", "reviewing"].includes(doc.status)) ||
         (body.action === "reject" &&
           !["pending", "reviewing"].includes(doc.status))
       )
@@ -195,6 +195,8 @@ module.exports = function buybackRoutes(getDb) {
       if (body.action === "reject") patch.status = "rejected";
       if (body.action === "quote") {
         patch.offerPrice = body.offerPrice;
+        // Lưu định giá cho phiếu chưa duyệt thì coi như duyệt luôn.
+        if (doc.status === "pending") patch.status = "reviewing";
         // Resale price is a client-side estimate, not a verified schema field.
       }
       const result = await collection().updateOne(

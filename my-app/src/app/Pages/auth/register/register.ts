@@ -140,7 +140,7 @@ export class Register implements OnInit {
     this.loading.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (challenge) => {
-        // Tài khoản đã tạo, chờ nhập mã OTP gửi về email rồi mới đăng nhập
+        // Chưa tạo tài khoản: nhập đúng mã OTP gửi về email thì server mới tạo và đăng nhập luôn
         this.loading.set(false);
         this.otp.set(challenge);
       },
@@ -158,11 +158,10 @@ export class Register implements OnInit {
     this.done.set({ email: res.user.email, coupon: res.coupon?.code ?? null });
   }
 
-  /** Quay lại form từ bước OTP (tài khoản đã tạo — đăng nhập sau sẽ được gửi mã mới) */
+  /** Quay lại form từ bước OTP — chưa nhập mã thì tài khoản CHƯA được tạo, giữ nguyên thông tin đã điền */
   cancelOtp(): void {
     this.otp.set(null);
-    this.toast.show('Tài khoản đã được tạo. Bạn đăng nhập lại để nhận mã xác minh mới nhé.');
-    this.router.navigateByUrl('/login');
+    this.toast.show('Tài khoản chưa được tạo vì bạn chưa nhập mã xác minh. Bấm Đăng ký để nhận mã mới nhé.');
   }
 
   copyCoupon(code: string): void {

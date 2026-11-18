@@ -129,3 +129,41 @@
   .reviews-body { flex-direction: column; }
   .rating-summary { width: 100%; }
 }
+
+/* ===== Review thật trong panel ===== */
+.stars-on { color: #f5a623; letter-spacing: 1px; }
+
+.reviews-list {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--color-bg-page);
+  border: var(--border-default) solid var(--color-border-strong);
+  border-radius: var(--radius-14);
+}
+
+.review-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.review-user { font: 700 14px/normal var(--font-sans); }
+
+.review-content {
+  margin: 0;
+  font: 400 13px/1.5 var(--font-sans);
+  color: var(--color-text-serif);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.review-date { font: 400 12px/normal var(--font-sans); color: var(--color-text-muted); }

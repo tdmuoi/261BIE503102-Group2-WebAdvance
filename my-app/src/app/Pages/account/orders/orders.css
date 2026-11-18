@@ -73,6 +73,8 @@
 .detail h3 { margin: 0 0 var(--space-6); font: 800 13px/normal var(--font-sans); }
 .detail p, .history { margin: 0; padding: 0; list-style: none; font: 400 12px/1.6 var(--font-sans); color: var(--color-text-body); }
 .detail .muted { color: var(--color-text-muted); }
+.quote-detail { margin-top: var(--space-12); }
+.detail .quote-price { font: 800 18px/1.4 var(--font-sans); color: var(--color-text-heading, inherit); }
 .sums { margin: var(--space-6) 0 0; font: 400 12px/1.6 var(--font-sans); }
 .sums div { display: flex; justify-content: space-between; gap: var(--space-8); }
 .sums dd { margin: 0; font-weight: 700; }

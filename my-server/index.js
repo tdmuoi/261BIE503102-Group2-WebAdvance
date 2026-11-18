@@ -226,6 +226,7 @@ async function startServer() {
 
     app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
+      require('./middleware/mailer').checkMailer().catch(() => undefined);
       require('./middleware/admin-audit-log').recordServerStart(database, port)
         .catch(error => console.error('Không ghi được audit log khởi động:', error.message));
     });

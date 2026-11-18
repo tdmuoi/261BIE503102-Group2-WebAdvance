@@ -41,16 +41,36 @@
           <article class="order">
             <div class="order-top">
               <p class="order-id"><b>#{{ b.code }}</b> <span>Gửi ngày {{ b.createdAt | date: 'dd/MM/yyyy' }}</span></p>
-              <span class="status" data-tone="yellow"><img src="images/account/n-recycle.svg" alt="" width="14" height="14" />{{ b.status === 'quoted' ? 'Đã có báo giá' : b.status === 'completed' ? 'Hoàn tất' : 'Đang định giá' }}</span>
+              <span class="status" data-tone="yellow"><img src="images/account/n-recycle.svg" alt="" width="14" height="14" />{{ buybackLabel(b) }}</span>
             </div>
             <hr class="divider" />
             <p class="buyback-text">{{ b.bookCount }} cuốn sách@if (b.quote) { · được định giá <b>{{ b.quote | vnd }}</b> }. {{ b.note }}</p>
+            @if (quoteOpen() === b.code) {
+              <div class="detail quote-detail">
+                <section>
+                  <h3>Giá thu mua của Lightbook</h3>
+                  @if (b.quote != null) {
+                    <p class="quote-price">{{ b.quote | vnd }}</p>
+                  } @else {
+                    <p class="muted">Lightbook đang định giá, chưa có báo giá.</p>
+                  }
+                </section>
+                <section>
+                  <h3>Số sách</h3>
+                  <p>{{ b.bookCount }} cuốn</p>
+                </section>
+                <section>
+                  <h3>Trạng thái</h3>
+                  <p>{{ buybackLabel(b) }}</p>
+                </section>
+              </div>
+            }
             <hr class="divider" />
             <div class="order-foot">
               <span></span>
               <div class="order-actions">
-                <a class="btn-sm" [href]="'mailto:' + shopEmail">Liên hệ shop</a>
-                <a class="btn-sm btn-sm--primary" routerLink="/book-buyback">Xem báo giá</a>
+                <a class="btn-sm" [href]="buybackMail(b)" target="_blank" rel="noopener">Liên hệ shop</a>
+                <button type="button" class="btn-sm btn-sm--primary" (click)="toggleQuote(b)" [attr.aria-expanded]="quoteOpen() === b.code">{{ quoteOpen() === b.code ? 'Thu gọn' : 'Xem báo giá' }}</button>
               </div>
             </div>
           </article>
@@ -173,7 +193,7 @@
                     <button type="button" class="btn-sm btn-sm--primary" (click)="toggleDetail(o)" [attr.aria-expanded]="expanded() === o._id">{{ expanded() === o._id ? 'Thu gọn' : 'Xem chi tiết' }}</button>
                   }
                   @default {
-                    <a class="btn-sm" [href]="mailto(o)">Liên hệ shop</a>
+                    <a class="btn-sm" [href]="mailto(o)" target="_blank" rel="noopener">Liên hệ shop</a>
                     <button type="button" class="btn-sm btn-sm--primary" (click)="toggleDetail(o)" [attr.aria-expanded]="expanded() === o._id">{{ expanded() === o._id ? 'Thu gọn' : 'Theo dõi đơn' }}</button>
                   }
                 }

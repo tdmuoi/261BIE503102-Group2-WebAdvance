@@ -37,7 +37,12 @@ const TRACK_STEPS: { status: OrderStatus; label: string }[] = [
   { status: 'delivered', label: 'Đã nhận' },
 ];
 
-export const SHOP_EMAIL = 'hello@lightbook.vn';
+export const SHOP_EMAIL = 'lightbook14@gmail.com';
+
+/** Mở khung soạn thư Gmail gửi cho shop (tab mới), điền sẵn tiêu đề */
+export function gmailCompose(subject: string): string {
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${SHOP_EMAIL}&su=${encodeURIComponent(subject)}`;
+}
 
 /** Trang Quản lý đơn hàng (Figma "Pages/account/orders") */
 @Component({
@@ -63,6 +68,8 @@ export class Orders implements OnInit {
   readonly tab = signal<OrderTab>(initialTab(inject(ActivatedRoute, { optional: true })?.snapshot.queryParamMap.get('tab')));
   readonly query = signal('');
   readonly expanded = signal<string | null>(null);
+  /** Mã phiếu thanh lý đang mở báo giá */
+  readonly quoteOpen = signal<string | null>(null);
   readonly cancelling = signal<string | null>(null);
 
   readonly reviewing = signal<ReviewTarget | null>(null);
@@ -157,7 +164,21 @@ export class Orders implements OnInit {
   }
 
   mailto(order: Order): string {
-    return `mailto:${SHOP_EMAIL}?subject=${encodeURIComponent(`Hỏi về đơn #${order.orderCode}`)}`;
+    return gmailCompose(`Hỏi về đơn #${order.orderCode}`);
+  }
+
+  buybackMail(b: BuybackRequest): string {
+    return gmailCompose(`Hỏi về phiếu thanh lý #${b.code}`);
+  }
+
+  toggleQuote(b: BuybackRequest): void {
+    this.quoteOpen.update((code) => (code === b.code ? null : b.code));
+  }
+
+  /** Admin lưu "Giá thu mua" thì phiếu vẫn ở trạng thái reviewing, nên dựa vào quote để biết đã có báo giá */
+  buybackLabel(b: BuybackRequest): string {
+    if (b.status === 'completed') return 'Hoàn tất';
+    return b.quote != null ? 'Đã có báo giá' : 'Đang định giá';
   }
 
   cancel(order: Order): void {

@@ -1,5 +1,7 @@
 import { Component, DestroyRef, Type, afterNextRender, inject, signal } from '@angular/core';
 
+import { ScrollMemory } from './services/scroll-memory';
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
@@ -13,6 +15,9 @@ export class App {
   protected readonly librarianChat = signal<Type<unknown> | null>(null);
 
   constructor() {
+    // Ghi nhớ chỗ đang cuộn của từng trang, quay lại thì về đúng chỗ đó
+    inject(ScrollMemory);
+
     let destroyed = false;
     let idle: number | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;

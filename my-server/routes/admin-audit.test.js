@@ -600,25 +600,27 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       assert.equal(row.shipping, null);
       assert.equal(row.quantity, null);
       assert.equal(row.price, null);
-      assert.equal(
-        (
-          await request("/api/admin/buybacks/" + row.id, "PATCH", {
-            action: "quote",
-            revision: row.revision,
-            offerPrice: 50000,
-            resalePrice: 80000,
-          })
-        ).status,
-        409,
-      );
       const original = row.revision;
+      // Lưu định giá cho phiếu chưa duyệt: duyệt luôn và lưu giá thu mua
       let r = await request("/api/admin/buybacks/" + row.id, "PATCH", {
-        action: "approve",
+        action: "quote",
         revision: row.revision,
+        offerPrice: 50000,
+        resalePrice: 80000,
       });
       assert.equal(r.status, 200);
       row = await r.json();
       assert.equal(row.status, "reviewing");
+      assert.equal(row.offerPrice, 50000);
+      assert.equal(
+        (
+          await request("/api/admin/buybacks/" + row.id, "PATCH", {
+            action: "approve",
+            revision: row.revision,
+          })
+        ).status,
+        409,
+      );
       assert.equal(
         (
           await request("/api/admin/buybacks/" + row.id, "PATCH", {

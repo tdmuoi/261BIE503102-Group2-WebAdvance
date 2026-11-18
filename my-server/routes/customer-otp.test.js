@@ -86,7 +86,7 @@ async function setup(t) {
 const account = { fullName: 'Khach Thu', email: 'khach.thu@gmail.com', phone: '0911000111', password: 'Matkhau123', newsletter: false };
 const wrongCode = (code) => String((Number(code) + 1) % 1000000).padStart(6, '0');
 
-test('đăng ký: chưa đăng nhập ngay, gửi OTP xác minh email; nhập đúng mã mới có phiên + mã giảm giá', async (t) => {
+test('đăng ký: chưa tạo tài khoản, gửi OTP; nhập đúng mã mới tạo tài khoản + phiên + mã giảm giá', async (t) => {
   const { db, sent, post, lastCode } = await setup(t);
   const reg = await post('/auth/register', account);
   assert.equal(reg.status, 201);
@@ -97,13 +97,19 @@ test('đăng ký: chưa đăng nhập ngay, gửi OTP xác minh email; nhập đ
   assert.equal(sent.length, 1);
   assert.equal(sent[0].to, 'khach.thu@gmail.com');
   assert.equal(db.data.otp[0].codeHash.includes(lastCode()), false, 'database không lưu mã gốc');
+  assert.equal(db.data.otp[0].pending.passwordHash.includes(account.password), false, 'mật khẩu lưu tạm đã băm');
+  assert.equal((db.data.accounts || []).length, 0, 'chưa nhập OTP thì chưa có tài khoản');
+  assert.equal((db.data.users || []).length, 0);
 
-  // Đăng nhập khi chưa xác minh → được yêu cầu OTP, không có token
+  // Chưa xác minh thì chưa đăng nhập được (tài khoản chưa tồn tại)
   const login = await post('/auth/login', { identifier: account.email, type: 'email', password: account.password, remember: true });
-  assert.equal(login.status, 200);
-  assert.equal(login.body.verificationRequired, true);
+  assert.equal(login.status, 401);
   assert.equal(login.body.token, undefined);
-  assert.equal(login.body.challengeId, reg.body.challengeId, 'trong 60 giây thì dùng lại mã vừa gửi, không gửi thêm');
+
+  // Bấm đăng ký lại trong 60 giây: dùng lại mã vừa gửi, không gửi thêm
+  const again1 = await post('/auth/register', account);
+  assert.equal(again1.status, 201);
+  assert.equal(again1.body.challengeId, reg.body.challengeId);
   assert.equal(sent.length, 1);
 
   const bad = await post('/auth/otp/verify', { challengeId: reg.body.challengeId, code: wrongCode(lastCode()) });
@@ -115,8 +121,14 @@ test('đăng ký: chưa đăng nhập ngay, gửi OTP xác minh email; nhập đ
   assert.match(ok.body.token, /^[a-f\d]{64}$/);
   assert.equal(ok.body.user.email, account.email);
   assert.deepEqual(ok.body.coupon, { code: 'WELCOME10' });
+  assert.equal(db.data.accounts.length, 1);
   assert.equal(db.data.accounts[0].emailVerified, true);
   assert.equal('emailVerificationPending' in db.data.accounts[0], false);
+  assert.equal(db.data.users[0].phone, account.phone);
+  assert.equal(db.data.otp[0].pending, undefined, 'xoá thông tin lưu tạm sau khi tạo tài khoản');
+
+  // Đã có tài khoản thì không đăng ký trùng email được
+  assert.equal((await post('/auth/register', account)).status, 409);
 
   // Mã chỉ dùng được 1 lần
   assert.equal((await post('/auth/otp/verify', { challengeId: reg.body.challengeId, code: lastCode() })).status, 400);
@@ -224,11 +236,34 @@ test('tài khoản tạo trước khi có OTP vẫn đăng nhập thẳng như c
   assert.equal(sent.length, 0);
 });
 
-test('gửi email lỗi thì báo 502, không để lại mã treo', async (t) => {
+test('gửi email lỗi thì báo 502, không tạo tài khoản, không để lại mã treo', async (t) => {
   const { db, post } = await setup(t);
   mailer._setTransportForTest({ sendMail: async () => { throw new Error('Invalid login'); } });
   const reg = await post('/auth/register', account);
   assert.equal(reg.status, 502);
-  assert.equal(reg.body.accountCreated, true);
+  assert.equal(reg.body.accountCreated, undefined);
+  assert.equal((db.data.accounts || []).length, 0);
   assert.equal((db.data.otp || []).length, 0);
+});
+
+test('tài khoản "chờ xác minh" bỏ dở từ luồng cũ không giữ chỗ email; xác minh xong thì được thay bằng tài khoản mới', async (t) => {
+  const { db, post, lastCode } = await setup(t);
+  const { hashPassword } = require('../middleware/customer-auth');
+  const oldAccountId = new ObjectId();
+  const oldUserId = new ObjectId();
+  db.data.accounts = [{ _id: oldAccountId, email: account.email, passwordHash: await hashPassword('Cu1234567'), roleCode: 'CUSTOMER', status: 'active', emailVerificationPending: true }];
+  db.data.users = [{ _id: oldUserId, accountId: oldAccountId, fullName: 'Bo Do', phone: account.phone }];
+  db.data.notifications = [{ _id: new ObjectId(), userId: oldUserId, title: 'Chào mừng' }];
+
+  const reg = await post('/auth/register', account);
+  assert.equal(reg.status, 201);
+  assert.equal(db.data.accounts.length, 1, 'chưa xác minh thì chưa đụng tới dữ liệu cũ');
+
+  const ok = await post('/auth/otp/verify', { challengeId: reg.body.challengeId, code: lastCode() });
+  assert.equal(ok.status, 200);
+  assert.equal(db.data.accounts.length, 1);
+  assert.notEqual(String(db.data.accounts[0]._id), String(oldAccountId));
+  assert.equal(db.data.users.length, 1);
+  assert.equal(db.data.users[0].fullName, account.fullName);
+  assert.equal(db.data.notifications.some((n) => String(n.userId) === String(oldUserId)), false);
 });
