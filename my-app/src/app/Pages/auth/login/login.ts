@@ -42,9 +42,41 @@ export class Login implements OnInit {
   });
 
   ngOnInit(): void {
+    const query = this.route.snapshot.queryParamMap;
+    const oauthError = query.get('oauthError');
+    const oauthCode = query.get('oauth');
+    if (oauthError) {
+      this.alert.set(oauthError);
+      return;
+    }
+    if (oauthCode) {
+      this.finishSocialLogin(oauthCode);
+      return;
+    }
     if (this.auth.isLoggedIn()) {
       this.router.navigateByUrl(this.returnUrl(), { replaceUrl: true });
     }
+  }
+
+  private finishSocialLogin(code: string): void {
+    this.remember = true;
+    this.loading.set(true);
+    this.auth.exchangeSocialLogin(code).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        this.loading.set(false);
+        if (needsOtp(res)) {
+          this.otp.set(res);
+          return;
+        }
+        this.auth.setSession(res, true);
+        if (res.coupon?.code) this.toast.show(`Chào mừng bạn đến với Lightbook! Mã ưu đãi thành viên mới: ${res.coupon.code}`);
+        this.router.navigateByUrl(this.returnUrl(), { replaceUrl: true });
+      },
+      error: (err: unknown) => {
+        this.loading.set(false);
+        this.alert.set(this.errorMessage(err));
+      },
+    });
   }
 
   setMethod(method: LoginMethod): void {
@@ -128,7 +160,8 @@ export class Login implements OnInit {
   }
 
   socialLogin(provider: 'Google' | 'Facebook'): void {
-    this.toast.show(`Đăng nhập bằng ${provider} sắp ra mắt`);
+    if (this.loading()) return;
+    window.location.assign(this.auth.socialLoginUrl(provider === 'Google' ? 'google' : 'facebook', this.returnUrl()));
   }
 
   private errorMessage(err: unknown): string {

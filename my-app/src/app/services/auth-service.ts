@@ -9,6 +9,7 @@ import {
   LoginRequest,
   LoginResponse,
   OtpChallenge,
+  OtpRequired,
   RegisterRequest,
   RegisterResponse,
   User,
@@ -16,6 +17,8 @@ import {
 } from '../models/user';
 
 const STORAGE_KEY = 'lightbook.auth';
+
+export type SocialProvider = 'google' | 'facebook';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -53,6 +56,15 @@ export class AuthService {
 
   resetPassword(challengeId: string, code: string, newPassword: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.baseUrl}/reset-password`, { challengeId, code, newPassword });
+  }
+
+  socialLoginUrl(provider: SocialProvider, returnUrl: string): string {
+    const params = new URLSearchParams({ returnUrl });
+    return `${this.baseUrl}/oauth/${provider}/start?${params}`;
+  }
+
+  exchangeSocialLogin(code: string): Observable<VerifiedResponse | OtpRequired> {
+    return this.http.post<VerifiedResponse | OtpRequired>(`${this.baseUrl}/oauth/exchange`, { code });
   }
 
   setSession(res: AuthResponse, remember: boolean): void {

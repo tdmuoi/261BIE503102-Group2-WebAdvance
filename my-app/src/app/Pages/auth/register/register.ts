@@ -168,7 +168,7 @@ export class Register implements OnInit {
   }
 
   socialLogin(provider: 'Google' | 'Facebook'): void {
-    this.toast.show(`Đăng nhập bằng ${provider} sắp ra mắt`);
+    window.location.assign(this.auth.socialLoginUrl(provider === 'Google' ? 'google' : 'facebook', this.returnUrl()));
   }
 
   private handleError(err: unknown): void {

@@ -2,8 +2,14 @@
 // Đăng ký / đăng nhập cho web khách hàng
 // =====================================================================
 const express = require('express');
-const { hashPassword, verifyPassword, createSession, deleteSession, requireCustomer } = require('../middleware/customer-auth');
+const { randomBytes } = require('node:crypto');
+const { hashPassword, verifyPassword, createSession, deleteSession, requireCustomer, digest } = require('../middleware/customer-auth');
 const { OtpError, startChallenge, resendChallenge, consumeChallenge, OTP_COLLECTION } = require('../middleware/customer-otp');
+const { PROVIDERS, OAuthError, clientUrl, redirectUri } = require('../middleware/oauth-providers');
+
+const OAUTH_COLLECTION = 'oauth_states';
+const OAUTH_STATE_MINUTES = 10;
+const OAUTH_RESULT_MINUTES = 2;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^0\d{9}$/;
@@ -96,7 +102,8 @@ module.exports = function customerAuthRoutes(getDb) {
   async function createCustomer(pending, now) {
     await removeAbandoned(db(), pending);
     const account = {
-      email: pending.email, passwordHash: pending.passwordHash, provider: 'local', providerId: null,
+      email: pending.email, passwordHash: pending.passwordHash ?? null,
+      provider: pending.provider || 'local', providerId: pending.providerId || null,
       roleCode: 'CUSTOMER', status: 'active', emailVerified: true, emailVerifiedAt: now,
       lastLogin: now, createdAt: now, updatedAt: now,
     };
@@ -105,6 +112,7 @@ module.exports = function customerAuthRoutes(getDb) {
       accountId: account._id, fullName: pending.fullName, username: pending.email.split('@')[0], phone: pending.phone || null,
       gender: null, dateOfBirth: null, createdAt: now, updatedAt: now,
     };
+    if (pending.avatar) user.avatar = pending.avatar;
     try {
       user._id = (await db().collection('users').insertOne(user)).insertedId;
     } catch (error) {
@@ -248,6 +256,134 @@ module.exports = function customerAuthRoutes(getDb) {
 
   router.get('/auth/me', requireCustomer(getDb), (req, res) => {
     res.json({ user: publicUser(req.customer.account, req.customer.user) });
+  });
+
+  // ---------- Đăng nhập bằng Google / Facebook ----------
+  let oauthIndexes = null;
+  async function oauthStore() {
+    const col = db().collection(OAUTH_COLLECTION);
+    oauthIndexes ??= col.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }).catch((error) => {
+      oauthIndexes = null;
+      throw error;
+    });
+    await oauthIndexes;
+    return col;
+  }
+
+  const providerOf = (name) => (Object.hasOwn(PROVIDERS, name) ? PROVIDERS[name] : null);
+  const safeReturnUrl = (url) =>
+    typeof url === 'string' && url.startsWith('/') && !url.startsWith('//') && url.length <= 500 ? url : '/';
+  const backToClient = (res, params) => res.redirect(`${clientUrl()}/login?${new URLSearchParams(params)}`);
+
+  async function socialLogin(name, profile) {
+    const now = new Date();
+    const email = profile.email.trim().toLowerCase();
+    const accounts = db().collection('accounts');
+    const users = db().collection('users');
+
+    let account = await accounts.findOne({ $or: [{ provider: name, providerId: profile.id }, { [`oauth.${name}`]: profile.id }] });
+    if (!account) {
+      const byEmail = await accounts.findOne({ email: { $regex: `^${escapeRegex(email)}$`, $options: 'i' } });
+      if (byEmail && byEmail.emailVerificationPending !== true) account = byEmail;
+    }
+
+    let user;
+    let created = false;
+    if (account) {
+      if (account.roleCode !== 'CUSTOMER') throw new OAuthError('Email này thuộc tài khoản quản trị, không dùng để đăng nhập web khách được');
+      if (account.status !== 'active') throw new OAuthError('Tài khoản đang bị khoá, vui lòng liên hệ Lightbook');
+      user = await users.findOne({ accountId: account._id });
+      if (!user) throw new OAuthError('Tài khoản không còn tồn tại');
+      const set = { lastLogin: now };
+      if (account.provider !== name || account.providerId !== profile.id) set[`oauth.${name}`] = profile.id;
+      await accounts.updateOne({ _id: account._id }, { $set: set });
+      if (!user.avatar && profile.avatar) {
+        await users.updateOne({ _id: user._id }, { $set: { avatar: profile.avatar, updatedAt: now } });
+        user.avatar = profile.avatar;
+      }
+    } else {
+      const fullName = (profile.name || email.split('@')[0]).trim().slice(0, 80);
+      ({ account, user } = await createCustomer(
+        { fullName, email, phone: null, passwordHash: null, provider: name, providerId: profile.id, avatar: profile.avatar },
+        now,
+      ));
+      created = true;
+    }
+
+    if (user.twoFactorEnabled === true) {
+      const challenge = await startChallenge(db(), {
+        purpose: 'login_2fa', accountId: account._id, userId: user._id, email: account.email, remember: true,
+      });
+      return { twoFactorRequired: true, ...challenge };
+    }
+    const { token } = await createSession(db(), { accountId: account._id, userId: user._id, remember: true });
+    const body = { token, user: publicUser(account, user) };
+    if (created) body.coupon = await welcomeCoupon();
+    return body;
+  }
+
+  router.get('/auth/oauth/:provider/start', async (req, res, next) => {
+    try {
+      const name = req.params.provider;
+      const provider = providerOf(name);
+      if (!provider) return res.status(404).json({ message: 'Không hỗ trợ hình thức đăng nhập này' });
+      const returnUrl = safeReturnUrl(req.query.returnUrl);
+      if (!provider.configured()) {
+        return backToClient(res, { oauthError: `Đăng nhập bằng ${provider.label} chưa được cấu hình trên máy chủ`, returnUrl });
+      }
+      const state = randomBytes(32).toString('hex');
+      await (await oauthStore()).insertOne({
+        _id: digest(state), kind: 'state', provider: name, returnUrl,
+        expiresAt: new Date(Date.now() + OAUTH_STATE_MINUTES * 60 * 1000),
+      });
+      res.redirect(provider.authorizeUrl({ redirectUri: redirectUri(name), state }));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/auth/oauth/:provider/callback', async (req, res) => {
+    const name = req.params.provider;
+    const provider = providerOf(name);
+    if (!provider) return res.status(404).json({ message: 'Không hỗ trợ hình thức đăng nhập này' });
+    let returnUrl = '/';
+    try {
+      const state = typeof req.query.state === 'string' ? req.query.state : '';
+      const store = await oauthStore();
+      const saved = state ? await store.findOneAndDelete({ _id: digest(state), kind: 'state', provider: name }) : null;
+      if (!saved || saved.expiresAt < new Date()) throw new OAuthError('Phiên đăng nhập đã hết hạn, bạn bấm đăng nhập lại nhé');
+      returnUrl = saved.returnUrl;
+      if (req.query.error || typeof req.query.code !== 'string') throw new OAuthError(`Bạn đã huỷ đăng nhập bằng ${provider.label}`);
+
+      const profile = await provider.profile({ code: req.query.code, redirectUri: redirectUri(name) });
+      const result = await socialLogin(name, profile);
+      const code = randomBytes(32).toString('hex');
+      await store.insertOne({
+        _id: digest(code), kind: 'result', result,
+        expiresAt: new Date(Date.now() + OAUTH_RESULT_MINUTES * 60 * 1000),
+      });
+      backToClient(res, { oauth: code, returnUrl });
+    } catch (error) {
+      let message = 'Đăng nhập chưa thành công, bạn thử lại sau nhé';
+      if (error instanceof OAuthError) message = error.message;
+      else if (error instanceof OtpError) message = error.body?.message || message;
+      else console.error(`OAuth ${name} lỗi:`, error.message);
+      backToClient(res, { oauthError: message, returnUrl });
+    }
+  });
+
+  router.post('/auth/oauth/exchange', async (req, res, next) => {
+    try {
+      const code = typeof req.body?.code === 'string' && /^[a-f\d]{64}$/.test(req.body.code) ? req.body.code : null;
+      if (!code) return res.status(400).json({ message: 'Mã đăng nhập không hợp lệ' });
+      const saved = await (await oauthStore()).findOneAndDelete({ _id: digest(code), kind: 'result' });
+      if (!saved || saved.expiresAt < new Date()) {
+        return res.status(410).json({ message: 'Phiên đăng nhập đã hết hạn, bạn đăng nhập lại nhé' });
+      }
+      res.json(saved.result);
+    } catch (error) {
+      next(error);
+    }
   });
 
   router.post('/auth/forgot-password', async (req, res, next) => {
