@@ -114,7 +114,10 @@ function cleanup(now) {
 module.exports = function createAdminAuth(getDb, options = {}) {
   const production = process.env.NODE_ENV === "production";
   const origins = new Set(
-    options.allowedOrigins ?? (production ? [] : ["http://localhost:4201"]),
+    options.allowedOrigins ??
+      (process.env.ADMIN_URL
+        ? process.env.ADMIN_URL.split(",").map((url) => url.trim().replace(/\/+$/, ""))
+        : production ? [] : ["http://localhost:4201"]),
   );
   const accounts = () => {
     const db = getDb();

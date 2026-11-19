@@ -17,6 +17,7 @@ const adminSettingsRoutes = require('./routes/admin-settings');
 const adminBuybackRoutes = require('./routes/admin-buybacks');
 
 const app = express();
+app.set('trust proxy', 1);
 const port = Number(process.env.PORT) || 3002;
 const dbName = process.env.DB_NAME;
 const mongoUri = process.env.MONGODB_URI;
@@ -25,7 +26,7 @@ const adminAuth = createAdminAuth(() => database);
 app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/events', '/api/admin/settings', '/api/admin/buybacks', '/api/admin/books', '/api/admin/orders', '/api/admin/returns', '/api/admin/dashboard', '/api/admin/banners'], adminAuth.cors);
 
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:4201'],
+  origin: [process.env.CLIENT_URL, process.env.ADMIN_URL, 'http://localhost:4200', 'http://localhost:4201'].filter(Boolean),
   exposedHeaders: ['Accept-Ranges', 'Content-Range', 'Content-Length'],
 }));
 app.use(express.json());
