@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ValidationErrors, Validators, COMPOSITION_BUFFER_MODE } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
 import { OtpError } from '../../../models/user';
@@ -36,6 +36,9 @@ function sameAsPassword(control: AbstractControl): ValidationErrors | null {
   standalone: false,
   styleUrls: ['../auth-form.css', './forgot-password.css'],
   templateUrl: './forgot-password.html',
+  // Bộ gõ tiếng Việt (Unikey/Telex) có thể để Angular kẹt ở trạng thái "đang gõ dở"
+  // khiến ô nhập không cập nhật vào form → tắt chờ composition, luôn đồng bộ theo sự kiện input.
+  providers: [{ provide: COMPOSITION_BUFFER_MODE, useValue: false }],
 })
 export class ForgotPassword implements OnInit {
   private readonly fb = inject(FormBuilder);
