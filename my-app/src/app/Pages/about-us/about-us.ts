@@ -7,7 +7,6 @@ import { MISSION_VISION } from '../policies/policy-content';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Trang Về Lightbook — nội dung tĩnh lấy đúng theo Figma "Pages/about-us · Về Lightbook" */
 @Component({
   selector: 'app-about-us',
   standalone: false,
@@ -17,10 +16,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export class AboutUs {
   private readonly engagement = inject(EngagementService);
   private readonly destroyRef = inject(DestroyRef);
-  /** Đoạn "Sứ Mệnh & Tầm Nhìn" lấy từ Content 1.docx */
   readonly mission = MISSION_VISION;
 
-  /** Các mảng chính của Lightbook (theo Sứ mệnh trong Content 1.docx) — hiện ở phần đầu trang */
   readonly pillars = [
     { label: 'Sách mới', tone: 'pink' },
     { label: 'Sách cũ tuyển chọn', tone: 'yellow' },
@@ -57,28 +54,20 @@ export class AboutUs {
     { value: '4,9★', label: 'đánh giá trung bình đơn hàng' },
   ];
 
-  // Ảnh đội ngũ do nhóm cung cấp (public/images/about/team); initials dùng khi ảnh lỗi
   readonly team = [
     { initials: 'TD', tone: 'pink', name: 'Thùy Dung', role: 'Người sáng lập', photo: 'images/about/team/thuy-dung.jpg' },
     { initials: 'MA', tone: 'mint', name: 'Mai Anh', role: 'Biên tập viên', photo: 'images/about/team/mai-anh.jpg' },
     { initials: 'KH', tone: 'yellow', name: 'Khánh Hằng', role: 'Phụ trách góc Đọc chậm', photo: 'images/about/team/khanh-hang.jpg' },
     { initials: 'NK', tone: 'pink', name: 'H Nhiên Kpor', role: 'Cộng đồng & sự kiện', photo: 'images/about/team/nhien-kpor.jpg' },
-    // Ảnh dọc, mặt ở phía trên → căn top để không bị cắt mặt trong khung tròn
     { initials: 'DT', tone: 'mint', name: 'Trần Duy Thanh', role: 'Cố vấn doanh nghiệp', photo: 'images/about/team/tran-duy-thanh.png', focus: 'center top' },
   ];
 
-  /** Ảnh đội ngũ / logo đối tác tải lỗi thì hiện chữ viết tắt */
   readonly brokenPhotos = signal(new Set<string>());
 
   markBroken(name: string): void {
     this.brokenPhotos.update((s) => new Set(s).add(name));
   }
 
-  /**
-   * Đối tác: logo lấy từ website chính thức của từng đơn vị (public/images/partners), hiện trong khung tròn.
-   * Chưa có logo (Đông A, NXB Hội Nhà Văn: chưa lấy được logo chính thức) hoặc ảnh lỗi thì hiện chữ viết tắt.
-   * fit: 'left' — logo ngang (NXB Trẻ) chỉ lấy phần biểu tượng bên trái; 'zoom' — ảnh nhiều lề trắng (AZ) phóng to.
-   */
   readonly partners: { mark: string; name: string; logo?: string; fit?: 'left' | 'zoom' }[] = [
     { mark: 'TR', name: 'NXB Trẻ', logo: 'images/partners/nxb-tre.png', fit: 'left' },
     { mark: 'NN', name: 'Nhã Nam', logo: 'images/partners/nha-nam.png' },

@@ -32,7 +32,7 @@ describe('Login public Books service', () => {
       'data:image/png;base64,aGVsbG8='];
     request().flush(images.map((image, index) => ({ _id: String(index), title: 'Book', image })));
     expect(books.map((book) => book.image)).toEqual(images);
-    expect(books.length).toBe(4); // Extra candidates remain available for broken-image replacement.
+    expect(books.length).toBe(4);
   });
   it('skips missing or unsafe covers, invalid documents and duplicate covers/books', () => {
     let books: LoginBook[] = [];

@@ -1,5 +1,3 @@
-/* Hero Thu mua sách — cụm bìa (Figma 829:3078). Toạ độ khung 540×560 quy đổi ra %. */
-
 .hero-visual { position: relative; width: 100%; aspect-ratio: 540 / 560; }
 
 .hero-blob { position: absolute; left: 12.96%; top: 10.71%; width: 79.63%; height: auto; }

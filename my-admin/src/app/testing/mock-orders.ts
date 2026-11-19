@@ -1,6 +1,5 @@
 import { Order } from '../models/order';
 
-/** Đơn hàng giả cho unit test */
 export function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     _id: 'o1', orderCode: 'LB-001', userId: null, customer: { name: 'Nguyễn Thu Hà', email: '', phone: '0911222333' },

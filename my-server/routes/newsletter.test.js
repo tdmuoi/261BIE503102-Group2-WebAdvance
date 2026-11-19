@@ -1,4 +1,3 @@
-// Isolated HTTP tests. Fixtures live only in memory; no MongoDB connection is opened.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
@@ -18,7 +17,6 @@ async function startApp(t, updateOne) {
   });
 }
 
-/** Giả lập collection: nhớ email và các chủ đề như updateOne upsert + $addToSet */
 function memoryUpdateOne() {
   const rows = new Map();
   return async ({ email }, { $addToSet: { topics: topic } }) => {

@@ -3,7 +3,6 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { EngagementService, EngagementUnavailableError, NEWSLETTER_DUPLICATE_STATUS } from '../../../../services/engagement-service';
 
-/** Khối "Không bỏ lỡ buổi nào — save the date." đăng ký nhận lịch qua email — Figma 877:7357 */
 @Component({
   selector: 'app-events-newsletter',
   standalone: false,
@@ -14,7 +13,6 @@ export class EventsNewsletter {
   private readonly engagement = inject(EngagementService);
 
   protected readonly email = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] });
-  /** (ngSubmit) cần formGroup, thiếu thì bấm nút chỉ reload trang */
   protected readonly form = new FormGroup({ email: this.email });
   protected readonly state = signal<'idle' | 'sending' | 'done' | 'duplicate' | 'unavailable' | 'error'>('idle');
 

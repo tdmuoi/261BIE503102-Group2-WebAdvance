@@ -69,7 +69,6 @@ module.exports = function buybackRoutes(getDb) {
   );
   router.get("/", async (req, res) => {
     try {
-      // Frontend filters the complete current directory. Never silently truncate it.
       const count = await collection().countDocuments({});
       if (count > 5000)
         return res.status(422).json({
@@ -177,8 +176,6 @@ module.exports = function buybackRoutes(getDb) {
           message: "Trạng thái hiện tại không cho phép thao tác này.",
         });
       const patch = { updatedAt: new Date() };
-      // Keep the verified schema: append admin notes to the existing note field.
-      // Never replace the customer's description or create a new audit collection.
       if (text(body.note)) {
         patch.note = [
           text(doc.note),
@@ -195,9 +192,7 @@ module.exports = function buybackRoutes(getDb) {
       if (body.action === "reject") patch.status = "rejected";
       if (body.action === "quote") {
         patch.offerPrice = body.offerPrice;
-        // Lưu định giá cho phiếu chưa duyệt thì coi như duyệt luôn.
         if (doc.status === "pending") patch.status = "reviewing";
-        // Resale price is a client-side estimate, not a verified schema field.
       }
       const result = await collection().updateOne(
         {

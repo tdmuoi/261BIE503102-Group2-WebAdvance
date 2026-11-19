@@ -1,5 +1,3 @@
-// Browser smoke/error-path audit against the production bundle. All remote/API
-// requests are intercepted by CDP before navigation. Never starts my-server or Atlas.
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');

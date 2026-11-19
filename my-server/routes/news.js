@@ -1,16 +1,5 @@
 // =====================================================================
 // API Lightbook News   (gắn vào index.js: app.use('/api', newsRoutes(() => database)))
-//
-// Cho web khách (my-app), CHỈ ĐỌC, chỉ trả bài có status "published":
-//   GET /api/news                    danh sách bài, mới nhất trước
-//       ?category=Ebook              lọc theo chuyên mục (đúng tên trong DB)
-//       ?search=sách cũ              tìm trong tiêu đề, mô tả, nội dung (không phân biệt hoa thường)
-//       ?limit=9&skip=0              phân trang cho nút "Xem thêm" (limit mặc định 9, tối đa 50)
-//       ?sort=popular                nhiều lượt xem trước (mặc định: mới nhất trước)
-//     → { items, total, categories }  items không kèm content; categories = chuyên mục của mọi bài đã đăng
-//   GET /api/news/:id                một bài (tìm theo _id hoặc field id), bài chưa đăng trả 404
-//
-// readMinutes: số phút đọc ước tính từ độ dài nội dung (200 từ/phút).
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');

@@ -19,7 +19,6 @@ async function inspect(db, read = readPdf) {
   const missing = [], readable = [];
   for (const book of books) {
     if (!ready.has(String(book._id))) { missing.push(book); continue; }
-    // A read/network error aborts inspection; never classify temporary failures as missing files.
     if (!validPdf(await read(db, book.ebookFileId))) missing.push(book);
     else readable.push(book);
   }

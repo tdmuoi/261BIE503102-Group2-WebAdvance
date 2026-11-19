@@ -1,4 +1,3 @@
-/** Trạng thái đơn theo luồng: pending -> confirmed -> shipping -> delivered (-> returned); huỷ được trước khi giao */
 export type OrderStatus = 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled' | 'returned';
 export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
 
@@ -26,7 +25,6 @@ export interface StatusHistoryEntry {
   note: string | null;
 }
 
-/** Đơn hàng từ API admin (my-server/routes/admin-orders.js) */
 export interface Order {
   isDemo?: boolean;
   _id: string;
@@ -47,7 +45,6 @@ export interface Order {
   paymentMode?: 'standard' | 'demo';
   demoPayment?: { status: 'pending' | 'succeeded' | 'failed' | 'cancelled' | 'expired'; reference?: string; amount?: number; confirmedAt?: string; expiresAt?: string } | null;
   status: OrderStatus;
-  /** Các trạng thái được phép chuyển sang từ trạng thái hiện tại */
   nextStatuses: OrderStatus[];
   statusHistory?: StatusHistoryEntry[];
   note: string;
@@ -63,7 +60,6 @@ export interface OrderQuery {
   q?: string;
   status?: '' | OrderStatus;
   payment?: '' | PaymentStatus;
-  /** 'YYYY-MM-DD' */
   from?: string;
   to?: string;
   sort?: 'newest' | 'oldest' | 'total_desc' | 'total_asc';
@@ -79,7 +75,6 @@ export interface OrderListResponse {
   counts: Record<'all' | OrderStatus, number>;
 }
 
-/** Nhãn + mã màu cho app-status-badge */
 export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: 'ok' | 'warn' | 'info' | 'bad' | 'mute' }> = {
   pending: { label: 'Chờ xác nhận', tone: 'warn' },
   confirmed: { label: 'Chờ lấy hàng', tone: 'info' },

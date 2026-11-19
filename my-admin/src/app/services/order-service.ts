@@ -6,7 +6,6 @@ import { AdminAuthService } from './admin-auth-service';
 import { environment } from '../../environments/environment';
 import { Order, OrderListResponse, OrderQuery, OrderStatus, PaymentStatus } from '../models/order';
 
-/** Gọi API Đơn hàng — my-server/routes/admin-orders.js */
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly http = inject(HttpClient);
@@ -25,7 +24,6 @@ export class OrderService {
     return this.http.get<Order>(`${this.baseUrl}/${id}`, { withCredentials: true });
   }
 
-  /** Chuyển trạng thái theo luồng. Huỷ đơn bắt buộc có note (lý do); restock = cộng lại tồn kho */
   changeStatus(id: string, body: { status: OrderStatus; note?: string; trackingCode?: string; restock?: boolean }): Observable<Order> {
     return this.auth.withSession((csrfToken) => this.http.patch<Order>(`${this.baseUrl}/${id}/status`, body, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }

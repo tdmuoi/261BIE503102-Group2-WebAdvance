@@ -1,8 +1,5 @@
-/* Trang chủ: trạng thái đang tải / lỗi. Kiểu từng section nằm trong thư mục sections/ */
-
 :host { display: block; overflow-x: clip; }
 
-/* Ribbon nghiêng nằm đè lên mép section Combo */
 .ribbon {
   position: relative;
   z-index: 2;

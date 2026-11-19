@@ -321,7 +321,6 @@ export class NewsEditor implements OnInit, OnDestroy {
   }
   back() {
     if (this.canDeactivate()) {
-      // The route guard, once approved, must not prompt twice for this same click.
       this.confirmedExit = true;
       void this.router.navigate(['/news-list'])
         .catch(() => false)

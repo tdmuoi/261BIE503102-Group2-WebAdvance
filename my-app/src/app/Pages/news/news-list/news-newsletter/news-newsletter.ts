@@ -3,7 +3,6 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { EngagementService, EngagementUnavailableError, NEWSLETTER_DUPLICATE_STATUS } from '../../../../services/engagement-service';
 
-/** Khối bản tin "Thư từ Lightbook every Thursday." — Figma 878:7502 */
 @Component({
   selector: 'app-news-newsletter',
   standalone: false,
@@ -15,10 +14,8 @@ export class NewsNewsletter {
   private readonly engagement = inject(EngagementService);
 
   protected readonly email = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] });
-  /** (ngSubmit) cần formGroup, thiếu thì bấm nút chỉ reload trang */
   protected readonly form = new FormGroup({ email: this.email });
   protected readonly state = signal<'idle' | 'sending' | 'done' | 'duplicate' | 'unavailable' | 'error'>('idle');
-  /** Pop-up báo kết quả: đăng ký xong hoặc email đã đăng ký từ trước */
   protected readonly popupOpen = computed(() => this.state() === 'done' || this.state() === 'duplicate');
 
   protected errorText(): string {

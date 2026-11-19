@@ -1,5 +1,3 @@
-/* Figma "Info" 873:5471 — giá, mô tả dùng class chung .price-lg / .price-old-lg / .body-lg */
-
 :host { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-20); min-width: 0; }
 
 .info-badges,

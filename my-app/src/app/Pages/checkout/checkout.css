@@ -1,4 +1,3 @@
-/* Trang Thanh toán — phần chung (breadcrumb, cột tóm tắt, mã giảm giá, thẻ thành công) ở ../cart/shop.css */
 .loading, .muted { margin: 0; font-size: 14px; color: var(--color-text-secondary); }
 .error-text { margin: 0; font-size: 14px; color: var(--color-feedback-error); }
 .link { padding: 0; border: 0; background: none; font: 700 14px/1.3 var(--font-sans); text-decoration: underline; color: var(--color-text-primary); cursor: pointer; }
@@ -10,7 +9,6 @@
   border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);
 }
 .card-flat { box-shadow: none; }
-/* Tiêu đề bước: dùng font chữ chính (Plus Jakarta Sans) và bỏ letter-spacing -2px của thẻ h2 toàn trang — font Bricolage đậm bị dính chữ khi có dấu tiếng Việt */
 .card-head { display: flex; align-items: center; gap: var(--space-12); margin: 0; font: 700 18px/1.4 var(--font-sans); letter-spacing: 0; }
 .step {
   display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex: none;

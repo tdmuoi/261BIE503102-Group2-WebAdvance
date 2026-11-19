@@ -1,4 +1,3 @@
-/* Style chung của form nằm ở ../auth-form.css — file này chỉ chứa phần riêng của bước nhập OTP */
 :host { display: contents; }
 .otp-input { letter-spacing: 0.5em; font-variant-numeric: tabular-nums; font-weight: 700; }
 .resend {

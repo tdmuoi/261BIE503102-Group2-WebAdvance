@@ -9,7 +9,6 @@ import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-/** Số di động Việt Nam: 0xxxxxxxxx hoặc +84xxxxxxxxx */
 const PHONE_PATTERN = /^(0|\+84)\d{9}$/;
 const PASSWORD_MIN = 8;
 
@@ -18,8 +17,6 @@ const PASSWORD_MIN = 8;
   standalone: false,
   styleUrls: ['../auth-form.css', './login.css'],
   templateUrl: './login.html',
-  // Bộ gõ tiếng Việt (Unikey/Telex) có thể để Angular kẹt ở trạng thái "đang gõ dở"
-  // khiến ô nhập không cập nhật vào form → tắt chờ composition, luôn đồng bộ theo sự kiện input.
   providers: [{ provide: COMPOSITION_BUFFER_MODE, useValue: false }],
 })
 export class Login implements OnInit {
@@ -34,9 +31,7 @@ export class Login implements OnInit {
   readonly showPassword = signal(false);
   readonly loading = signal(false);
   readonly submitted = signal(false);
-  /** Lỗi từ server (sai thông tin, bị khoá, mất mạng) — hiện ở khung đỏ đầu form */
   readonly alert = signal<string | null>(null);
-  /** Đúng mật khẩu nhưng còn phải nhập OTP (email chưa xác minh / xác thực 2 lớp) */
   readonly otp = signal<OtpChallenge | null>(null);
   private remember = true;
 
@@ -47,7 +42,6 @@ export class Login implements OnInit {
   });
 
   ngOnInit(): void {
-    // Đã đăng nhập rồi thì không cần ở trang này
     if (this.auth.isLoggedIn()) {
       this.router.navigateByUrl(this.returnUrl(), { replaceUrl: true });
     }
@@ -71,7 +65,6 @@ export class Login implements OnInit {
     this.showPassword.update((v) => !v);
   }
 
-  /** Lỗi hiện dưới ô nhập, chỉ hiện khi đã rời ô hoặc đã bấm Đăng nhập */
   fieldError(name: 'identifier' | 'password'): string | null {
     const control = this.form.controls[name];
     if (control.valid || !(control.touched || this.submitted())) return null;
@@ -117,21 +110,18 @@ export class Login implements OnInit {
     });
   }
 
-  /** Nhập đúng OTP thì đăng nhập (giữ lựa chọn "Ghi nhớ đăng nhập") */
   onVerified(res: VerifiedResponse): void {
     this.auth.setSession({ token: res.token, user: res.user }, this.remember);
     if (res.coupon?.code) this.toast.show(`Email đã được xác minh. Mã ưu đãi thành viên mới: ${res.coupon.code}`);
     this.router.navigateByUrl(this.returnUrl(), { replaceUrl: true });
   }
 
-  /** Quay lại form đăng nhập từ bước OTP */
   cancelOtp(): void {
     this.otp.set(null);
     this.form.controls.password.setValue('');
     this.submitted.set(false);
   }
 
-  /** Đã gõ email hợp lệ thì mang sang trang Quên mật khẩu để điền sẵn */
   forgotParams(): Record<string, string> {
     const control = this.form.controls.identifier;
     return this.method() === 'email' && control.valid ? { email: control.value.trim() } : {};
@@ -158,7 +148,6 @@ export class Login implements OnInit {
     return body.message ?? 'Đã có lỗi xảy ra. Vui lòng thử lại.';
   }
 
-  /** Trang cần quay lại sau khi đăng nhập (?returnUrl=/account/orders), chỉ nhận đường dẫn nội bộ */
   private returnUrl(): string {
     const url = this.route.snapshot.queryParamMap.get('returnUrl');
     return url && url.startsWith('/') && !url.startsWith('//') ? url : '/';

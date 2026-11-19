@@ -11,13 +11,11 @@ import { UploadService } from '../../../services/upload-service';
 import { Account, initialsOf } from '../account';
 
 const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*[\p{L}]$/u;
-/** Số di động Việt Nam, cho phép gõ có dấu cách: 0909 123 268 */
 const PHONE_PATTERN = /^(0|\+84)(\s?\d){9}$/;
 const BIRTHDAY_PATTERN = /^\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})\s*$/;
 const AVATAR_TYPES = ['image/jpeg', 'image/png'];
 const AVATAR_MAX = 1024 * 1024;
 
-/** "14 / 02 / 2005" → "2005-02-14", sai ngày thì null */
 export function parseBirthday(text: string): string | null {
   const m = BIRTHDAY_PATTERN.exec(text);
   if (!m) return null;
@@ -27,7 +25,6 @@ export function parseBirthday(text: string): string | null {
   return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
-/** "2005-02-14" → "14 / 02 / 2005" */
 function formatBirthday(iso: string | null): string {
   if (!iso) return '';
   const [y, m, d] = iso.slice(0, 10).split('-');
@@ -43,7 +40,6 @@ function birthdayValidator(control: AbstractControl): ValidationErrors | null {
   return iso > new Date().toISOString().slice(0, 10) || year < 1900 ? { birthday: true } : null;
 }
 
-/** 4 điều kiện ở thanh độ mạnh mật khẩu (Figma) */
 export function passwordRules(value: string) {
   return {
     length: value.length >= 8,
@@ -53,10 +49,6 @@ export function passwordRules(value: string) {
   };
 }
 
-/**
- * Đổi mật khẩu là tuỳ chọn: chỉ kiểm tra khi đã gõ mật khẩu mới hoặc ô nhập lại.
- * Ô "Mật khẩu hiện tại" hay bị trình duyệt tự điền sẵn nên chỉ có ô đó thì coi như không đổi mật khẩu.
- */
 function passwordGroupValidator(group: AbstractControl): ValidationErrors | null {
   const { currentPassword: cur, newPassword: next, confirmPassword: confirm } = group.value as Record<string, string>;
   if (!next && !confirm) return null;
@@ -92,10 +84,8 @@ export class ProfileInfo {
   readonly submitted = signal(false);
   readonly show = signal({ current: false, next: false, confirm: false });
 
-  /** Ảnh đại diện đang hiển thị (có thể là ảnh mới chọn chưa lưu) */
   readonly avatarPreview = signal<string | null>(null);
   readonly avatarError = signal<string | null>(null);
-  /** undefined: không đổi · File: tải ảnh mới · null: xoá ảnh */
   private avatarChange: File | null | undefined = undefined;
 
   readonly form = this.fb.nonNullable.group({
@@ -120,7 +110,6 @@ export class ProfileInfo {
   readonly initials = computed(() => initialsOf(this.profile()?.fullName ?? ''));
 
   constructor() {
-    // Hồ sơ tải xong (hoặc vừa lưu) thì đổ vào form
     effect(() => {
       const profile = this.profile();
       if (profile) untracked(() => this.fill(profile));
@@ -228,7 +217,6 @@ export class ProfileInfo {
 
     const steps: Observable<Partial<AccountProfile>>[] = [this.account.updateProfile(body)];
     if (this.avatarChange instanceof File) {
-      // Tải ảnh lên Cloudinary, server chỉ lưu đường link
       const file = this.avatarChange;
       steps.push(this.upload.uploadImage(file, 'avatar').pipe(switchMap((url) => this.account.uploadAvatar(url))));
     } else if (this.avatarChange === null) {
@@ -246,7 +234,6 @@ export class ProfileInfo {
           const next: AccountProfile = Object.assign({ ...profile }, ...parts);
           this.saving.set(false);
           this.account.setProfile(next);
-          // Đồng bộ tên / SĐT / ảnh vào phiên đăng nhập (header, các trang khác dùng)
           const user = this.auth.user();
           if (user) this.auth.updateUser({ ...user, fullName: next.fullName, phone: next.phone, avatar: next.avatar });
           this.toast.show('Đã lưu thay đổi');

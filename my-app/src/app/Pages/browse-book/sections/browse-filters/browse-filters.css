@@ -1,5 +1,3 @@
-/* Figma "Filter sidebar" 893:9983. Desktop: dính bên phải khi cuộn. Tablet/mobile: drawer. */
-
 :host {
   position: sticky;
   top: calc(var(--header-height, 0px) + var(--space-16));
@@ -123,7 +121,7 @@
     inset: 0 0 0 auto;
     z-index: 1000;
     display: flex;
-    align-self: stretch; /* align-self: start ở trên làm drawer co theo nội dung */
+    align-self: stretch;
     width: min(360px, 90vw);
     visibility: hidden;
     transform: translateX(100%);

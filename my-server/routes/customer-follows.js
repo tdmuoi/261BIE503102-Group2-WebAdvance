@@ -1,10 +1,6 @@
 'use strict';
 // =====================================================================
 // Theo dõi tác giả (cần đăng nhập), collection "author_follows":
-//   GET    /api/account/followed-authors              → ["<authorId>", …]
-//   PUT    /api/account/followed-authors/:authorId    theo dõi (gọi lại nhiều lần vẫn chỉ 1 bản ghi)
-//   DELETE /api/account/followed-authors/:authorId    bỏ theo dõi
-// _id = "<userId>:<authorId>" nên mỗi khách chỉ theo dõi 1 tác giả 1 lần, không cần unique index.
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
@@ -16,7 +12,6 @@ module.exports = function customerFollows(getDb) {
   const follows = () => getDb().collection('author_follows');
   const followId = (userId, authorId) => `${String(userId)}:${authorId}`;
 
-  /** Tác giả đang hiển thị trên web (DB lưu _id dạng ObjectId hoặc chuỗi) */
   async function findAuthor(id) {
     const keys = [id];
     if (ObjectId.isValid(id)) keys.push(new ObjectId(id));

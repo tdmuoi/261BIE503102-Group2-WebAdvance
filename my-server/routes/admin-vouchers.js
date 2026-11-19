@@ -1,8 +1,3 @@
-// Registered in index.js using the existing database connection:
-// const adminVouchersRoutes = require('./routes/admin-vouchers');
-// app.use('/api/admin', adminVouchersRoutes(() => database));
-// No indexes, demo data, or changes to other collections are made here.
-// Auth is enforced here even if this router is mounted without a separate auth wrapper.
 const express = require("express");
 const { ObjectId } = require("mongodb");
 const createAdminAuth = require("../middleware/admin-auth");
@@ -11,8 +6,6 @@ const revisions = require('../middleware/admin-revision');
 const TYPES = ["percent", "amount", "shipping"];
 const STATES = ["active", "paused", "scheduled", "expired"];
 const DAY_MS = 86400000;
-// Same single-process scope as the existing in-memory Admin sessions.
-// Cross-process uniqueness still requires a group-approved MongoDB unique index.
 const codeLocks = new Map();
 async function withCodeLock(code, work) {
   const previous = codeLocks.get(code) || Promise.resolve();
@@ -383,7 +376,6 @@ module.exports = function adminVouchersRoutes(getDb, options) {
     }
   });
 
-  // Reserved path MUST be registered before /:id. No guessed statistics from order discounts.
   router.get("/vouchers/report", async (req, res) => {
     try {
       await vouchers().countDocuments({});

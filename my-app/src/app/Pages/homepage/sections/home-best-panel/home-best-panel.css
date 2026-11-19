@@ -1,8 +1,5 @@
-/* Panel chi tiết sách bán chạy — Figma 790:3144 */
-
 :host { display: block; min-width: 0; }
 
-/* Bìa và giá (chép từ section-shared.css để file nhẹ hơn) */
 .cover {
   position: relative;
   overflow: hidden;

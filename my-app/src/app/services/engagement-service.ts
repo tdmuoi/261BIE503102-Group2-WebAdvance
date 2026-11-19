@@ -5,16 +5,11 @@ import { Observable, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth-service';
 
-/**
- * Giữ chỗ sự kiện lưu vào event_registrations qua API.
- * Theo dõi tác giả: /api/account/followed-authors (cần đăng nhập, xem my-server/routes/customer-follows.js).
- */
 const ENDPOINTS: { reserveEvent: string | null; newsletter: string | null } = {
   reserveEvent: `${environment.apiUrl}/event-registrations`,
   newsletter: `${environment.apiUrl}/newsletter`,
 };
 
-/** Lỗi khi API chưa sẵn sàng — trang hiện thông báo riêng cho trường hợp này */
 export class EngagementUnavailableError extends Error {
   constructor() {
     super('Engagement API is not available yet');
@@ -29,10 +24,8 @@ export interface EventReservation {
   seats: number;
 }
 
-/** POST /api/newsletter trả 409: email đã đăng ký */
 export const NEWSLETTER_DUPLICATE_STATUS = 409;
 
-/** Nhận bản tin: lịch sự kiện hoặc thư Lightbook News */
 export type NewsletterTopic = 'events' | 'news';
 
 @Injectable({ providedIn: 'root' })
@@ -41,7 +34,6 @@ export class EngagementService {
   private readonly auth = inject(AuthService);
   private readonly followUrl = `${environment.apiUrl}/account/followed-authors`;
 
-  /** id các tác giả khách đang theo dõi */
   getFollowedAuthors(): Observable<string[]> {
     return this.http.get<string[]>(this.followUrl, { headers: this.authHeaders() });
   }

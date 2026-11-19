@@ -1,6 +1,5 @@
 /* =====================================================================
    Style chung 3 tab Tủ sách (bookshelf-ebooks, bookshelf-purchased, wishlist).
-   styleUrls: ['../account-page.css', '../shelf.css', './<trang>.css']
    ===================================================================== */
 .search {
   display: flex; align-items: center; gap: var(--space-8); width: 260px; height: 42px; padding: 0 var(--space-14);

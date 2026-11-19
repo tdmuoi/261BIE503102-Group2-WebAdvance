@@ -14,8 +14,6 @@ export class LoginBooksService {
   private readonly http = inject(HttpClient);
 
   getBooks() {
-    // Public catalogue: no Admin session, cookie or CSRF dependency.
-    // Keep extra candidates so a broken cover can be replaced without another request.
     return this.http.get<unknown>(`${environment.apiUrl}/books`, {
       params: { limit: 200, sort: 'newest' },
       withCredentials: false,

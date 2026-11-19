@@ -51,7 +51,6 @@ describe('Register', () => {
   it('bấm Tạo tài khoản khi trống thì báo "Còn N trường cần sửa"', async () => {
     component.submit();
     await fixture.whenStable();
-    // Họ tên, email, mật khẩu, nhập lại, điều khoản (SĐT không bắt buộc)
     expect(el.querySelector('.auth-alert-title')?.textContent).toContain('Còn 5 trường cần sửa');
     expect(el.textContent).toContain('Bạn cần đồng ý với các chính sách để tiếp tục');
   });

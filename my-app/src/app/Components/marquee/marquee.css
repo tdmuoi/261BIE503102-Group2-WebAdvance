@@ -1,11 +1,7 @@
-/* Dải chữ chạy — thông số theo Figma (Divider – Marquee 803:2880, Advertising bar 772:1530,
-   Ribbon Góc tác giả → Combo 789:3508). Màu, cỡ chữ, chiều cao truyền qua @Input. */
-
 :host { display: block; }
 
 .marquee { overflow: hidden; }
 
-/* Dải nghiêng: chừa chỗ trên dưới để góc không bị cắt, kéo rộng để không lộ mép */
 .marquee.is-tilted { padding: 28px 0; }
 
 .marquee.is-tilted .marquee-band {

@@ -1,4 +1,3 @@
-// Isolated HTTP fixtures only: no .env, Atlas, provisioning or production counters.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { randomBytes } = require("node:crypto");
@@ -117,9 +116,7 @@ test("ADM-16: successful office logins do not exhaust the shared IP failure budg
       .get("access-control-expose-headers")
       .includes("Retry-After"),
   );
-  // A different employee remains usable despite failures for another account.
   assert.equal((await login("another-employee")).status, 200);
-  // Twenty actual failures across accounts still protect a shared IP.
   for (let i = 0; i < 15; i++)
     assert.equal((await login(`ip-failure-${i}`, "incorrect")).status, 401);
   assert.equal((await login("ip-blocked-employee")).status, 429);

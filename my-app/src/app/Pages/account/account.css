@@ -1,4 +1,3 @@
-/* Khung trang Tài khoản: menu bên 280 + nội dung 904, cách nhau 32 (Figma "Body") */
 .account {
   display: flex; gap: var(--space-32); align-items: flex-start;
   max-width: calc(var(--layout-container) + 2 * var(--layout-gutter));
@@ -65,13 +64,11 @@
   box-shadow: var(--shadow-offset-xs); font: 700 12px/normal var(--font-sans);
 }
 
-/* Màn hẹp: menu bên lên trên */
 @media (max-width: 960px) {
   .account { flex-direction: column; align-items: stretch; }
   .sidebar { flex-basis: auto; }
 }
 
-/* Hộp xác nhận đăng xuất (khung chung ở popups/popup.css) */
 .logout-modal { max-width: 420px; }
 .logout-text { margin: 0; font: 400 14px/1.5 var(--font-sans); color: var(--color-text-body); }
 .logout-actions { display: flex; justify-content: flex-end; gap: var(--space-10); }

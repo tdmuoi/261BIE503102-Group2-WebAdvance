@@ -14,7 +14,6 @@ interface AuthorCard {
 
 const TINTS = ['pink', 'mint', 'yellow', 'pink-strong'];
 
-/** Chữ cái đầu, bỏ dấu để font serif hiển thị đúng */
 function toInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   const picked = words.length > 1 ? [words[0], words[words.length - 1]] : words;
@@ -37,7 +36,6 @@ export class HomeAuthors {
   readonly books = input.required<BookView[]>();
   readonly authors = input.required<Author[]>();
 
-  /** 4 tác giả có nhiều đầu sách nhất tại Lightbook */
   protected readonly cards = computed<AuthorCard[]>(() => {
     const counts = new Map<string, number>();
     for (const book of this.books()) {
@@ -52,7 +50,6 @@ export class HomeAuthors {
         id: author._id,
         name: author.name,
         initials: toInitials(author.name),
-        // Chỉ dùng ảnh có địa chỉ đầy đủ; đường dẫn tương đối trong DB không tồn tại ở my-app
         photo: author.img && /^https?:\/\//.test(author.img) ? author.img : null,
         desc: author.desc?.trim() ?? '',
         bookCount: counts.get(author._id)!,

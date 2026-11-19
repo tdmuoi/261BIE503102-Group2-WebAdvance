@@ -24,38 +24,33 @@ import { authGuard } from './guards/auth-guard';
 const routes: Routes = [
   { path: '', component: Homepage },
   { path: 'books', component: BrowseBook },
-  { path: 'browse-book', redirectTo: 'books' },   // link cũ (trang chủ, header) — giữ nguyên query params
-  // Trang chi tiết sách tải riêng (lazy) để bundle ban đầu không vượt budget 500kB
+  { path: 'browse-book', redirectTo: 'books' },
   {
     path: 'books/:slug',
     loadChildren: () => import('./Pages/product-detail/product-detail-module').then((m) => m.ProductDetailModule),
   },
-  { path: 'product-detail/:id', redirectTo: 'books/:id' },   // link cũ: book-card, các section trang chủ
+  { path: 'product-detail/:id', redirectTo: 'books/:id' },
   { path: 'cart', component: Cart },
   { path: 'checkout', component: Checkout, canActivate: [authGuard]},
-  // Trang Tác giả tải riêng (lazy): /authors, /authors/events, /authors/:id, /authors/:id/works
   {
     path: 'authors',
     loadChildren: () => import('./Pages/author/author-module').then((m) => m.AuthorModule),
   },
-  { path: 'author-list', redirectTo: 'authors' },   // link cũ (trang chủ)
+  { path: 'author-list', redirectTo: 'authors' },
   { path: 'author-events', redirectTo: 'authors/events' },
   { path: 'author-detail/:id', redirectTo: 'authors/:id' },
   { path: 'author-works/:id', redirectTo: 'authors/:id/works' },
-  // Trang thu mua sách cũng tải riêng (lazy) để không làm bundle ban đầu lớn thêm
   {
     path: 'book-buyback',
     loadChildren: () => import('./Pages/book-buyback/book-buyback-module').then((m) => m.BookBuybackModule),
   },
-  // Lightbook News tải riêng (lazy): /news, /news/:id
   {
     path: 'news',
     loadChildren: () => import('./Pages/news/news-module').then((m) => m.NewsModule),
   },
-  { path: 'news-list', redirectTo: 'news' },   // link cũ
+  { path: 'news-list', redirectTo: 'news' },
   { path: 'news-detail/:id', redirectTo: 'news/:id' },
   { path: 'about-us', component: AboutUs },
-  // Trang Chính sách (standalone, nạp khi mở): /policies#bao-mat · #thanh-toan · #doi-tra
   { path: 'policies', loadComponent: () => import('./Pages/policies/policies').then((m) => m.Policies) },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
@@ -73,12 +68,10 @@ const routes: Routes = [
     ]
   },
   { path: 'ebook-reader/:id', loadComponent: () => import('./Pages/ebook-reader/ebook-reader').then(m => m.EbookReader) },
-  { path: '**', component: PageNotFound },   // luôn để cuối cùng
+  { path: '**', component: PageNotFound },
 ];
 
 @NgModule({
-  // Vị trí cuộn do services/scroll-memory.ts lo: nút Back/Forward (và F5) về đúng chỗ đã rời, bấm link chuyển trang thì lên đầu.
-  // anchorScrolling: link có #fragment (vd. /#flashsale) cuộn tới đúng phần
   imports: [RouterModule.forRoot(routes, { scrollPositionRestoration: 'disabled', anchorScrolling: 'enabled' })],
   exports: [RouterModule]
 })

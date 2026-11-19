@@ -10,7 +10,6 @@ import { ProductGallery } from './sections/product-gallery/product-gallery';
 import { ProductInfo } from './sections/product-info/product-info';
 import { ProductReviews } from './sections/product-reviews/product-reviews';
 
-/** Trang chi tiết sách /books/:slug — tải riêng khi vào trang (xem app-routing-module.ts) */
 @NgModule({
   declarations: [ProductDetail, ProductGallery, ProductInfo, ProductAbout, ProductReviews, BookRow, ProductBuyBar],
   imports: [SharedModule, RouterModule.forChild([{ path: '', component: ProductDetail }])],

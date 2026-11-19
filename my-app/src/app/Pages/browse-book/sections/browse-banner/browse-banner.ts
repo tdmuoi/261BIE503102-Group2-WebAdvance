@@ -5,7 +5,6 @@ import { BookType, CatalogBook } from '../../../../models/book';
 interface BannerContent {
   tag: string;
   title: string;
-  /** Chữ nghiêng Instrument Serif — chỉ tiếng Anh */
   accent: string;
   desc: string;
   cta: { label: string; path: string; queryParams?: Record<string, string> };
@@ -13,10 +12,6 @@ interface BannerContent {
   tone: 'pink' | 'mint' | 'yellow';
 }
 
-/**
- * Nội dung 3 biến thể banner theo Figma (893:9696 / 893:10118 / 893:10610).
- * Đây là chữ quảng cáo tĩnh của thiết kế, không lấy từ DB.
- */
 const BANNERS: Record<BookType, BannerContent> = {
   new: {
     tag: '✦ Mới về tháng 10',
@@ -47,7 +42,6 @@ const BANNERS: Record<BookType, BannerContent> = {
   },
 };
 
-/** Banner đầu trang Browse, đổi theo loại sách — Figma "Hero banner" */
 @Component({
   selector: 'app-browse-banner',
   standalone: false,
@@ -56,7 +50,6 @@ const BANNERS: Record<BookType, BannerContent> = {
 })
 export class BrowseBanner {
   readonly type = input.required<BookType>();
-  /** Sách thuộc loại này (mới nhất trước) — lấy 3 bìa đầu làm hình minh hoạ */
   readonly books = input<CatalogBook[]>([]);
 
   protected readonly content = computed(() => BANNERS[this.type()]);

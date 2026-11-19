@@ -12,7 +12,6 @@ const ICON_TONE: Record<NotificationIcon, string> = {
   truck: 'yellow', heart: 'yellow', recycle: 'mint', box: 'mint', book: 'mint-strong', tag: 'mint-strong',
 };
 
-/** "2 giờ trước" · "Hôm nay, 08:12" · "Hôm qua" · "2 ngày trước" · "16/10/2026" */
 export function timeLabel(iso: string, now = new Date()): string {
   const date = new Date(iso);
   const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -60,7 +59,6 @@ export class Notifications implements OnInit {
   readonly timeLabel = timeLabel;
   readonly unread = this.account.unreadCount;
 
-  /** Chia nhóm "Hôm nay" / "Trước đó" */
   readonly groups = computed(() => {
     const today = new Date().toDateString();
     const list = this.items();
@@ -118,7 +116,6 @@ export class Notifications implements OnInit {
 
   markRead(n: AccountNotification): void {
     if (n.read) return;
-    // Cập nhật giao diện ngay, gọi API sau
     this.items.update((list) => list.map((x) => (x._id === n._id ? { ...x, read: true } : x)));
     this.account.setUnreadCount(this.unread() - 1);
     this.account.markNotificationRead(n._id)

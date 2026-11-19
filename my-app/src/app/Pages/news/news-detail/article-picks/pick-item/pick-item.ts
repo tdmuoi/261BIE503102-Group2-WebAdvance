@@ -2,7 +2,6 @@ import { Component, computed, input, output } from '@angular/core';
 
 import { CatalogBook } from '../../../../../models/book';
 
-/** Một cuốn trong bài gợi ý đọc: số thứ tự, bìa sách thật, tên, tác giả, giá, thêm vào giỏ — Figma 880:7755 */
 @Component({
   selector: 'app-pick-item',
   standalone: false,

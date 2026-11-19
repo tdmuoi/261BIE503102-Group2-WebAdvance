@@ -17,7 +17,6 @@ interface Option<T> {
   value: T;
   title: string;
   desc: string;
-  /** Logo hiện trước tên phương thức thanh toán */
   logo?: string;
   available?: boolean;
 }
@@ -34,10 +33,6 @@ export const PAYMENT_OPTIONS: Option<PaymentMethod>[] = [
   { value: 'cod', title: 'Thanh toán khi nhận hàng (COD)', desc: 'Không áp dụng cho sách điện tử', logo: 'images/payment/cod.svg' },
 ];
 
-/**
- * Trang Thanh toán (Figma "Pages/checkout · Thanh toán" + "Đặt hàng thành công").
- * Thanh toán các sách đang được chọn ở giỏ. Đơn chỉ có ebook: bỏ bước địa chỉ + vận chuyển, không có COD.
- */
 @Component({
   selector: 'app-checkout',
   standalone: false,
@@ -76,7 +71,6 @@ export class Checkout implements OnInit {
   readonly hasPhysical = computed(() => this.lines().some((l) => !l.ebook));
   readonly hasEbook = computed(() => this.lines().some((l) => l.ebook));
 
-  // Địa chỉ nhận hàng
   readonly addresses = signal<Address[]>([]);
   readonly addressesLoading = signal(true);
   readonly addressesError = signal(false);
@@ -86,7 +80,6 @@ export class Checkout implements OnInit {
   readonly payment = signal<PaymentMethod | null>(null);
   readonly note = signal('');
 
-  /** COD: ẩn khi đơn chỉ có ebook; đơn có cả ebook thì vẫn hiện nhưng không chọn được */
   readonly paymentOptions = computed(() => (this.hasPhysical() ? PAYMENT_OPTIONS : PAYMENT_OPTIONS.filter((o) => o.value !== 'cod')));
   readonly codDisabled = computed(() => this.hasEbook());
 
@@ -102,7 +95,6 @@ export class Checkout implements OnInit {
     ),
   );
 
-  /** Số thứ tự bước — đơn chỉ có ebook bỏ 2 bước đầu */
   readonly steps = computed(() => (this.hasPhysical() ? { payment: 3, note: 4 } : { payment: 1, note: 2 }));
 
   readonly placing = signal(false);
@@ -112,21 +104,18 @@ export class Checkout implements OnInit {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.stopTimer());
-    // Khi giỏ có Ebook, bỏ lựa chọn COD và yêu cầu khách chọn lại.
     effect(() => {
       if (this.codDisabled() && this.payment() === 'cod') this.payment.set(null);
     });
   }
 
   ngOnInit(): void {
-    // Đặt hàng cần tài khoản (đơn, địa chỉ, mã giảm giá lưu theo người dùng)
     if (!this.auth.isLoggedIn()) {
       this.toast.show('Vui lòng đăng nhập để thanh toán');
       this.router.navigate(['/login'], { queryParams: { returnUrl: '/checkout' } });
       return;
     }
     this.loadAddresses();
-    // MoMo chuyển khách về /checkout?partnerCode=…&orderId=…&resultCode=… sau khi thanh toán
     const q = this.route.snapshot.queryParamMap;
     const momoOrderId = q.get('partnerCode') && q.get('orderId');
     if (momoOrderId) {
@@ -143,7 +132,6 @@ export class Checkout implements OnInit {
         this.addresses.set(list);
         this.addressId.set((list.find((a) => a.isDefault) ?? list[0])?._id ?? null);
         this.addressesLoading.set(false);
-        // Chưa có địa chỉ nào thì mở sẵn form thêm địa chỉ ngay tại trang
         if (!list.length) this.openAddressForm(null);
       },
       error: () => {
@@ -154,11 +142,9 @@ export class Checkout implements OnInit {
   }
 
   // ---------------- Thêm / sửa địa chỉ ngay tại trang Thanh toán ----------------
-  /** Form địa chỉ (logic dùng chung với Sổ địa chỉ) */
   readonly addressEditor = new AddressEditor();
   readonly addressFormOpen = signal(false);
 
-  /** address = null: thêm mới */
   openAddressForm(address: Address | null): void {
     if (address) this.addressEditor.startEdit(address);
     else this.addressEditor.startCreate(this.addresses().length === 0);
@@ -173,7 +159,6 @@ export class Checkout implements OnInit {
   saveAddress(): void {
     this.addressEditor.save(({ list, id }) => {
       this.addresses.set(list);
-      // Chọn luôn địa chỉ vừa thêm / sửa để giao hàng
       if (id) this.addressId.set(id);
       else if (!list.some((a) => a._id === this.addressId())) this.addressId.set(list[0]?._id ?? null);
       this.submitError.set(null);
@@ -230,7 +215,6 @@ export class Checkout implements OnInit {
       next: (order) => {
         this.orderAttempt = null;
         this.placing.set(false);
-        // COD: xong luôn. MoMo / VNPay / chuyển khoản: mở bước quét mã thanh toán
         if (order.paymentMethod === 'cod') this.finish(order);
         else this.openPayment(order);
       },
@@ -280,13 +264,11 @@ export class Checkout implements OnInit {
     window.scrollTo?.({ top: 0 });
   }
 
-  /** "Tôi đã thanh toán" */
   confirmPaid(): void {
     const order = this.paying();
     if (!order || this.paymentBusy()) return;
     this.paymentBusy.set('confirm');
     this.paymentError.set(null);
-    // Nút của khách chỉ yêu cầu kiểm tra; server không coi thao tác này là bằng chứng thanh toán.
     this.account.confirmPayment(order._id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.paymentBusy.set(null);
@@ -301,10 +283,8 @@ export class Checkout implements OnInit {
   }
 
   // ---------------- MoMo (cổng thật, môi trường test) ----------------
-  /** Đang kiểm tra kết quả MoMo sau khi khách quay lại */
   readonly momoCheck = signal<{ momoOrderId: string; state: 'verifying' | 'pending'; message: string | null } | null>(null);
 
-  /** "Thanh toán bằng MoMo": server tạo link rồi chuyển hẳn sang trang MoMo */
   payWithMomo(method: 'atm' | 'wallet' = 'atm'): void {
     const order = this.paying();
     if (!order || this.paymentBusy()) return;
@@ -322,12 +302,10 @@ export class Checkout implements OnInit {
     });
   }
 
-  /** Rời web sang trang thanh toán của MoMo (tách riêng để test không điều hướng thật) */
   openExternal(url: string): void {
     window.location.assign(url);
   }
 
-  /** Server hỏi MoMo — chỉ khi MoMo xác nhận mới ghi "đã thanh toán" và đưa ebook vào tủ sách */
   verifyMomo(momoOrderId: string): void {
     this.momoCheck.set({ momoOrderId, state: 'verifying', message: null });
     this.account.verifyMomoPayment(momoOrderId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -338,7 +316,6 @@ export class Checkout implements OnInit {
         } else if (r.status === 'pending') {
           this.momoCheck.set({ momoOrderId, state: 'pending', message: r.message });
         } else {
-          // Thất bại / khách huỷ trên MoMo: đơn vẫn chờ → mở lại bước thanh toán để thử lại hoặc huỷ
           this.momoCheck.set(null);
           this.openPayment(r.order);
           this.paymentError.set(`MoMo: ${r.message ?? 'thanh toán chưa thành công.'} Bạn có thể thử lại.`);
@@ -349,7 +326,6 @@ export class Checkout implements OnInit {
     });
   }
 
-  /** Huỷ thanh toán (hoặc hết giờ): huỷ đơn chờ, giữ nguyên giỏ để chọn cách khác */
   cancelPayment(expired = false): void {
     const order = this.paying();
     if (!order || this.paymentBusy()) return;
@@ -377,7 +353,6 @@ export class Checkout implements OnInit {
     );
   }
 
-  /** "Đơn sẽ đến trong 3–5 ngày" theo cách giao đã chọn */
   deliveryText(order: Order): string {
     return order.shippingMethod === 'express' ? '1–2 ngày' : '3–5 ngày';
   }

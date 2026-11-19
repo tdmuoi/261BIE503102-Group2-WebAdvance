@@ -14,7 +14,6 @@ interface FooterLink {
 export class PageFooter {
   protected readonly currentYear = new Date().getFullYear();
 
-  // Cột Explore: các trang chính của web khách (đều có route trong app-routing-module.ts)
   protected readonly exploreLinks: FooterLink[] = [
     { label: 'About Lightbook', path: '/about-us' },
     { label: 'Browse Books', path: '/books' },
@@ -24,7 +23,6 @@ export class PageFooter {
     { label: 'Lightbook News', path: '/news' },
   ];
 
-  // Link ngoài — thay bằng địa chỉ thật khi có
   protected readonly legalLinks = [
     { label: 'Privacy Policy', href: '#' },
     { label: 'Terms of Service', href: '#' },

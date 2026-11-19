@@ -13,11 +13,6 @@ const STATE_BADGE: Record<BannerState, { status: string; label: string }> = {
   off: { status: 'hidden', label: 'Đã tắt' },
 };
 
-/**
- * Trang Banner & quảng cáo: xem banner theo vị trí, bật/tắt, đổi thứ tự hiển thị, xoá (hỏi lại bằng
- * app-confirm-dialog). Thêm/sửa nằm trong hộp thoại riêng: ./banner-form
- * Web khách lấy banner đang chạy qua GET /api/banners?position=hero
- */
 @Component({
   selector: 'app-banners',
   standalone: false,
@@ -62,7 +57,6 @@ export class Banners {
     return labels[issue] || issue.replace('_invalid', ' không hợp lệ');
   }
 
-  /** Các nhóm banner theo vị trí, đã lọc theo trạng thái */
   readonly groups = computed(() => {
     const items = this.data()?.items ?? [];
     const shown = this.positionFilter() ? [this.positionFilter() as BannerPosition] : this.positions;
@@ -78,7 +72,6 @@ export class Banners {
     });
   });
 
-  // Hộp thoại thêm/sửa + xác nhận xoá
   readonly formOpen = signal(false);
   readonly editing = signal<Banner | null>(null);
   readonly createPosition = signal<BannerPosition>('hero');
@@ -110,9 +103,7 @@ export class Banners {
     return STATE_BADGE[b.state] ?? STATE_BADGE.off;
   }
 
-  /** "Luôn hiển thị" | "10/10 – 12/10/2026" | "Từ 20/01/2027" | "Đến 31/10/2026" */
   schedule(b: Pick<Banner, 'startDate' | 'endDate'>): string {
-    // Đổi sang giờ Việt Nam (UTC+7) rồi ghép dd/MM(/yyyy)
     const fmt = (iso: string, year: boolean) => {
       const d = new Date(new Date(iso).getTime() + 7 * 3600 * 1000);
       const dd = String(d.getUTCDate()).padStart(2, '0');
@@ -158,7 +149,6 @@ export class Banners {
     });
   }
 
-  /** Đổi chỗ với banner đứng trước (-1) hoặc sau (+1) trong cùng vị trí */
   move(b: Banner, step: -1 | 1): void {
     if (this.busyId() || this.loading() || this.hasContractIssue(b)) return;
     const previous = this.data();
@@ -169,7 +159,6 @@ export class Banners {
     if (from < 0 || to < 0 || to >= list.length) return;
     [list[from], list[to]] = [list[to], list[from]];
 
-    // Đổi ngay trên màn hình rồi mới lưu
     const others = items.filter((x) => x.position !== b.position || this.hasContractIssue(x));
     this.data.update((d) => (d ? { ...d, items: [...others, ...list.map((x, i) => ({ ...x, order: i + 1 }))] } : d));
     this.busyId.set(b._id);

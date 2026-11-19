@@ -1,6 +1,3 @@
-/* Phiếu thanh lý — bước 2 (thông tin) và bước 3 (gửi & nhận tiền), Figma 849:3555 / 849:3742 */
-
-/* Field bước 2–3 nền kem như Figma */
 .bb-input.is-soft { background: var(--color-bg-page); }
 .bb-input[readonly] { color: var(--color-text-secondary); cursor: default; }
 

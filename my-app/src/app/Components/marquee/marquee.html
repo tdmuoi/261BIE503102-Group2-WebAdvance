@@ -8,7 +8,6 @@
        [style.letter-spacing.px]="letterSpacing"
        [style.transform]="tilt ? 'rotate(' + tilt + 'deg)' : null">
     <div class="marquee-track" [style.animation-duration.s]="duration()">
-      <!-- Nửa thứ nhất: được đo để tính số lần lặp -->
       <div #group class="marquee-group">
         @for (r of repeats(); track r) {
           @for (item of items; track $index) {
@@ -16,7 +15,6 @@
           }
         }
       </div>
-      <!-- Nửa thứ hai: bản sao để nối vòng, trình đọc màn hình bỏ qua -->
       <div class="marquee-group" aria-hidden="true">
         @for (r of repeats(); track r) {
           @for (item of items; track $index) {

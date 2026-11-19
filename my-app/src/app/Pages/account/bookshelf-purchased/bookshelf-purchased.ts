@@ -14,7 +14,6 @@ type Sort = 'newest' | 'oldest';
 
 const PAGE_SIZE = 6;
 
-/** Tủ sách – Sách đã mua (Figma "Pages/account/bookshelf-purchased") */
 @Component({
   selector: 'app-bookshelf-purchased',
   standalone: false,
@@ -60,7 +59,6 @@ export class BookshelfPurchased implements OnInit {
   readonly visible = computed(() => this.filtered().slice(0, this.shown()));
   readonly remaining = computed(() => Math.max(0, this.filtered().length - this.shown()));
 
-  /** Gợi ý: sách bán chạy chưa mua */
   private readonly catalog = toSignal(
     this.bookService.getCatalog().pipe(
       map((c) => c.books),

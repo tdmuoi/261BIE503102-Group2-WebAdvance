@@ -59,7 +59,6 @@ describe('buyback-rules', () => {
       { quantity: 2, coverPrice: 129_000, condition: good },
       { quantity: 1, coverPrice: 80_000, condition: condition('cover-intact', 'spine-straight', 'pages-clean') },
     ]);
-    // 258.000 × 30–40% = 77.400 – 103.200; 80.000 × 45–50% = 36.000 – 40.000
     expect(range).toEqual({ min: 113_000, max: 143_000 });
   });
 });

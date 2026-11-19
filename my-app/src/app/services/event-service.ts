@@ -11,7 +11,6 @@ export interface EventQuery {
   limit?: number;
 }
 
-/** Sự kiện giao lưu đã đăng — GET /api/events (chỉ đọc) */
 @Injectable({ providedIn: 'root' })
 export class EventService {
   private readonly http = inject(HttpClient);

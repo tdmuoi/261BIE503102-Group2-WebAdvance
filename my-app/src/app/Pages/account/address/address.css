@@ -1,4 +1,3 @@
-/* Style chung (tiêu đề, tab, thẻ, ô nhập, nút) nằm ở ../account-page.css */
 .list-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-16); }
 .list-title { margin: 0; font: 800 20px/normal var(--font-display); letter-spacing: -0.2px; }
 .add-btn { padding: var(--space-8) var(--space-16); font-size: 13px; }

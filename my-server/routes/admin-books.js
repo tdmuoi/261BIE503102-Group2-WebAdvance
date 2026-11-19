@@ -1,20 +1,5 @@
 // =====================================================================
 // API Quản lý sách cho my-admin  (gắn vào index.js: app.use('/api/admin', adminBooksRoutes(() => database)))
-//
-//   GET    /api/admin/books              danh sách + lọc + phân trang
-//            ?q=          tìm theo tên sách, ISBN hoặc tên tác giả
-//            ?status=     active | hidden | low | out      (low = sắp hết, out = hết hàng)
-//            ?categoryId= lọc theo thể loại
-//            ?sort=       newest | updated | title | price_asc | price_desc | stock_asc
-//            ?page=1&limit=10
-//   GET    /api/admin/books/:id          chi tiết 1 sách (để sửa)
-//   POST   /api/admin/books              thêm sách
-//   PUT    /api/admin/books/:id          sửa sách
-//   PATCH  /api/admin/books/bulk         { ids: [...], action: 'hide' | 'show' | 'delete' }
-//   DELETE /api/admin/books/:id          xoá (xoá mềm: status = 'deleted', web khách không thấy nữa,
-//                                        đơn hàng cũ vẫn tra được sách)
-//
-// Web khách (GET /api/books) chỉ lấy status = 'active' nên sách "hidden"/"deleted" tự biến mất.
 // =====================================================================
 const express = require('express');
 const { ObjectId, GridFSBucket } = require('mongodb');
@@ -33,8 +18,6 @@ function validPdf(buffer) {
   if (!end) return false;
   const pdf = buffer.toString('latin1'), visited = new Set(), objects = new Map();
   let offset = Number(end[1]), root;
-  // Follow the referenced trailers, not the last 2 KiB. Linearized files point
-  // to a first-page xref near the header; its /Prev points toward the file end.
   while (offset !== null) {
     if (!Number.isSafeInteger(offset) || offset < 8 || offset >= buffer.length || visited.has(offset) || visited.size >= 64) return false;
     visited.add(offset);
@@ -54,8 +37,6 @@ function validPdf(buffer) {
           if (!entry) return false;
           const position = Number(entry[1]), generation = Number(entry[2]), key = (first + i) + ':' + generation;
           if (generation > 65535) return false;
-          // Some producers retain zero-offset placeholders for unused objects.
-          // They are never accepted as the document's Root object.
           if (entry[3] === 'n' && position !== 0 && (position < 8 || position >= buffer.length ||
               !new RegExp('^' + (first + i) + '\\s+' + generation + '\\s+obj\\b').test(pdf.slice(position, position + 64)))) return false;
           if (!objects.has(key)) objects.set(key, entry[3] === 'n' && position !== 0 ? position : null);
@@ -63,8 +44,6 @@ function validPdf(buffer) {
         }
       }
     } else {
-      // Preserve PDF 1.5+ cross-reference stream support, including compressed
-      // catalog objects; this is a format check, not a renderer or content scan.
       const stream = /^\d+\s+\d+\s+obj\b\s*<<([\s\S]*?)>>\s*stream(?:\r\n|\n|\r)/.exec(pdf.slice(offset));
       const reference = stream && /\/Root\s+([1-9]\d*)\s+(\d+)\s+R\b/.exec(stream[1]);
       const size = stream && /\/Size\s+([1-9]\d*)\b/.exec(stream[1]);
@@ -83,7 +62,6 @@ function validPdf(buffer) {
   return Number.isSafeInteger(catalog) &&
     /^\d+\s+\d+\s+obj\b\s*<<(?:(?!endobj)[\s\S])*?\/Type\s*\/Catalog\b/.test(pdf.slice(catalog));
 }
-/** "bytes=0-99" | "bytes=100-" | "bytes=-500" → {start, end} (end tính cả byte cuối). Nhiều đoạn / sai cú pháp → null (gửi cả file). */
 function parseByteRange(header, size) {
   const m = /^bytes=(\d*)-(\d*)$/.exec(String(header || '').trim());
   if (!m || (m[1] === '' && m[2] === '')) return null;
@@ -99,7 +77,6 @@ async function streamPdf(db, book, req, res) {
   const file = await db.collection('fs.files').findOne({ _id: book.ebookFileId, 'metadata.bookId': book._id, 'metadata.verified': true });
   if (!file || !Number.isSafeInteger(file.length) || file.length < 1 || file.length > PDF_MAX_BYTES)
     return res.status(404).json({ message: 'Không tìm thấy PDF hợp lệ.' });
-  // Range (một đoạn byte): trình đọc pdf.js chỉ tải phần cần cho trang đang xem, không đợi cả file.
   const range = parseByteRange(req.headers.range, file.length);
   if (range === 'unsatisfiable') return res.status(416).set('Content-Range', `bytes */${file.length}`).end();
   res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="ebook.pdf"', 'Accept-Ranges': 'bytes',
@@ -132,7 +109,6 @@ function escapeRegex(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Id trong DB có thể lưu dạng ObjectId hoặc chuỗi -> khớp cả hai */
 function matchId(id) {
   const values = [String(id)];
   if (ObjectId.isValid(id)) values.push(new ObjectId(String(id)));
@@ -163,10 +139,6 @@ module.exports = function adminBooksRoutes(getDb) {
   const authors = () => getDb().collection('authors');
   const categories = () => getDb().collection('categories');
 
-  /**
-   * Dữ liệu cũ lưu authorId/categoryId/createdAt theo kiểu nào thì sách mới lưu theo đúng kiểu đó,
-   * để các API khác (web khách, dashboard) đọc giống nhau.
-   */
   async function storageStyle() {
     const sample = await books().findOne({ categoryId: { $nin: [null, ''] } });
     return {
@@ -184,7 +156,6 @@ module.exports = function adminBooksRoutes(getDb) {
     return style.dateAsString ? new Date().toISOString() : new Date();
   }
 
-  /** Ghép tên tác giả + tên thể loại vào sách */
   async function withNames(list) {
     const authorIds = [...new Set(list.map((b) => b.authorId).filter(Boolean).map(String))];
     const categoryIds = [...new Set(list.map((b) => b.categoryId).filter(Boolean).map(String))];
@@ -201,7 +172,6 @@ module.exports = function adminBooksRoutes(getDb) {
     }));
   }
 
-  /** Kiểm tra + chuẩn hoá dữ liệu gửi lên từ form */
   async function parseBook(body, style, existing = null) {
     const errors = {};
     const title = cleanText(body.title);
@@ -229,7 +199,6 @@ module.exports = function adminBooksRoutes(getDb) {
     const pages = toNumber(body.pages, null);
     if (pages !== null && (!Number.isInteger(pages) || pages <= 0)) errors.pages = 'Số trang phải là số nguyên > 0';
 
-    // Thể loại
     let categoryId = null;
     if (body.categoryId) {
       const found = await categories().findOne({ _id: matchId(body.categoryId) });
@@ -279,7 +248,6 @@ module.exports = function adminBooksRoutes(getDb) {
       }
     }
 
-    // Tác giả: chọn theo id, hoặc gõ tên -> tìm đúng tên, chưa có thì tạo tác giả mới
     let authorId = null;
     const authorName = cleanText(body.authorName);
     if (body.authorId) {
@@ -364,7 +332,6 @@ module.exports = function adminBooksRoutes(getDb) {
       const [items, total, all, active, hidden, low, out] = await Promise.all([
         books().find(listFilter).sort({ ...(SORTS[req.query.sort] || SORTS.newest), ...(inventory ? { _id: 1 } : {}) }).skip((page - 1) * limit).limit(limit).toArray(),
         books().countDocuments(listFilter),
-        // Số đếm cho các tab lọc (theo ô tìm kiếm + thể loại hiện tại)
         books().countDocuments(filter),
         books().countDocuments({ ...filter, ...statusFilters.active }),
         books().countDocuments({ ...filter, ...statusFilters.hidden }),
@@ -401,8 +368,6 @@ module.exports = function adminBooksRoutes(getDb) {
       if (!book) return res.status(409).json({ message: 'Chỉ upload PDF cho Ebook còn quản lý, không phải dữ liệu demo.' });
       if (!req.is('application/pdf')) return res.status(415).json({ message: 'Chỉ nhận nội dung application/pdf.' });
       revisions.requireRevision({ revision: req.query.revision || null }, book);
-      // Provision GridFS indexes separately; do not let an upload silently
-      // create production indexes or collections on the first request.
       const [filesIndexes, chunksIndexes] = await Promise.all(['fs.files', 'fs.chunks'].map(name => getDb().collection(name).listIndexes().toArray()));
       if (!filesIndexes.some(index => JSON.stringify(index.key) === JSON.stringify({ filename: 1, uploadDate: 1 })) ||
           !chunksIndexes.some(index => index.unique === true && JSON.stringify(index.key) === JSON.stringify({ files_id: 1, n: 1 })))
@@ -437,8 +402,6 @@ module.exports = function adminBooksRoutes(getDb) {
       res.status(201).json({ fileId: String(fileId), size, sha256, revision: linkTimestamp.toISOString() });
     } catch (error) {
       try {
-        // Fence an ambiguous update before deleting its file: a late update using
-        // the old revision can no longer link a file that cleanup is removing.
         if (linkAttempted) await books().updateOne({ _id: book._id, bookType: 'ebook', isDemo: { $ne: true }, ...revisions.snapshot(book) },
           { $set: { updatedAt: new Date(Math.max(Date.now(), +linkTimestamp + 1)) } }, { writeConcern: { w: 'majority' } });
         const linked = await books().findOne({ ebookFileId: fileId });

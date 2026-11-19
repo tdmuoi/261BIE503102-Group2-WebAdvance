@@ -218,7 +218,6 @@ describe('Accounts authenticated HTTP and UI', () => {
   it('validates modal and preserves backend failure', async () => {
     await admins();
     const component = fixture.componentInstance;
-    // Exercise validation/error handling with an API that advertises invitation support.
     component.admins.set({ ...adminList, capabilities: { ...adminList.capabilities, invite: true } });
     component.openAdminEditor();
     fixture.detectChanges();

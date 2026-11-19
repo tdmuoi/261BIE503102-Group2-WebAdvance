@@ -2,7 +2,6 @@ import { Component, computed, input, linkedSignal } from '@angular/core';
 
 import { BookView } from '../../../../models/book';
 
-/** Mỗi trang: 1 sách nổi bật + 3 sách nhỏ */
 const PAGE_SIZE = 4;
 const MAX_PAGES = 3;
 
@@ -15,14 +14,12 @@ const MAX_PAGES = 3;
 export class HomeNewReleases {
   readonly books = input.required<BookView[]>();
 
-  /** N cuốn mới nhất theo ngày tạo, không lọc cứng 7 ngày vì sách thường được import cùng một đợt */
   private readonly newest = computed(() =>
     [...this.books()]
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .slice(0, PAGE_SIZE * MAX_PAGES),
   );
 
-  /** Trang đang xem; tự quay về trang đầu khi dữ liệu đổi */
   protected readonly page = linkedSignal({ source: this.books, computation: () => 0 });
 
   protected readonly pageCount = computed(() => Math.max(1, Math.ceil(this.newest().length / PAGE_SIZE)));

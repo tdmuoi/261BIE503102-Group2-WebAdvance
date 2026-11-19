@@ -1,23 +1,5 @@
 // =====================================================================
 // Đăng ký / đăng nhập cho web khách hàng
-//   POST /api/auth/register         { fullName, email, phone?, password, newsletter }
-//                                   → 201 { verificationRequired, challengeId, email, resendAfter } (gửi OTP xác minh email;
-//                                     CHƯA tạo tài khoản — tài khoản chỉ được tạo khi nhập đúng mã ở /auth/otp/verify)
-//   POST /api/auth/login            { identifier, type: 'email'|'phone', password, remember }
-//                                   → { token, user } hoặc, nếu cần OTP:
-//                                     { verificationRequired | twoFactorRequired, challengeId, email, resendAfter }
-//   POST /api/auth/otp/verify       { challengeId, code }  → { token, user, coupon? }
-//   POST /api/auth/otp/resend       { challengeId }        → { challengeId, email, resendAfter }
-//   POST /api/auth/forgot-password  { email }  → luôn 200 { challengeId, email, resendAfter } (không lộ email nào đã đăng ký)
-//   POST /api/auth/reset-password   { challengeId, code, newPassword } → đổi mật khẩu, đăng xuất mọi thiết bị
-//   POST /api/auth/logout           (Bearer token)
-//   GET  /api/auth/me               (Bearer token)
-// Tài khoản: accounts { email, passwordHash, provider:'local', roleCode:'CUSTOMER', status,
-//                       emailVerified, emailVerificationPending }
-//            users    { accountId, fullName, username, phone, gender, avatar, dateOfBirth, twoFactorEnabled }
-// Tài khoản tạo trước khi có OTP không có emailVerificationPending nên vẫn đăng nhập bình thường.
-// Tài khoản còn emailVerificationPending (tạo theo luồng cũ, chưa từng nhập OTP) không giữ chỗ email/SĐT:
-// đăng ký lại được, và bị thay bằng tài khoản mới khi người đó nhập đúng mã.
 // =====================================================================
 const express = require('express');
 const { hashPassword, verifyPassword, createSession, deleteSession, requireCustomer } = require('../middleware/customer-auth');
@@ -33,18 +15,15 @@ const text = (v) => (typeof v === 'string' ? v.trim() : '');
 const escapeRegex = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const weakPassword = (p) => p.length < 8 || !/[A-Za-z]/.test(p) || !/\d/.test(p) || Buffer.byteLength(p) > 72;
 
-/** Lỗi OTP (sai mã, hết hạn, gửi quá nhiều…) trả đúng mã HTTP; lỗi khác chuyển cho Express */
 function otpFailure(res, next, error) {
   if (error instanceof OtpError) return res.status(error.status).json(error.body);
   return next(error);
 }
 
-/** User trả cho trang (models/user.ts) */
 function publicUser(account, user) {
   return { _id: String(user._id), fullName: user.fullName || '', email: account.email, phone: user.phone || null, avatar: user.avatar || null };
 }
 
-/** Email / SĐT đã thuộc về một tài khoản thật (đã xác minh hoặc tạo trước khi có OTP)? */
 async function takenBy(db, { email, phone }) {
   const accounts = db.collection('accounts');
   const byEmail = await accounts.findOne({ email: { $regex: `^${escapeRegex(email)}$`, $options: 'i' } });
@@ -64,7 +43,6 @@ const TAKEN = {
   phone: { message: 'Số điện thoại này đã được đăng ký', field: 'phone' },
 };
 
-/** Xoá tài khoản "chờ xác minh" bỏ dở (luồng cũ) đang giữ email / SĐT này */
 async function removeAbandoned(db, { email, phone }) {
   const accounts = db.collection('accounts');
   const users = db.collection('users');
@@ -105,8 +83,6 @@ module.exports = function customerAuthRoutes(getDb) {
       const taken = await takenBy(db(), { email, phone });
       if (taken) return res.status(409).json(TAKEN[taken]);
 
-      // Chưa tạo tài khoản: lưu tạm thông tin (mật khẩu đã băm) trong phiên OTP, gửi mã về email.
-      // Nhập đúng mã ở POST /auth/otp/verify thì tài khoản mới được tạo.
       const pending = {
         fullName, email, phone, passwordHash: await hashPassword(password), newsletter: req.body?.newsletter === true,
       };
@@ -117,7 +93,6 @@ module.exports = function customerAuthRoutes(getDb) {
     }
   });
 
-  /** Tạo tài khoản sau khi đã xác minh email bằng OTP */
   async function createCustomer(pending, now) {
     await removeAbandoned(db(), pending);
     const account = {
@@ -191,7 +166,6 @@ module.exports = function customerAuthRoutes(getDb) {
       const remember = req.body?.remember === true;
       await db().collection('accounts').updateOne({ _id: account._id }, { $set: { failedLogins: 0, lockedUntil: null } });
 
-      // Đúng mật khẩu nhưng còn phải nhập OTP: chưa tạo phiên đăng nhập
       if (account.emailVerificationPending === true) {
         const challenge = await startChallenge(db(), {
           purpose: 'verify_email', accountId: account._id, userId: user._id, email: account.email, remember,
@@ -213,21 +187,18 @@ module.exports = function customerAuthRoutes(getDb) {
     }
   });
 
-  // Nhập mã OTP sau khi đăng ký (verify_email) hoặc khi đăng nhập có xác thực 2 lớp (login_2fa)
   router.post('/auth/otp/verify', async (req, res, next) => {
     try {
       const challenge = await consumeChallenge(db(), {
         challengeId: req.body?.challengeId, code: req.body?.code, purposes: ['register', 'verify_email', 'login_2fa'],
       });
 
-      // Đăng ký mới: email đã được xác minh → bây giờ mới tạo tài khoản
       if (challenge.purpose === 'register') {
         const pending = challenge.pending;
         await db().collection(OTP_COLLECTION).updateOne({ _id: challenge._id }, { $unset: { pending: '' } });
         if (!pending?.email || !pending.passwordHash) {
           return res.status(410).json({ message: 'Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.', code: 'OTP_SESSION_EXPIRED' });
         }
-        // Có người vừa đăng ký trước bằng email / SĐT này trong lúc chờ nhập mã
         const taken = await takenBy(db(), pending);
         if (taken) return res.status(409).json(TAKEN[taken]);
         const { account, user } = await createCustomer(pending, new Date());
@@ -279,8 +250,6 @@ module.exports = function customerAuthRoutes(getDb) {
     res.json({ user: publicUser(req.customer.account, req.customer.user) });
   });
 
-  // Gửi OTP đặt lại mật khẩu. Email chưa đăng ký vẫn trả 200 giống hệt (mã giả, không gửi)
-  // để người ngoài không dò được email nào có tài khoản.
   router.post('/auth/forgot-password', async (req, res, next) => {
     try {
       const email = text(req.body?.email).toLowerCase();
@@ -314,12 +283,10 @@ module.exports = function customerAuthRoutes(getDb) {
       await db().collection('accounts').updateOne(
         { _id: account._id },
         {
-          // Nhận được mã qua email cũng là đã chứng minh sở hữu email
           $set: { passwordHash: await hashPassword(newPassword), passwordChangedAt: now, failedLogins: 0, lockedUntil: null, emailVerified: true, updatedAt: now },
           $unset: { emailVerificationPending: '' },
         },
       );
-      // Đăng xuất mọi thiết bị đang dùng mật khẩu cũ
       await db().collection('customer_sessions').deleteMany({ accountId: account._id });
       res.json({ message: 'Đã đặt lại mật khẩu. Bạn đăng nhập bằng mật khẩu mới nhé.', passwordChangedAt: now.toISOString() });
     } catch (error) {

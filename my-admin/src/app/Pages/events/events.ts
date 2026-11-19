@@ -11,7 +11,7 @@ const vnInput = (iso: string | null) => iso ? new Date(Date.parse(iso) + 7 * 360
 function emptyForm() {
   const start = new Date(Date.now() + 7 * 3600000);
   start.setUTCDate(start.getUTCDate() + 7);
-  start.setUTCHours(12, 0, 0, 0); // 19:00 Vietnam, one week from today.
+  start.setUTCHours(12, 0, 0, 0);
   return { title: '', description: '', status: 'draft' as EventInput['status'],
     startAt: vnInput(start.toISOString()), endAt: vnInput(new Date(+start + 2 * 3600000).toISOString()),
     authorId: '', guests: '', location: '', format: 'offline' as EventInput['format'], type: 'Author Talk', image: '', capacity: null as number | null };

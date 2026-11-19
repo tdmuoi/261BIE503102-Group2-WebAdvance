@@ -1,17 +1,11 @@
 'use strict';
 // =====================================================================
 // Cloudinary: ảnh khách tải lên (avatar, ảnh sách thanh lý, ảnh đánh giá) lưu trên Cloudinary,
-// MongoDB chỉ lưu đường link. Trình duyệt tải thẳng lên Cloudinary bằng chữ ký
-// do server tạo (signed upload), nên API secret không bao giờ ra khỏi server
-// và ảnh không đi qua server.
-//
-// Biến môi trường: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
 // =====================================================================
 const { createHash } = require('node:crypto');
 
 const ROOT_FOLDER = 'lightbook';
 const ALLOWED_FORMATS = 'jpg,jpeg,png,webp';
-/** Mục đích tải ảnh → thư mục con trên Cloudinary */
 const PURPOSES = { avatar: 'avatars', buyback: 'buyback', review: 'reviews' };
 
 function config() {
@@ -21,13 +15,11 @@ function config() {
   return cloudName && apiKey && apiSecret ? { cloudName, apiKey, apiSecret } : null;
 }
 
-/** Thư mục riêng của từng khách: lightbook/avatars/<userId> */
 function folderFor(purpose, userId) {
   const sub = PURPOSES[purpose];
   return sub ? `${ROOT_FOLDER}/${sub}/${String(userId)}` : null;
 }
 
-/** Chữ ký Cloudinary: sha1 của các tham số xếp theo tên + API secret */
 function sign(params, apiSecret) {
   const payload = Object.keys(params)
     .sort()
@@ -36,7 +28,6 @@ function sign(params, apiSecret) {
   return createHash('sha1').update(payload + apiSecret).digest('hex');
 }
 
-/** Tham số để trình duyệt gửi kèm ảnh lên https://api.cloudinary.com/v1_1/<cloud>/image/upload */
 function uploadParams(purpose, userId) {
   const cfg = config();
   const folder = folderFor(purpose, userId);
@@ -50,10 +41,6 @@ function uploadParams(purpose, userId) {
   };
 }
 
-/**
- * Link có đúng là ảnh trên tài khoản Cloudinary của Lightbook, trong thư mục của khách này không.
- * Chặn việc gửi link ảnh bất kỳ trên mạng hoặc ảnh của người khác.
- */
 function isOwnImageUrl(url, purpose, userId) {
   const cfg = config();
   const folder = folderFor(purpose, userId);
@@ -65,7 +52,6 @@ function isOwnImageUrl(url, purpose, userId) {
     return false;
   }
   if (parsed.protocol !== 'https:' || parsed.hostname !== 'res.cloudinary.com' || parsed.search || parsed.hash) return false;
-  // /<cloud>/image/upload/v123/lightbook/avatars/<userId>/<tên>.<đuôi>
   const prefix = `/${cfg.cloudName}/image/upload/`;
   if (!parsed.pathname.startsWith(prefix)) return false;
   const rest = parsed.pathname.slice(prefix.length).replace(/^v\d+\//, '');

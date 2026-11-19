@@ -1,5 +1,3 @@
-/* Footer dùng chung — thông số lấy từ Figma (SiteFooter 817:6215) */
-
 .site-footer {
   background: var(--color-bg-subtle);
   border-top: var(--border-default) solid var(--color-text-serif);

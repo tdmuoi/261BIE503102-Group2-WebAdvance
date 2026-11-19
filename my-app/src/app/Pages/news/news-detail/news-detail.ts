@@ -13,12 +13,10 @@ import { Crumb } from '../../../Components/breadcrumb/breadcrumb';
 import { categoryLabel, fallbackCover, fold, mentionedBooks, newsCover, newsDate } from '../../../shared/news-utils';
 import { TopicChip } from './article-tags/article-tags';
 
-/** Tiêu đề rút gọn trên breadcrumb */
 const CRUMB_TITLE_MAX = 48;
 const RELATED_COUNT = 3;
 const MAX_CHIPS = 6;
 
-/** Chi tiết bài viết /news/:id (id = _id của bài) */
 @Component({
   selector: 'app-news-detail',
   standalone: false,
@@ -32,7 +30,6 @@ export class NewsDetail {
 
   protected readonly status = signal<'loading' | 'ready' | 'missing' | 'error'>('loading');
   protected readonly article = signal<NewsItem | null>(null);
-  /** Sách + tác giả thật để tìm "Sách được nhắc đến"; lỗi thì null (ẩn các mục đó) */
   protected readonly catalog = signal<Catalog | null>(null);
   protected readonly related = signal<NewsItem[]>([]);
   private readonly coverFailed = signal(false);
@@ -44,7 +41,6 @@ export class NewsDetail {
     return a && catalog ? mentionedBooks(a, catalog.books) : [];
   });
 
-  /** Bài chuyên mục gợi ý đọc có từ 2 sách → bố cục danh sách (Figma 880:7637) */
   protected readonly isPicks = computed(() => fold(this.article()?.category ?? '').includes('goi y') && this.books().length >= 2);
 
   protected readonly category = computed(() => (this.article()?.category ? categoryLabel(this.article()!.category!) : ''));
@@ -68,7 +64,6 @@ export class NewsDetail {
     return items;
   });
 
-  /** Chủ đề: chuyên mục, tag của bài (nếu có), tác giả của các sách được nhắc đến */
   protected readonly chips = computed<TopicChip[]>(() => {
     const a = this.article();
     if (!a) return [];
@@ -96,7 +91,6 @@ export class NewsDetail {
         }),
         switchMap(([id]) =>
           this.newsService.getArticle(id).pipe(
-            // 404 = không có bài hoặc bài chưa đăng
             catchError((error: HttpErrorResponse) => of(error.status === 404 ? null : undefined)),
           ),
         ),
@@ -119,7 +113,6 @@ export class NewsDetail {
     this.coverFailed.set(true);
   }
 
-  /** Bài liên quan: cùng chuyên mục trước, thiếu thì thêm bài mới nhất */
   private loadRelated(article: NewsItem): void {
     const others = (items: NewsItem[]) => items.filter((item) => item._id !== article._id);
     const fill = (picked: NewsItem[]) => {

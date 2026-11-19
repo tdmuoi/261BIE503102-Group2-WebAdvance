@@ -22,7 +22,6 @@ describe('Homepage', () => {
     await TestBed.configureTestingModule({
       declarations: [Homepage],
       providers: [provideHttpClient(), provideHttpClientTesting()],
-      // Các section con có test riêng
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
@@ -34,7 +33,6 @@ describe('Homepage', () => {
 
   afterEach(() => http.verify());
 
-  /** Trả rỗng cho mọi request còn mở tới url (bỏ qua request đã huỷ) */
   const flushOpen = (url: string) =>
     http.match(url).filter((req) => !req.cancelled).forEach((req) => req.flush([]));
 

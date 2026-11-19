@@ -58,8 +58,6 @@ describe('pendingChangesGuard router integration (isolated routes)', () => {
   });
 });
 
-// Real layout/form components, but isolated route configuration and mocked APIs.
-// This verifies the proposed registration; it does not register the application routes.
 describe('pendingChangesGuard with News, Settings and the existing sidebar', () => {
   const stored: SystemSettings = {
     id: 'settings', revision: null, updatedBy: null, paymentMethods: [],

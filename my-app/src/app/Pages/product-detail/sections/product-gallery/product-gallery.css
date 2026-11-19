@@ -1,5 +1,3 @@
-/* Figma "Gallery" 873:5445 */
-
 :host { display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
 
 .gallery-main {
@@ -14,7 +12,6 @@
   border-radius: var(--radius-22);
 }
 
-/* Nhỏ hơn Figma (316px) vì DB chỉ có 1 ảnh bìa, khung 600px trông quá to */
 .gallery-cover {
   width: 260px;
   max-width: 100%;

@@ -1,5 +1,3 @@
-/* Trang Thu mua sách — Figma 829:2668. Các section riêng nằm trong ./sections */
-
 /* ---------- Khu thanh lý — Figma 837:3332 ---------- */
 .sell { padding: 104px 0; border-bottom: var(--border-default) solid var(--color-border-strong); }
 
@@ -23,7 +21,6 @@
 
 .cta-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-10); margin: 0; }
 .cta-main { font: 800 32px/normal var(--font-display); letter-spacing: -0.48px; }
-/* Instrument Serif: chỉ chữ tiếng Anh */
 .cta-accent { font: italic 400 38px/normal var(--font-serif); color: var(--color-text-serif); }
 .cta-desc { margin: 6px 0 0; font: 400 14px/normal var(--font-sans); color: var(--color-text-body); }
 

@@ -1,5 +1,3 @@
-/* Hướng dẫn thanh lý + bảng định giá — Figma 837:3333 */
-
 :host { display: block; }
 
 .guide { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-24); }

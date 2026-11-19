@@ -5,7 +5,6 @@
 .al-sticker-left { top: 60px; left: 60px; }
 .al-sticker-right { top: 110px; right: 108px; }
 
-/* Nút tìm (icon kính lúp) ở cuối ô tìm kiếm */
 .al-search-btn {
   display: flex;
   flex-shrink: 0;
@@ -21,7 +20,6 @@
 
 .al-search-btn:hover { background: var(--color-tint-pink); }
 
-/* Hàng chữ cái luôn 1 dòng: co giãn cho vừa bề ngang, màn hẹp thì vuốt ngang */
 .al-letters {
   flex-wrap: nowrap;
   gap: var(--space-6);
@@ -69,7 +67,6 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  /* Dùng margin, không dùng padding: padding nằm trong vùng overflow làm lộ nửa dòng thứ 3 */
   margin: var(--space-8) 0 var(--space-6);
   font: italic 400 13px/1.6 var(--font-sans);
   color: var(--color-text-body);

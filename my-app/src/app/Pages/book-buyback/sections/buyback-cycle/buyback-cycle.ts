@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 
-/** "Một cuốn sách, many lives" — 4 bước và số liệu cộng đồng, Figma 829:3091 */
 @Component({
   selector: 'app-buyback-cycle',
   standalone: false,

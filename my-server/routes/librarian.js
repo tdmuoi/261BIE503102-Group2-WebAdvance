@@ -1,44 +1,24 @@
 // =====================================================================
 // API Thủ thư Lightbook   (gắn vào index.js: app.use('/api', librarianRoutes(() => database)))
-//
-// Chatbot gợi ý sách cho web khách (my-app):
-//   POST /api/librarian   body { message, history }
-//     message  tin nhắn mới của khách (bắt buộc, tối đa 500 ký tự)
-//     history  [{ role: 'user' | 'bot', text }] — chỉ dùng 6 lượt gần nhất
-//   → { reply, followUp, books: [{ ...sách, authorName, categoryName, reason }] }
-//
-// Cách làm: kho < 500 cuốn nên không dùng embedding. Toàn bộ sách đang bán được rút gọn
-// thành danh mục mỗi cuốn 1 dòng (mã ngắn B1, B2… thay cho _id), đưa vào systemInstruction
-// của Gemini, model trả JSON { reply, books: [{ code, reason }], followUp }.
-// Mã model trả về được đối chiếu lại với kho trước khi trả cho khách.
-//
-// Biến môi trường: GEMINI_API_KEY (bắt buộc), GEMINI_MODEL (model chính, mặc định gemini-2.5-flash;
-// có thể ghi nhiều model cách nhau dấu phẩy). Các model dự phòng luôn được nối thêm phía sau.
 // =====================================================================
 const express = require('express');
 const { GoogleGenAI, Type } = require('@google/genai');
 const { publicBook } = require('./customer');
 
-// Gói miễn phí giới hạn số lượt theo TỪNG model (vd gemini-2.5-flash chỉ 20 lượt/ngày),
-// nên model chính hết lượt hoặc quá tải thì chuyển sang model kế tiếp.
 const FALLBACK_MODELS = ['gemini-flash-lite-latest', 'gemini-3-flash-preview'];
 const MODELS = [...new Set([
   ...String(process.env.GEMINI_MODEL || 'gemini-2.5-flash').split(',').map((m) => m.trim()).filter(Boolean),
   ...FALLBACK_MODELS,
 ])];
-// Model hết lượt mà Google không báo thời gian chờ thì tạm bỏ qua 1 phút
 const DEFAULT_COOLDOWN_MS = 60 * 1000;
 const CACHE_MS = 10 * 60 * 1000;
 const MAX_MESSAGE = 500;
 const MAX_HISTORY = 6;
 const MAX_TURN_TEXT = 800;
 const DESC_SHORT = 160;
-// Sách văn học / tiểu thuyết cần mô tả dài hơn để đoán gu đọc (cảm xúc, kiểu kết thúc)
 const DESC_LONG = 250;
 const LONG_DESC_SLUGS = new Set(['van-hoc-nuoc-ngoai', 'van-hoc-viet-nam', 'fiction', 'trinh-tham']);
-// Danh mục dưới ngưỡng này (ước lượng ký tự / 4) mới dùng mô tả dài
 const TOKEN_BUDGET = 30000;
-// Sách cũ chưa có field bookType: suy ra từ slug thể loại (giống my-app BookService)
 const TYPE_BY_CATEGORY = { 'used-book': 'used', ebook: 'ebook' };
 
 const MESSAGES = {
@@ -116,7 +96,6 @@ DANH MỤC (mã | tên sách | tác giả | thể loại | giá | loại | mô t
 ${catalogText}`;
 }
 
-// "Khách: … / Thủ thư: …" — lịch sử ngắn để khách hỏi tiếp được ("cuốn thứ 2 có khó không")
 function buildPrompt(message, history) {
   const turns = (Array.isArray(history) ? history : [])
     .filter((turn) => turn && typeof turn.text === 'string' && turn.text.trim())
@@ -125,7 +104,6 @@ function buildPrompt(message, history) {
   return turns.length ? `Lịch sử trò chuyện:\n${turns.join('\n')}\n\nTin nhắn mới của khách: ${message}` : message;
 }
 
-// 429: hết hạn mức gói miễn phí; 503: model Gemini đang quá tải (thường chỉ vài giây)
 function isOverloaded(error) {
   return error?.status === 503 || /UNAVAILABLE/.test(String(error?.message));
 }
@@ -138,12 +116,10 @@ function isBusy(error) {
   return isQuotaExceeded(error) || isOverloaded(error);
 }
 
-// Model bị Google gỡ / đổi tên (404) thì bỏ qua, thử model sau
 function isModelMissing(error) {
   return error?.status === 404 || /NOT_FOUND/.test(String(error?.message));
 }
 
-// Google trả "retryDelay": "78742s" khi hết lượt → bỏ qua model đó đến lúc ấy
 function cooldownMs(error) {
   const seconds = Number(String(error?.message).match(/retryDelay"?\s*:\s*"(\d+(?:\.\d+)?)s"/)?.[1]);
   return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : DEFAULT_COOLDOWN_MS;
@@ -158,12 +134,10 @@ module.exports = function librarianRoutes(getDb) {
 
   function getClient() {
     if (!process.env.GEMINI_API_KEY) throw new Error('Missing GEMINI_API_KEY');
-    // @google/genai 3.x mặc định gọi API v1, bản này không nhận systemInstruction → phải dùng v1beta
     ai ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, apiVersion: 'v1beta', httpOptions: { timeout: 20000 } });
     return ai;
   }
 
-  // Thử lần lượt từng model; model hết lượt (429) được ghi nhớ để các câu sau không gọi phí
   const skipUntil = new Map();
 
   async function generate(request) {
@@ -183,7 +157,6 @@ module.exports = function librarianRoutes(getDb) {
     throw lastError;
   }
 
-  // Tên tác giả và thể loại theo String(_id): DB lưu ObjectId hoặc string đều khớp
   async function loadNames() {
     const [authors, categories] = await Promise.all([
       getDb().collection('authors').find({}).project({ name: 1 }).toArray(),
@@ -195,7 +168,6 @@ module.exports = function librarianRoutes(getDb) {
     };
   }
 
-  // Danh mục rút gọn, cache 10 phút. Chỉ sách đang bán; bỏ sách giấy hết hàng (ebook không có tồn kho)
   async function getCatalog() {
     if (catalogCache && Date.now() - cachedAt < CACHE_MS) return catalogCache;
 
@@ -261,14 +233,12 @@ module.exports = function librarianRoutes(getDb) {
 
       const data = JSON.parse(result.text || '{}');
 
-      // Chỉ giữ mã có thật trong danh mục, bỏ trùng, tối đa 6 cuốn
       const seen = new Set();
       const picks = (Array.isArray(data.books) ? data.books : [])
         .map((pick) => ({ id: catalog.codeToId.get(String(pick?.code ?? '').trim().toUpperCase()), reason: String(pick?.reason ?? '').trim() }))
         .filter((pick) => pick.id && !seen.has(pick.id) && seen.add(pick.id))
         .slice(0, 6);
 
-      // Lấy đủ thông tin (giá, ảnh…) mới nhất từ DB, giữ đúng thứ tự model đã xếp
       const docs = picks.length
         ? await books().find({ _id: { $in: picks.map((pick) => catalog.idToBook.get(pick.id)) }, status: 'active' }).toArray()
         : [];

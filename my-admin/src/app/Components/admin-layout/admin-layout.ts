@@ -5,15 +5,6 @@ import { filter } from 'rxjs';
 import { AdminAuthService } from '../../services/admin-auth-service';
 import { canAccessRoute, landingPage } from '../../services/admin-route-access';
 
-/**
- * Khung chung cho mọi trang admin (trừ /login): sidebar + topbar + <router-outlet>.
- * Đã gắn sẵn trong app-routing-module.ts, các trang con KHÔNG cần tự thêm sidebar/topbar.
- *
- * Muốn thêm mục menu: thêm 1 dòng vào navGroups bên dưới.
- *   - link : đường dẫn khi bấm
- *   - match: các đường dẫn con cũng làm sáng mục này (vd /book-form/123 vẫn sáng "Sách")
- *   - icon : chuỗi path SVG (viewBox 24x24, nét 2px)
- */
 export interface NavItem {
   label: string;
   link: string;
@@ -107,11 +98,9 @@ export class AdminLayout {
     },
   ];
 
-  /** Sidebar trên điện thoại/tablet (màn hình < 1024px) */
   sidebarOpen = false;
   currentUrl = this.router.url;
 
-  /** Display identity only from the verified in-memory session. */
   get admin() { return this.readAdmin(); }
 
   get visibleGroups(): NavGroup[] {
@@ -138,7 +127,7 @@ export class AdminLayout {
       )
       .subscribe((e) => {
         this.currentUrl = e.urlAfterRedirects;
-        this.sidebarOpen = false; // chuyển trang thì đóng sidebar trên mobile
+        this.sidebarOpen = false;
       });
   }
 
@@ -151,7 +140,6 @@ export class AdminLayout {
     this.sidebarOpen = !this.sidebarOpen;
   }
 
-  /** Ô tìm kiếm trên topbar: tìm sách theo tên/SKU -> /book-list?q=... */
   search(keyword: string): void {
     const q = keyword.trim();
     this.router.navigate(['/book-list'], { queryParams: q ? { q } : {} });
@@ -173,7 +161,6 @@ export class AdminLayout {
           try {
             localStorage.removeItem('adminUser');
           } catch {
-            /* Storage may be disabled. */
           }
           void this.router.navigate(['/login']);
         },

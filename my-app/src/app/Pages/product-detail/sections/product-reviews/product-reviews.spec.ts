@@ -6,7 +6,6 @@ import { RouterModule } from '@angular/router';
 import { Review } from '../../../../models/book';
 import { ProductReviews } from './product-reviews';
 
-/** Dữ liệu giả chỉ dùng trong test — app chưa có API đánh giá */
 const review = (id: string, rating: number): Review => ({
   _id: id,
   userName: 'Thu Hà',

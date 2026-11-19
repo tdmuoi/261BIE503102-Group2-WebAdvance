@@ -1,5 +1,3 @@
-/* Sách thanh lý — Figma 837:3517 (chip 837:3528, lưới 5 cột, nút Xem thêm 837:3769) */
-
 :host { display: block; }
 
 .used { display: flex; flex-direction: column; gap: var(--space-32); padding-top: 104px; padding-bottom: 72px; }

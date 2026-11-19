@@ -15,7 +15,6 @@ const PAGE_SIZE = 10;
 const CHEAP_PRICE = 50_000;
 const CATEGORY_CHIPS = 3;
 
-/** Thể loại dùng để đánh dấu loại sách, không hiện thành chip */
 const HIDDEN_CATEGORY_SLUGS = ['uncategorized', 'used-book', 'ebook'];
 
 const SORTS: { value: SortKey; label: string }[] = [
@@ -24,7 +23,6 @@ const SORTS: { value: SortKey; label: string }[] = [
   { value: 'price-desc', label: 'Giá cao đến thấp' },
 ];
 
-/** "Sách thanh lý second chances" — Figma 837:3517 */
 @Component({
   selector: 'app-buyback-used',
   standalone: false,
@@ -32,7 +30,6 @@ const SORTS: { value: SortKey; label: string }[] = [
   templateUrl: './buyback-used.html',
 })
 export class BuybackUsed {
-  /** Sách cũ đang bán (loại "used") */
   readonly books = input<CatalogBook[]>([]);
   readonly state = input<'loading' | 'ready' | 'error'>('loading');
   readonly retry = output<void>();
@@ -44,10 +41,6 @@ export class BuybackUsed {
   protected readonly sort = signal<SortKey>('newest');
   protected readonly visible = signal(PAGE_SIZE);
 
-  /**
-   * Chip lọc sinh từ dữ liệu thật: hạng tình trạng (chỉ khi sách có field condition),
-   * "Dưới 50.000đ" và các thể loại có nhiều sách cũ nhất.
-   */
   protected readonly chips = computed<Chip[]>(() => {
     const books = this.books();
     const chips: Chip[] = [{ id: 'all', label: 'Tất cả', test: () => true }];

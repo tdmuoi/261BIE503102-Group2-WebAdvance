@@ -12,7 +12,6 @@ export class DashboardService {
   private readonly auth = inject(AdminAuthService);
   private readonly baseUrl = `${environment.apiUrl}/admin/dashboard`;
 
-  /** Số liệu tổng quan của N ngày gần nhất (tính cả hôm nay) */
   getDashboard(days = 7): Observable<DashboardData> {
     const params = new HttpParams().set('days', days);
     return this.http.get<DashboardData>(this.baseUrl, { params, withCredentials: true });

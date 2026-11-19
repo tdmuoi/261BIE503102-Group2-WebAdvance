@@ -47,7 +47,7 @@ describe('Checkout', () => {
     component = fixture.componentInstance;
     el = fixture.nativeElement;
     fixture.detectChanges();
-    vi.advanceTimersByTime(400); // sổ địa chỉ
+    vi.advanceTimersByTime(400);
     if (selectMomo) component.selectPayment('momo');
     fixture.detectChanges();
   }
@@ -173,15 +173,14 @@ describe('Checkout', () => {
     expect(pending.orderCode).toBe('LB-26117');
     expect(pending.paymentStatus).toBe('unpaid');
     expect(el.querySelector('.pay-modal')?.textContent).toContain('Trả bằng thẻ ATM qua MoMo');
-    expect(el.querySelector('.pay-modal')?.textContent).not.toContain('9704'); // không lộ thẻ test cho khách
+    expect(el.querySelector('.pay-modal')?.textContent).not.toContain('9704');
     expect(db.calls).toContain('POST /orders');
-    expect(TestBed.inject(CartService).items().length).toBe(2); // chưa trả tiền thì giỏ còn nguyên
+    expect(TestBed.inject(CartService).items().length).toBe(2);
     component.payWithMomo();
     vi.advanceTimersByTime(900);
     expect(db.calls).toContain(`POST /orders/${pending._id}/momo`);
     expect(redirect).toHaveBeenCalledWith('https://test-payment.momo.vn/v2/gateway/pay?t=LB26117-test');
 
-    // MoMo đưa khách về /checkout?partnerCode=MOMO&orderId=LB26117-test&…
     component.verifyMomo('LB26117-test');
     expect(component.momoCheck()?.state).toBe('verifying');
     vi.advanceTimersByTime(900);

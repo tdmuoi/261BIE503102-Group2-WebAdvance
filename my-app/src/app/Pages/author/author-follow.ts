@@ -5,11 +5,6 @@ import { AuthService } from '../../services/auth-service';
 import { EngagementService } from '../../services/engagement-service';
 import { ToastService } from '../../services/toast-service';
 
-/**
- * Nút "Theo dõi tác giả" và "Chia sẻ" trên các trang Tác giả.
- * Danh sách tác giả đang theo dõi tải lại mỗi khi đăng nhập / đăng xuất;
- * bấm nút đổi ngay giữa "Theo dõi tác giả" ↔ "Đã theo dõi", lỗi thì trả lại như cũ.
- */
 @Injectable({ providedIn: 'root' })
 export class AuthorFollow {
   private readonly engagement = inject(EngagementService);
@@ -60,7 +55,6 @@ export class AuthorFollow {
     });
   }
 
-  /** Chia sẻ trang hiện tại: dùng bảng chia sẻ của máy, không có thì sao chép liên kết */
   async share(title: string): Promise<void> {
     const url = location.href;
     try {
@@ -71,7 +65,6 @@ export class AuthorFollow {
       await navigator.clipboard.writeText(url);
       this.toast.show('Đã sao chép liên kết trang tác giả.');
     } catch (error) {
-      // Người dùng tự đóng bảng chia sẻ thì không báo lỗi
       if ((error as DOMException)?.name !== 'AbortError') this.toast.show('Không chia sẻ được, vui lòng sao chép địa chỉ trang.');
     }
   }

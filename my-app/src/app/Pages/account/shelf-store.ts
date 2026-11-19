@@ -6,7 +6,6 @@ import { AccountService } from '../../services/account-service';
 import { WishlistService } from '../../services/wishlist-service';
 import { LibraryEbook } from './bookshelf-ebooks/library';
 
-/** Một cuốn trong "Sách đã mua" */
 export interface PurchasedBook {
   key: string;
   bookId: string;
@@ -16,16 +15,11 @@ export interface PurchasedBook {
   price: number;
   format: ItemFormat;
   kind: 'new' | 'used' | 'ebook';
-  /** "Sách mới" / "Sách cũ · 90% mới" / "Sách điện tử" */
   typeLabel: string;
   orderCode: string;
   purchasedAt: string;
 }
 
-/**
- * Dữ liệu dùng chung cho 3 tab Tủ sách (Sách điện tử / Sách đã mua / Wishlist):
- * đơn hàng, thư viện ebook, số sao đã đánh giá và số đếm trên tab.
- */
 @Injectable({ providedIn: 'root' })
 export class ShelfStore {
   private readonly account = inject(AccountService);
@@ -36,7 +30,6 @@ export class ShelfStore {
   readonly ebooks = signal<LibraryEbook[]>([]);
   readonly ratings = signal<Record<string, number>>({});
 
-  /** Sách trong các đơn đã xác nhận trở đi (đơn chờ xác nhận / đã huỷ không tính), mới nhất trước */
   readonly purchased = computed<PurchasedBook[]>(() =>
     this.orders()
       .filter((o) => !['pending', 'cancelled', 'returned'].includes(o.status))
@@ -77,7 +70,6 @@ export class ShelfStore {
   }
 }
 
-/** Bỏ dấu + chữ thường để tìm kiếm */
 export function normalizeText(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
 }

@@ -36,7 +36,6 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const NOTE_MAX = 300;
 const PHOTO_REQUIRED = 'Tải lên ít nhất 1 ảnh sách (bìa trước, bìa sau hoặc gáy sách) để Lightbook ước giá chính xác.';
 
-/** Lỗi khi gửi phiếu: ưu tiên câu báo lỗi của server */
 function submitErrorMessage(error: unknown): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 0) return 'Không gửi được yêu cầu. Kiểm tra kết nối mạng rồi thử lại.';
@@ -47,15 +46,12 @@ function submitErrorMessage(error: unknown): string {
   return 'Không gửi được yêu cầu, bạn thử lại sau ít phút nhé.';
 }
 
-/** Khoá chống gửi trùng cho một lần điền phiếu (server cần 16–128 ký tự [A-Za-z0-9_-]) */
 function newIdempotencyKey(): string {
   return `bb_${crypto.randomUUID().replace(/-/g, '')}`;
 }
 
-/** Số di động Việt Nam: 0 hoặc +84, đầu số 3/5/7/8/9, tổng 10 số (bỏ qua dấu cách, chấm) */
 const PHONE_PATTERN = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
 
-/** Lỗi hiển thị theo từng field (tiếng Việt) */
 const MESSAGES: Record<string, Record<string, string>> = {
   title: { required: 'Nhập tên sách hoặc mã ISBN', maxlength: 'Tên sách tối đa 200 ký tự' },
   author: { required: 'Nhập tên tác giả', maxlength: 'Tên tác giả tối đa 120 ký tự' },
@@ -89,7 +85,6 @@ function phoneValidator(control: AbstractControl): ValidationErrors | null {
   return !value || PHONE_PATTERN.test(value) ? null : { phone: true };
 }
 
-/** Sách có lựa chọn Lightbook không nhận (thiếu / rách trang) */
 function acceptedValidator(control: AbstractControl): ValidationErrors | null {
   const { cover, spine, pages, extras } = control.value as BookCondition;
   return gradeOf({ cover, spine, pages, extras }).status === 'rejected' ? { notAccepted: true } : null;
@@ -120,7 +115,6 @@ interface Photo {
   url: string;
 }
 
-/** Tóm tắt hiện ở màn xác nhận sau khi gửi */
 interface Receipt {
   code: string | null;
   books: number;
@@ -130,7 +124,6 @@ interface Receipt {
   email: string;
 }
 
-/** Phiếu thanh lý sách 3 bước — Figma 849:3939 */
 @Component({
   selector: 'app-buyback-form',
   standalone: false,
@@ -145,7 +138,6 @@ interface Receipt {
   templateUrl: './buyback-form.html',
 })
 export class BuybackForm {
-  /** Sách trong DB để gợi ý tên / ISBN */
   readonly books = input<CatalogBook[]>([]);
 
   private readonly auth = inject(AuthService);
@@ -203,7 +195,6 @@ export class BuybackForm {
   });
 
   protected readonly step = signal<Step>(1);
-  /** Hướng trượt của panel khi đổi bước */
   protected readonly direction = signal<'next' | 'prev'>('next');
   protected readonly photos = signal<Photo[]>([]);
   protected readonly photoError = signal('');
@@ -211,16 +202,12 @@ export class BuybackForm {
   protected readonly sending = signal(false);
   protected readonly submitError = signal('');
   protected readonly receipt = signal<Receipt | null>(null);
-  /** Popup "Đã gửi yêu cầu thanh lý" */
   protected readonly successOpen = signal(false);
-  /** Đang tải ảnh lên / đang gửi phiếu — chữ trên nút gửi */
   protected readonly sendingLabel = signal('');
-  /** Chưa đăng nhập mà bấm "Tiếp tục" ở bước 1 */
   protected readonly loginRequired = signal(false);
   private idempotencyKey = newIdempotencyKey();
 
   protected readonly user = this.auth.user;
-  /** Đã đăng nhập: các field điền sẵn khoá lại cho tới khi bấm "Chỉnh sửa" */
   protected readonly editingProfile = signal(false);
   private readonly prefilled = signal<ReadonlySet<string>>(new Set());
 
@@ -241,7 +228,6 @@ export class BuybackForm {
     ].join(' · ');
   });
 
-  /** Tên ngắn (2 chữ cuối) và chữ viết tắt cho băng "Đã đăng nhập" */
   protected readonly shortName = computed(() => (this.user()?.fullName ?? '').trim().split(/\s+/).slice(-2).join(' '));
   protected readonly initials = computed(() =>
     this.shortName()
@@ -269,13 +255,11 @@ export class BuybackForm {
       return;
     }
     if (this.step() === 1) {
-      // Bắt buộc có ảnh sách mới qua bước sau
       if (!this.photos().length) {
         this.photoError.set(PHOTO_REQUIRED);
         this.focusUpload();
         return;
       }
-      // Phiếu gắn với tài khoản để khách theo dõi ở mục Thanh lý → cần đăng nhập
       if (!this.user()) {
         this.loginRequired.set(true);
         return;
@@ -288,7 +272,6 @@ export class BuybackForm {
     this.goTo((this.step() - 1) as Step);
   }
 
-  /** Bấm bước đã xong trên stepper để quay lại */
   protected goTo(step: Step): void {
     if (step === this.step() || step < 1 || step > 3) return;
     if (step > this.step() && step - this.step() > 1) return;
@@ -309,7 +292,6 @@ export class BuybackForm {
     if (this.items.length > 1) this.items.removeAt(index);
   }
 
-  /** Khớp tên hoặc ISBN với sách trong DB thì điền sẵn tác giả và giá bìa (nếu còn trống) */
   protected onTitleChange(item: ItemGroup): void {
     const raw = item.controls.title.value.trim();
     const key = raw.toLowerCase();
@@ -329,7 +311,6 @@ export class BuybackForm {
     return value ? new Intl.NumberFormat('vi-VN').format(value) : '';
   }
 
-  /** Ô giá bìa: chỉ nhận số, tự chấm hàng nghìn */
   protected onPriceInput(item: ItemGroup, event: Event): void {
     const input = event.target as HTMLInputElement;
     const digitsBeforeCursor = input.value.slice(0, input.selectionStart ?? input.value.length).replace(/\D/g, '').length;
@@ -351,7 +332,6 @@ export class BuybackForm {
     control.markAsTouched();
   }
 
-  /** "Không có" loại trừ các lựa chọn khác và ngược lại */
   protected toggleExtra(item: ItemGroup, id: string): void {
     const control = item.controls.extras;
     const current = control.value;
@@ -433,7 +413,6 @@ export class BuybackForm {
 
   protected submit(): void {
     if (this.sending()) return;
-    // Phòng trường hợp dữ liệu bước trước bị đổi: quay về bước đầu tiên còn lỗi
     if (this.items.invalid) return this.reopen(1, this.items);
     if (this.customer.invalid) return this.reopen(2, this.customer);
     if (this.send.invalid) {
@@ -460,7 +439,6 @@ export class BuybackForm {
       customer: {
         ...value.customer,
         fullName: value.customer.fullName.trim(),
-        // Server nhận dạng 0xxxxxxxxx: đổi +84 về 0
         phone: value.customer.phone.replace(/[\s.]/g, '').replace(/^\+84/, '0'),
         email: value.customer.email.trim(),
         returnAddress: value.customer.returnAddress.trim(),
@@ -473,7 +451,6 @@ export class BuybackForm {
     this.sending.set(true);
     this.sendingLabel.set('Đang tải ảnh…');
     this.submitError.set('');
-    // Tải ảnh lên Cloudinary trước, phiếu chỉ gửi kèm đường link ảnh
     forkJoin(this.photos().map((photo) => this.uploads.uploadImage(photo.file, 'buyback')))
       .pipe(
         switchMap((images) => {
@@ -506,7 +483,6 @@ export class BuybackForm {
     this.successOpen.set(false);
   }
 
-  /** Sau khi gửi xong: làm phiếu mới */
   protected restart(): void {
     this.photos().forEach((photo) => URL.revokeObjectURL(photo.url));
     this.photos.set([]);
@@ -523,7 +499,6 @@ export class BuybackForm {
 
   // ---------- Hiển thị lỗi ----------
 
-  /** Lỗi tiếng Việt của một field, chỉ hiện sau khi người dùng đã chạm vào field */
   protected error(control: AbstractControl, field: string): string | null {
     if (!control.touched || !control.errors) return null;
     const messages = MESSAGES[field] ?? {};
@@ -531,7 +506,6 @@ export class BuybackForm {
     return key ? messages[key] : null;
   }
 
-  /** Mất ảnh (hiếm): quay lại bước 1 và báo thiếu ảnh */
   private reopenPhotos(): void {
     this.direction.set('prev');
     this.step.set(1);
@@ -554,7 +528,6 @@ export class BuybackForm {
     this.focusFirstError();
   }
 
-  /** Chờ template vẽ lỗi xong rồi đưa con trỏ tới field lỗi đầu tiên */
   private focusFirstError(): void {
     setTimeout(() => {
       const target = this.host.querySelector<HTMLElement>('[aria-invalid="true"]');
@@ -563,7 +536,6 @@ export class BuybackForm {
     });
   }
 
-  /** Đổi bước khi đầu phiếu đã cuộn khuất thì đưa đầu phiếu về trong màn hình */
   private scrollToTop(): void {
     const card = this.card().nativeElement;
     if (card.getBoundingClientRect().top < 0) card.scrollIntoView({ behavior: 'smooth', block: 'start' });

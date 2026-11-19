@@ -21,7 +21,6 @@ export interface WishlistCard {
   type?: string;
 }
 
-/** Tủ sách – Wishlist (Figma "Pages/account/wishlist") */
 @Component({
   selector: 'app-wishlist',
   standalone: false,
@@ -40,7 +39,6 @@ export class Wishlist implements OnInit {
   readonly counts = this.shelf.counts;
   readonly query = signal('');
 
-  /** null = đang tải danh mục */
   private readonly catalog = toSignal(
     this.bookService.getCatalog().pipe(
       map((c) => new Map(c.books.map((b) => [b._id, b] as const))),
@@ -51,7 +49,6 @@ export class Wishlist implements OnInit {
   readonly loading = computed(() => this.catalog() === null || this.wishlist.status() === 'loading');
   readonly loadError = computed(() => this.wishlist.status() === 'error');
 
-  /** Ghép wishlist với danh mục để có giá hiện tại, giảm giá, tác giả */
   readonly cards = computed<WishlistCard[]>(() => {
     const catalog = this.catalog() ?? new Map<string, CatalogBook>();
     return this.wishlist.items().map((item) => toCard(item, catalog.get(item.bookId)));

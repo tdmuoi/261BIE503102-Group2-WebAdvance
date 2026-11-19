@@ -5,7 +5,6 @@ import { Observable, from, switchMap, map } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth-service';
 
-/** avatar: ảnh đại diện; buyback: ảnh sách trong phiếu thanh lý; review: ảnh đính kèm đánh giá */
 export type UploadPurpose = 'avatar' | 'buyback' | 'review';
 
 interface UploadSignature {
@@ -17,15 +16,9 @@ interface UploadSignature {
   allowed_formats: string;
 }
 
-/** Cạnh dài nhất sau khi thu nhỏ (px) */
 const MAX_SIDE: Record<UploadPurpose, number> = { avatar: 400, buyback: 1400, review: 1400 };
 const JPEG_QUALITY = 0.85;
 
-/**
- * Tải ảnh của khách lên Cloudinary, trả về đường link https để lưu vào MongoDB.
- * Ảnh được thu nhỏ ở trình duyệt, xin chữ ký từ my-server (GET /api/uploads/signature)
- * rồi tải thẳng lên Cloudinary — ảnh không đi qua my-server, API secret không lộ ra web.
- */
 @Injectable({ providedIn: 'root' })
 export class UploadService {
   private readonly http = inject(HttpClient);
@@ -54,7 +47,6 @@ export class UploadService {
   }
 }
 
-/** Thu nhỏ ảnh về cạnh dài tối đa `maxSide` px, xuất JPEG; ảnh đã nhỏ thì vẫn nén lại cho nhẹ */
 async function shrink(file: File, maxSide: number): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
@@ -62,7 +54,6 @@ async function shrink(file: File, maxSide: number): Promise<Blob> {
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   const ctx = canvas.getContext('2d')!;
-  // Nền trắng cho ảnh PNG trong suốt khi chuyển sang JPEG
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);

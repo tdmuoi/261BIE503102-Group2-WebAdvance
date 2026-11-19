@@ -21,7 +21,6 @@
 .table th, .table td { white-space: nowrap; }
 .num { text-align: right; }
 .row { cursor: pointer; }
-/* Khi mở panel chi tiết: ẩn bớt cột phụ cho bảng gọn */
 .has-panel .opt { display: none; }
 .row:focus-visible { outline: 2px solid var(--admin-ink); outline-offset: -2px; }
 .row.is-active td { background: var(--accent-mint); }
@@ -30,7 +29,6 @@
 
 @media (max-width: 1100px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* Màn hẹp: panel chi tiết phủ lên trang */
   .layout.has-panel { grid-template-columns: minmax(0, 1fr); }
   .panel-wrap { position: fixed; inset: 0 0 0 auto; z-index: 800; width: min(440px, 100%); top: 0; box-shadow: -10px 0 40px rgba(28, 25, 23, .15); }
   .panel-wrap app-order-detail { height: 100vh; max-height: none; border-radius: 0; }

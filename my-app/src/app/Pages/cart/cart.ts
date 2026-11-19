@@ -7,7 +7,6 @@ import { CartFacade, CartLine } from './cart-facade';
 import { computeTotals } from './pricing';
 import { VoucherState } from './voucher-state';
 
-/** Trang Giỏ hàng (Figma "Pages/cart · Giỏ hàng" + "Giỏ hàng trống") */
 @Component({
   selector: 'app-cart',
   standalone: false,
@@ -44,7 +43,6 @@ export class Cart {
   readonly comboFreeship = computed(() => this.facade.comboTotals().freeship && this.totals().hasPhysical);
   readonly cartIds = computed(() => this.lines().map((l) => l.bookId));
 
-  /** Ô mã giảm giá (dùng chung với trang Thanh toán) */
   readonly voucherField = new VoucherState(this.facade, this.destroyRef);
   readonly voucherInput = this.voucherField.input;
   readonly voucherError = this.voucherField.error;
@@ -95,10 +93,6 @@ export class Cart {
     this.voucherField.clear();
   }
 
-  /**
-   * "Xem Flash Sale": về trang chủ rồi cuộn tới phần Flash Sale. Phần này chỉ có sau khi trang chủ tải xong sách,
-   * nên chờ phần tử #flashsale xuất hiện (tối đa 8 giây) rồi mới cuộn.
-   */
   goFlashSale(event: Event): void {
     event.preventDefault();
     this.router.navigate(['/'], { fragment: 'flashsale' }).then(() => {

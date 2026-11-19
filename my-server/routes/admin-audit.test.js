@@ -1,4 +1,3 @@
-﻿// Integration HTTP tests use an isolated in-memory repository only. Never connects to MongoDB.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { scryptSync } = require("node:crypto");
@@ -352,7 +351,6 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       assert.equal((await request('/api/admin/accounts/admins')).status, 200);
     } finally {
       role.permissions = previous;
-      // Login rotates the incoming session; establish a fresh root fixture session.
       cookie = ''; csrf = '';
       assert.equal((await login()).status, 200);
     }
@@ -365,7 +363,6 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       const data = await r.json();
       assert.equal(data.items[0].orderCount, 2);
       assert.equal(data.items[0].totalSpent, 100000);
-      // Hạng thành viên dùng chung quy tắc với web khách: 900.000đ đơn đã giao → Đồng
       assert.equal(data.items[0].tier, "Đồng");
       assert.deepEqual(data.tiers, ["Đồng", "Bạc", "Vàng"]);
       assert.equal(data.stats.goldMembers, 0);
@@ -601,7 +598,6 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       assert.equal(row.quantity, null);
       assert.equal(row.price, null);
       const original = row.revision;
-      // Lưu định giá cho phiếu chưa duyệt: duyệt luôn và lưu giá thu mua
       let r = await request("/api/admin/buybacks/" + row.id, "PATCH", {
         action: "quote",
         revision: row.revision,
@@ -803,7 +799,6 @@ test("Admin audit: real auth middleware and scoped business APIs with isolated f
       assert.equal((await login("wrong")).status, 401);
     const limited = await login("wrong");
     assert.equal(limited.status, 429);
-    // Retry-After is the remaining window, not always its original duration.
     const retryAfter = Number(limited.headers.get("retry-after"));
     assert.ok(Number.isInteger(retryAfter) && retryAfter > 0 && retryAfter <= 900);
   });

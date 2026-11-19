@@ -6,7 +6,6 @@ import { AuthService } from './auth-service';
 
 import { Book } from '../models/book';
 
-/** Một dòng trong giỏ — lưu kèm tên, ảnh, giá lúc thêm để trang Giỏ hàng hiện ngay không cần gọi API */
 export interface CartItem {
   bookId: string;
   title: string;
@@ -17,10 +16,6 @@ export interface CartItem {
 
 const STORAGE_KEY = 'lightbook.cart';
 
-/**
- * Khách: localStorage. Đăng nhập: MongoDB theo tài khoản, có cache riêng.
- * Mở nhiều tab thì đồng bộ qua sự kiện "storage".
- */
 @Injectable({ providedIn: 'root' })
 export class CartService {
   private readonly http = inject(HttpClient);
@@ -43,7 +38,6 @@ export class CartService {
 
   readonly items = this.state.asReadonly();
 
-  /** Tổng số cuốn — hiện trên badge icon giỏ ở header */
   readonly count = computed(() => this.state().reduce((sum, item) => sum + item.quantity, 0));
 
   constructor() {
@@ -53,8 +47,6 @@ export class CartService {
     });
     const onStorage = (event: StorageEvent) => {
       if (!this.owner && event.key === STORAGE_KEY) this.state.set(readStorage());
-      // Refresh another tab only after a successful save removes its pending
-      // marker. Reading on every local cache edit could restore an older server cart.
       if (this.owner && event.key === `${this.storageKey()}.pending` && event.newValue === null &&
           !this.pending && !this.saving && !this.loading) this.refresh();
     };
@@ -71,7 +63,6 @@ export class CartService {
     return this.state().find((item) => item.bookId === bookId)?.quantity ?? 0;
   }
 
-  /** Thêm sách, đã có thì cộng dồn số lượng */
   add(book: Book, quantity: number): void {
     if (quantity <= 0) return;
     const items = [...this.state()];
@@ -84,7 +75,6 @@ export class CartService {
     this.replace(items);
   }
 
-  /** Điểm ghi chung cho thêm/xóa/đổi số lượng và dọn giỏ sau checkout. */
   replace(items: CartItem[]): void {
     this.state.set(items);
     this.edits++;
@@ -109,7 +99,7 @@ export class CartService {
       const key = `${this.storageKey()}.pending`;
       if (this.pending || this.saving || this.loading && this.edits) localStorage.setItem(key, JSON.stringify({ revision: this.revision }));
       else localStorage.removeItem(key);
-    } catch { /* Chặn storage không làm hỏng giỏ trong phiên hiện tại. */ }
+    } catch {  }
   }
 
   private switchOwner(owner: string | null, force = false): void {
@@ -129,8 +119,7 @@ export class CartService {
       const key = `${this.storageKey()}.pending`;
       unsaved = force ? null : JSON.parse(localStorage.getItem(key) || 'null');
       if (force) localStorage.removeItem(key);
-    } catch { /* Bỏ qua cache hỏng. */ }
-    // Only the guest basket is merged on login. Another account's cache is never merged.
+    } catch {  }
     const guest = force ? [] : readStorage();
     this.loading = true;
     this.syncState.set('loading');
@@ -140,8 +129,6 @@ export class CartService {
         this.loading = false;
         this.revision = response.revision;
         if (unsaved && unsaved.revision !== response.revision) {
-          // Keep unsent local edits after a refresh. Never silently overwrite a
-          // newer server revision, even if the previous save timed out.
           this.pending = this.loading = true;
           this.syncState.set('error');
           this.errorState.set('Giỏ tài khoản đã thay đổi. Bản chưa đồng bộ vẫn được giữ trên thiết bị; tải lại để dùng giỏ trên tài khoản.');
@@ -152,7 +139,6 @@ export class CartService {
           const found = items.find(i => i.bookId === item.bookId);
           items = found ? items.map(i => i.bookId === item.bookId ? { ...i, quantity: Math.max(i.quantity, item.quantity) } : i) : [...items, item];
         }
-        // Preserve remote-only books when someone adds/removes items during GET.
         if (this.edits || unsaved) {
           const current = this.state();
           const removed = new Set(beforeLoad.filter(i => !current.some(c => c.bookId === i.bookId)).map(i => i.bookId));
@@ -199,7 +185,6 @@ export class CartService {
   }
 
   private failed(error: unknown): void {
-    // A failed initial read must never turn into an overwrite of the remote cart.
     this.saving = false;
     this.syncState.set('error');
     this.errorState.set(error instanceof HttpErrorResponse && error.status === 409
@@ -224,7 +209,6 @@ function writeStorage(items: CartItem[], key = STORAGE_KEY): void {
   try {
     localStorage.setItem(key, JSON.stringify(items));
   } catch {
-    // Trình duyệt chặn localStorage (ẩn danh...) thì giỏ chỉ sống trong phiên này
   }
 }
 

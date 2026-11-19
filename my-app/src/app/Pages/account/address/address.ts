@@ -7,7 +7,6 @@ import { AccountService } from '../../../services/account-service';
 import { ToastService } from '../../../services/toast-service';
 import { ADDRESS_TYPES, AddressEditor, AddressSaved, formatPhone, fullAddress } from './address-editor';
 
-// Giữ export cũ cho các file đang import từ đây (vd. trang Thanh toán)
 export { ADDRESS_TYPES, formatPhone, fullAddress };
 
 @Component({
@@ -27,9 +26,7 @@ export class Address implements OnInit {
 
   readonly status = signal<'loading' | 'error' | 'ready'>('loading');
   readonly addresses = signal<AddressModel[]>([]);
-  /** Form thêm / sửa (logic dùng chung với trang Thanh toán) */
   readonly editor = new AddressEditor();
-  /** Xoá / đặt mặc định đang chạy */
   readonly busy = signal(false);
 
   ngOnInit(): void {
@@ -54,7 +51,6 @@ export class Address implements OnInit {
     return ADDRESS_TYPES.find((t) => t.value === type)?.label ?? '';
   }
 
-  /** Nút "+ Thêm địa chỉ mới": về form trống và cuộn tới form */
   startCreate(): void {
     this.editor.startCreate(this.addresses().length === 0);
     this.scrollToForm();

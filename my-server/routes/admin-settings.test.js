@@ -1,4 +1,3 @@
-﻿// All writes below target in-memory fixtures. No MongoDB connection or .env is used.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { ObjectId } = require("mongodb");

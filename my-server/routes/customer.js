@@ -1,8 +1,5 @@
 // =====================================================================
 // API cho web khách hàng (my-app). Gắn vào index.js MỘT lần:
-//   const customerRoutes = require('./routes/customer');
-//   app.use('/api', customerRoutes(() => database));
-// Chi tiết từng nhóm API xem đầu các file customer-*.js
 // =====================================================================
 const express = require('express');
 const customerAuthRoutes = require('./customer-auth');
@@ -25,7 +22,6 @@ module.exports = function customerRoutes(getDb) {
   router.use(require('./customer-follows')(getDb));
   router.use(customerWishlistRoutes(getDb));
 
-  // Lỗi trong các route khách hàng: trả JSON thay vì trang lỗi HTML
   router.use((error, req, res, next) => {
     console.error(`${req.method} ${req.originalUrl} failed:`, error.message);
     if (res.headersSent) return next(error);
@@ -37,8 +33,6 @@ module.exports = function customerRoutes(getDb) {
   return router;
 };
 
-// Public catalog data must not bypass the paid Ebook content/entitlement API.
-// Return a copy; keep source URLs and migration metadata unchanged in MongoDB.
 module.exports.publicBook = function publicBook(book) {
   if (book.bookType !== 'ebook' || book.price === 0) return book;
   const {

@@ -7,10 +7,6 @@ import { BookService } from '../../../../services/book-service';
 
 type State = { status: 'loading' } | { status: 'error' } | { status: 'ready'; books: CatalogBook[] };
 
-/**
- * Section "Có thể bạn cũng thích · you might also like" (Figma) — dùng ở Giỏ hàng, trang 404,
- * Đặt hàng thành công. Ưu tiên sách đang giảm giá, bỏ qua sách đã có trong giỏ (excludeIds).
- */
 @Component({
   selector: 'app-suggested-books',
   standalone: false,
@@ -40,7 +36,7 @@ export class SuggestedBooks {
     if (s.status !== 'ready') return [];
     const exclude = new Set(this.excludeIds());
     return s.books
-      .filter((b) => !exclude.has(b._id) && (b.type === 'ebook' || b.stock !== 0)) // ebook không có tồn kho
+      .filter((b) => !exclude.has(b._id) && (b.type === 'ebook' || b.stock !== 0))
       .sort((a, b) => b.discountPercent - a.discountPercent || Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .slice(0, this.limit());
   });

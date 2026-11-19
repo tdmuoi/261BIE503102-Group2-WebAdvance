@@ -5,7 +5,6 @@ import { environment } from '../../environments/environment';
 import { Book } from '../models/book';
 import { AuthService } from './auth-service';
 
-/** Một cuốn trong danh sách yêu thích. Khi đăng nhập, server trả thêm giá gốc, tác giả, loại sách */
 export interface WishlistItem {
   bookId: string;
   title: string;
@@ -15,22 +14,14 @@ export interface WishlistItem {
   originalPrice?: number;
   discountPercent?: number;
   author?: string;
-  /** new | used | ebook */
   type?: string;
   stock?: number | null;
 }
 
 type WishlistBook = Pick<Book, '_id' | 'title' | 'image' | 'price'>;
 
-/** Wishlist của khách chưa đăng nhập (xoá khi đăng nhập, không gộp vào tài khoản) */
 const GUEST_KEY = 'lightbook.wishlist';
 
-/**
- * Danh sách yêu thích.
- * - Đã đăng nhập: lưu trên server theo tài khoản (GET/POST/DELETE /api/wishlist — my-server/routes/customer-wishlist.js)
- * - Chưa đăng nhập: lưu tạm localStorage; đăng nhập / đăng xuất thì xoá (không gộp sang tài khoản).
- * Giao diện dùng has / toggle / items như cũ, cập nhật ngay rồi mới gọi API (lỗi thì trả lại như trước).
- */
 @Injectable({ providedIn: 'root' })
 export class WishlistService {
   private readonly http = inject(HttpClient);
@@ -42,11 +33,9 @@ export class WishlistService {
 
   readonly items = this.state.asReadonly();
   readonly count = computed(() => this.state().length);
-  /** Trạng thái tải từ server (chưa đăng nhập luôn là "ready") */
   readonly status = this.statusState.asReadonly();
 
   constructor() {
-    // Đổi người dùng (đăng nhập / đăng xuất / hết phiên) → tải lại đúng wishlist của người đó
     effect(() => {
       const userId = this.auth.user()?._id ?? null;
       untracked(() => (userId ? this.loadRemote() : this.loadGuest()));
@@ -83,7 +72,6 @@ export class WishlistService {
     });
   }
 
-  /** Thêm nếu chưa có, bỏ nếu đã có. Trả về true nếu sau khi bấm sách nằm trong wishlist */
   toggle(book: WishlistBook): boolean {
     if (this.has(book._id)) {
       this.remove(book._id);
@@ -93,7 +81,6 @@ export class WishlistService {
     return true;
   }
 
-  /** Tải lại từ server (nút "Thử lại" ở trang Wishlist) */
   reload(): void {
     if (this.auth.isLoggedIn()) this.loadRemote();
     else this.loadGuest();
@@ -104,10 +91,6 @@ export class WishlistService {
     this.statusState.set('ready');
   }
 
-  /**
-   * Lấy wishlist của tài khoản trên server. Wishlist lúc chưa đăng nhập KHÔNG gộp vào tài khoản
-   * (máy dùng chung thì tài khoản mới sẽ thấy sách người khác đã thả tim) — xoá luôn khi đăng nhập.
-   */
   private loadRemote(): void {
     this.statusState.set('loading');
     this.state.set([]);
@@ -148,7 +131,6 @@ export class WishlistService {
 function readGuest(): WishlistItem[] {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(GUEST_KEY) ?? '[]');
-    // Bỏ sách mẫu "mock-..." của bản demo cũ
     return Array.isArray(parsed) ? parsed.filter((x) => x && typeof x.bookId === 'string' && !x.bookId.startsWith('mock-')) : [];
   } catch {
     return [];
@@ -160,6 +142,5 @@ function writeGuest(items: WishlistItem[]): void {
     if (items.length) localStorage.setItem(GUEST_KEY, JSON.stringify(items));
     else localStorage.removeItem(GUEST_KEY);
   } catch {
-    // Trình duyệt chặn localStorage thì chỉ giữ trong phiên này
   }
 }

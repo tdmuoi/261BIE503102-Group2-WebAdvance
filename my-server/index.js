@@ -21,13 +21,11 @@ const port = Number(process.env.PORT) || 3002;
 const dbName = process.env.DB_NAME;
 const mongoUri = process.env.MONGODB_URI;
 
-// Cookie/CSRF preflight must run before the existing CORS middleware.
 const adminAuth = createAdminAuth(() => database);
 app.use(['/api/admin/auth', '/api/admin/vouchers', '/api/admin/accounts', '/api/admin/news', '/api/admin/events', '/api/admin/settings', '/api/admin/buybacks', '/api/admin/books', '/api/admin/orders', '/api/admin/returns', '/api/admin/dashboard', '/api/admin/banners'], adminAuth.cors);
 
 app.use(cors({
   origin: ['http://localhost:4200', 'http://localhost:4201'],
-  // pdf.js (trình đọc ebook) cần đọc các header này để tải PDF theo từng đoạn
   exposedHeaders: ['Accept-Ranges', 'Content-Range', 'Content-Length'],
 }));
 app.use(express.json());
@@ -48,7 +46,6 @@ app.use('/api/admin/accounts', adminAccountsRoutes(() => database));
 app.use('/api/admin/settings', adminSettingsRoutes(() => database));
 app.use('/api/admin/buybacks', adminBuybackRoutes(() => database));
 
-// API kiểm tra Web Server
 app.get('/', (req, res) => {
   res.json({
     message: 'LightBooks RESTful API',
@@ -56,7 +53,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// API kiểm tra trạng thái kết nối MongoDB
 app.get('/api/health', async (req, res) => {
   try {
     await database.command({ ping: 1 });
@@ -74,23 +70,14 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// "a,b" trên URL → ['a', 'b']; không truyền thì trả mảng rỗng
 function listParam(value) {
   return String(value ?? '').split(',').map((item) => item.trim()).filter(Boolean);
 }
 
-// API lấy danh sách sách từ MongoDB
-// Tham số tuỳ chọn:
-//   ?limit=50          số sách trả về (mặc định 20, tối đa 500)
-//   ?sort=newest       mới tạo trước | sort=updated: mới cập nhật trước
-//   ?discounted=true   chỉ lấy sách đang giảm giá
-//   ?format=new,used   lọc theo loại sách (field bookType: new, used, ebook)
-//   ?condition=a,b     lọc theo tình trạng sách cũ (field condition)
 app.get('/api/books', async (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 500);
     const sortOptions = {
-      // Sách import cùng lúc trùng createdAt: thêm _id để thứ tự luôn ổn định
       newest: { createdAt: -1, _id: -1 },
       updated: { updatedAt: -1 }
     };
@@ -124,7 +111,6 @@ app.get('/api/books', async (req, res) => {
   }
 });
 
-// API lấy danh sách tác giả
 app.get('/api/authors', async (req, res) => {
   try {
     const authors = await database
@@ -143,7 +129,6 @@ app.get('/api/authors', async (req, res) => {
   }
 });
 
-// API lấy danh sách thể loại
 app.get('/api/categories', async (req, res) => {
   try {
     const categories = await database
@@ -163,48 +148,37 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
-// API cho trang Dashboard admin: GET /api/admin/dashboard?days=7
 const adminDashboardRoutes = require('./routes/admin-dashboard');
 app.use('/api/admin', adminDashboardRoutes(() => database));
 
-// API Quản lý sách cho admin: /api/admin/books (xem routes/admin-books.js)
 const adminBooksRoutes = require('./routes/admin-books');
 app.use('/api/admin', adminBooksRoutes(() => database));
 
-// API Banner & quảng cáo: /api/banners (web khách) và /api/admin/banners (xem routes/admin-banners.js)
 const bannersRoutes = require('./routes/admin-banners');
 app.use('/api', bannersRoutes(() => database));
 
-// API Đơn hàng cho admin: /api/admin/orders (xem routes/admin-orders.js)
 const adminOrdersRoutes = require('./routes/admin-orders');
 app.use('/api/admin', adminOrdersRoutes(() => database, () => client));
 
-// API Đổi trả & hoàn tiền cho admin: /api/admin/returns (xem routes/admin-returns.js)
 const adminReturnsRoutes = require('./routes/admin-returns');
 app.use('/api/admin', adminReturnsRoutes(() => database, () => client));
 
-// API Lightbook News cho web khách, chỉ đọc: /api/news, /api/news/:id (xem routes/news.js)
 const newsRoutes = require('./routes/news');
 app.use('/api', newsRoutes(() => database));
 
-// API Sự kiện giao lưu cho web khách, chỉ đọc: /api/events (xem routes/events.js)
 const eventsRoutes = require('./routes/events');
 app.use('/api', eventsRoutes(() => database));
 app.use('/api/admin/events', require('./routes/admin-events')(() => database));
 
-// API đăng ký nhận bản tin: POST /api/newsletter (xem routes/newsletter.js)
 const newsletterRoutes = require('./routes/newsletter');
 app.use('/api', newsletterRoutes(() => database));
 
-// API chatbot Thủ thư Lightbook gợi ý sách: POST /api/librarian (xem routes/librarian.js)
 const librarianRoutes = require('./routes/librarian');
 app.use('/api', librarianRoutes(() => database));
 
-// API web khách hàng: đăng nhập, tài khoản, đơn hàng, mã giảm giá, wishlist (xem routes/customer.js)
 const customerRoutes = require('./routes/customer');
 app.use('/api', customerRoutes(() => database));
 
-// Kết nối database trước khi mở server
 async function startServer() {
   try {
     if (!mongoUri || !dbName) {

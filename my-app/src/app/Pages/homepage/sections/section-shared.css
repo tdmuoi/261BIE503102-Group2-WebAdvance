@@ -1,6 +1,3 @@
-/* Kiểu dùng chung cho tiêu đề các section trang chủ (Figma: Section header).
-   Mỗi section nạp file này cùng file CSS riêng của nó. */
-
 .section-head {
   display: flex;
   align-items: flex-end;
@@ -39,7 +36,6 @@
   letter-spacing: -0.88px;
 }
 
-/* Instrument Serif: chỉ dùng cho chữ tiếng Anh */
 .section-title-accent {
   font: italic 400 50px/1.15 var(--font-serif);
   color: var(--color-text-serif);
@@ -71,7 +67,6 @@
 .pill-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-offset-md); }
 .pill-btn:active { transform: translateY(2px); box-shadow: none; }
 
-/* Bìa sách: luôn lấy ảnh từ chính object book */
 .cover {
   position: relative;
   overflow: hidden;

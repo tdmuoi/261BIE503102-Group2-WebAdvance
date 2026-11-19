@@ -1,6 +1,3 @@
-/* Phiếu thanh lý — Figma 849:3939. Khung, stepper, chân phiếu, màn xác nhận.
-   Field bước 1: buyback-form-book.css · bước 2–3: buyback-form-send.css */
-
 :host { display: block; }
 
 .bb-card {
@@ -34,7 +31,6 @@
 
 .bb-step.is-current { background: var(--color-tint-pink); box-shadow: var(--shadow-offset-xs); }
 
-/* Bước đã xong: nền xanh, bấm để quay lại */
 .bb-step.is-done { background: var(--color-tint-mint); }
 .bb-step.is-done:hover { box-shadow: var(--shadow-offset-xs); }
 

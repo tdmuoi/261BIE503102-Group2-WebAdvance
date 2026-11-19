@@ -1,6 +1,5 @@
 import { AdminUser } from '../models/admin-auth';
 
-/** UI navigation follows the same module/action names as the protected APIs. */
 export function routePermission(url: string): [string, string] | null {
   const [page, id] = url.split(/[?#]/)[0].split('/').filter(Boolean);
   const modules: Record<string, string> = {

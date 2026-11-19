@@ -52,11 +52,9 @@ describe('ProductDetail', () => {
 
     expect(el.querySelector('.info-title')?.textContent).toBe('Người đàn ông mang tên Ove');
     expect(TestBed.inject(Title).getTitle()).toBe('Người đàn ông mang tên Ove | Lightbook');
-    // b2 cùng tác giả, b3 vào "Sách liên quan"
     const rows = el.querySelectorAll('app-book-row');
     expect(rows[0].querySelectorAll('app-book-card').length).toBe(1);
     expect(rows[1].querySelectorAll('app-book-card').length).toBe(1);
-    // Chưa có API đánh giá
     expect(el.querySelector('.reviews-empty')?.textContent).toContain('Chưa có đánh giá');
   });
 
@@ -94,7 +92,6 @@ describe('ProductDetail', () => {
     expect(TestBed.inject(CartService).quantityOf('ove')).toBe(2);
     expect(TestBed.inject(ToastService).toasts()[0].message).toBe('Đã thêm 2 cuốn vào giỏ');
     expect(el.querySelector('.in-cart')?.textContent).toContain('Đã có 2 cuốn trong giỏ hàng');
-    // Tồn kho 3, đã có 2 → chỉ thêm được 1 nữa
     expect(el.querySelector<HTMLButtonElement>('.stepper-plus')!.disabled).toBe(true);
   });
 });

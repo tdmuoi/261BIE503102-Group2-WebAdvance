@@ -27,17 +27,10 @@ export const MODE_OPTIONS: { value: ReadMode; label: string }[] = [
   { value: 'scroll', label: 'Cuộn dọc' },
 ];
 
-/** Lật trang: bề ngang tối đa một trang ở mức thu phóng 100% */
 const PAGE_WIDTH = 720;
-/** Cột đọc rộng từ mức này trở lên thì lật trang hiện 2 trang */
 const TWO_UP_MIN = 900;
-/** Cuộn dọc: vẽ trước các trang cách màn hình khoảng này, trang xa hơn thì giải phóng */
 const SCROLL_MARGIN = '1500px 0px';
 
-/**
- * Trang Đọc ebook (Figma "Pages/ebook-reader · Đọc ebook") — route /ebook-reader/:id.
- * Nội dung là file PDF của sách (pdf.js), chỉ mở được khi server xác nhận sách có trong tủ sách.
- */
 @Component({
   selector: 'app-ebook-reader',
   standalone: true,
@@ -103,14 +96,10 @@ export class EbookReader {
   readonly bookmarked = computed(() => !!this.state()?.bookmarks.includes(this.page()));
 
   // ---------------- Bố cục trang ----------------
-  /** Bề ngang cột đọc (giữa 2 bảng bên) — đo lại khi đổi cỡ cửa sổ / đóng mở bảng */
   readonly columnWidth = signal(PAGE_WIDTH);
-  /** Cao / rộng trang PDF (lấy từ trang 1) để giữ chỗ trước khi vẽ */
   readonly pageRatio = signal(1.414);
   readonly isScroll = computed(() => this.settings().mode === 'scroll');
-  /** Lật trang trên cột rộng: mở 2 trang như sách thật */
   readonly twoUp = computed(() => !this.isScroll() && this.columnWidth() >= TWO_UP_MIN);
-  /** Bề ngang một trang trên màn hình. Cuộn dọc: rộng bằng cả cột đọc (100%) */
   readonly pageWidth = computed(() => {
     const col = Math.max(240, this.columnWidth());
     const base = this.isScroll() ? col - 8 : this.twoUp() ? Math.min((col - 8) / 2, PAGE_WIDTH) : Math.min(col, PAGE_WIDTH);
@@ -118,18 +107,14 @@ export class EbookReader {
   });
   readonly pageHeight = computed(() => Math.round(this.pageWidth() * this.pageRatio()));
 
-  /** Lật trang: 2 trang (hoặc 1 trang khi màn hình hẹp). Cuộn dọc: cả cuốn, trang nào gần màn hình mới vẽ */
   readonly visiblePages = computed(() =>
     this.isScroll() ? Array.from({ length: this.total() }, (_, i) => i + 1) : spreadPages(this.page(), this.total(), this.twoUp()),
   );
-  /** "Trang 31–32" khi mở 2 trang */
   readonly pageLabel = computed(() => {
     const shown = this.isScroll() ? [this.page()] : this.visiblePages();
     return shown.length > 1 ? `${shown[0]}–${shown[1]}` : String(shown[0] ?? this.page());
   });
-  /** Câu đã tô sáng — tách riêng để đổi trang không kích hoạt vẽ lại */
   readonly highlights = computed(() => this.state()?.highlights ?? []);
-  /** Hướng lật để chạy hiệu ứng: next = sang trang sau, prev = về trang trước */
   readonly flip = signal<'next' | 'prev' | null>(null);
 
   readonly marks = computed(() => {
@@ -140,24 +125,20 @@ export class EbookReader {
     ].sort((a, b) => a.page - b.page);
   });
 
-  /** Tìm trong sách: đọc chữ từng trang PDF (chạy sau khi ngừng gõ 0,3 giây) */
   readonly searchResults = signal<{ items: SearchHit[]; more: number; searching: boolean }>({ items: [], more: 0, searching: false });
 
-  /** Thanh công cụ khi bôi đen chữ */
   readonly selection = signal<{ page: number; text: string; top: number; left: number } | null>(null);
   readonly noteDraft = signal<{ page: number; quote: string; text: string; top: number; left: number } | null>(null);
 
   constructor() {
     this.shelf.load(this.destroyRef);
 
-    // Có sách trong tủ → mở file PDF
     effect(() => {
       const id = this.ebook()?.bookId;
       if (!id || !this.loggedIn()) return;
       untracked(() => this.openPdf(id));
     });
 
-    // Mở sách: hiện ngay bản nháp trên máy (hoặc trang đang đọc ở tủ sách), rồi lấy bản lưu trên server
     effect(() => {
       const e = this.ebook();
       if (!e) return;
@@ -171,7 +152,6 @@ export class EbookReader {
       });
     });
 
-    // Lưu tiến độ mỗi khi đổi trang / đánh dấu / ghi chú: nháp localStorage ngay, server sau 0,8 giây
     effect(() => {
       const s = this.state();
       const e = untracked(() => this.ebook());
@@ -182,15 +162,13 @@ export class EbookReader {
 
     effect(() => saveSettings(this.settings()));
 
-    // Vẽ lại khi đổi trang / bố cục / thu phóng / tô sáng
     effect(() => {
       this.visiblePages();
       this.pageWidth();
-      this.highlights(); // không đọc cả state: cuộn đổi trang không phải dựng lại
+      this.highlights();
       if (this.status() === 'ready') untracked(() => this.scheduleRender());
     });
 
-    // Tìm trong sách
     effect(() => {
       const q = normalizeText(this.query());
       const book = this.pdf();
@@ -269,7 +247,6 @@ export class EbookReader {
       articles.forEach((a) => this.renderArticle(a));
       return;
     }
-    // Cuộn dọc: chỉ vẽ trang gần màn hình, trang đã cuộn xa thì giải phóng cho nhẹ máy
     if (typeof IntersectionObserver === 'undefined') {
       articles.filter((a) => Math.abs(Number(a.dataset['page']) - this.page()) <= 2).forEach((a) => this.renderArticle(a));
     } else {
@@ -285,7 +262,6 @@ export class EbookReader {
     }
   }
 
-  /** Đo bề ngang cột đọc (đóng / mở bảng bên, đổi cỡ cửa sổ) */
   private watchColumn(column: HTMLElement | null): void {
     if (!column) return;
     const measure = () => {
@@ -329,7 +305,6 @@ export class EbookReader {
     article.querySelector<HTMLElement>('.textLayer')?.replaceChildren();
   }
 
-  /** Tô màu các dòng chữ PDF nằm trong câu đã tô sáng */
   private applyHighlights(textLayer: HTMLElement, page: number): void {
     const marks = this.marksOf(page).map(squash).filter(Boolean);
     for (const span of Array.from(textLayer.querySelectorAll<HTMLElement>('span:not(.markedContent)'))) {
@@ -366,7 +341,6 @@ export class EbookReader {
   private syncTimer: ReturnType<typeof setTimeout> | null = null;
   private synced: string | null = null;
 
-  /** Bản trên server mới hơn bản nháp (vd. đọc ở máy khác) thì dùng bản server */
   private applyRemote(remote: EbookProgress): void {
     const e = this.ebook();
     const local = this.state();
@@ -398,7 +372,6 @@ export class EbookReader {
     this.syncTimer = null;
     const e = this.ebook();
     const s = this.state();
-    // Chưa mở được PDF thì chưa biết tổng số trang thật — không ghi đè tiến độ trên server
     if (!e || !s || !this.pdf() || !this.auth.isLoggedIn()) return;
     const body = this.progressBody(s);
     const key = JSON.stringify(body);
@@ -418,7 +391,6 @@ export class EbookReader {
     if (scroll && this.settings().mode === 'scroll') setTimeout(() => this.scrollToPage(target));
   }
 
-  /** Lật 2 trang: sang cặp trước / sau. 1 trang hoặc cuộn dọc: từng trang */
   prev(): void {
     const target = this.twoUp() ? spreadStart(this.page()) - 2 : this.page() - 1;
     if (target < 1) return;
@@ -443,7 +415,6 @@ export class EbookReader {
 
   private flipTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /** Hiệu ứng lật (chỉ ở chế độ lật trang) */
   private turn(direction: 'next' | 'prev'): void {
     if (this.isScroll()) return;
     if (this.flipTimer) clearTimeout(this.flipTimer);
@@ -467,7 +438,6 @@ export class EbookReader {
     if (event.key === 'ArrowRight') this.next();
   }
 
-  /** Cuộn dọc: trang nằm ở nửa trên màn hình là trang đang đọc */
   onScroll(): void {
     if (this.settings().mode !== 'scroll' || !this.state()) return;
     const pages = Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('[data-page]'));
@@ -505,7 +475,7 @@ export class EbookReader {
   setSetting<K extends keyof ReaderSettings>(key: K, value: ReaderSettings[K]): void {
     this.settings.update((s) => ({ ...s, [key]: value }));
     if (key === 'mode') {
-      this.scrolledToStart = value !== 'scroll'; // vào cuộn dọc: nhảy tới trang đang đọc sau khi dựng trang
+      this.scrolledToStart = value !== 'scroll';
       if (value !== 'scroll') window.scrollTo?.({ top: 0 });
     }
   }
@@ -533,7 +503,6 @@ export class EbookReader {
     }
   }
 
-  /** Nhả chuột sau khi bôi đen trong trang sách → hiện thanh Tô sáng / Ghi chú / Sao chép / Tra từ */
   onTextSelect(event?: Event): void {
     if ((event?.target as HTMLElement | null)?.closest('.selection-bar, .note-pop')) return;
     const sel = window.getSelection();
@@ -599,7 +568,6 @@ export class EbookReader {
   }
 
   lookup(): void {
-    // TODO: thay bằng API từ điển khi có
     this.toast.show('Tính năng tra từ sắp có');
     this.clearSelection();
   }

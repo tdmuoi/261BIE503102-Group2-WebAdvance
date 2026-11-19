@@ -2,7 +2,6 @@ import { Component, effect, inject, input, signal } from '@angular/core';
 
 import { ToastService } from '../../../../services/toast-service';
 
-/** Bài đã lưu chỉ giữ trên trình duyệt của người đọc (chưa có API lưu bài) */
 const SAVED_KEY = 'lightbook-saved-news';
 
 function readSaved(): string[] {
@@ -14,7 +13,6 @@ function readSaved(): string[] {
   }
 }
 
-/** Nút chia sẻ: Facebook, sao chép liên kết, lưu bài — Figma "Share" (879:7500) */
 @Component({
   selector: 'app-article-share',
   standalone: false,
@@ -25,13 +23,11 @@ export class ArticleShare {
   private readonly toast = inject(ToastService);
 
   readonly articleId = input.required<string>();
-  /** Hiện chữ "Chia sẻ:" phía trước */
   readonly showLabel = input(true);
 
   protected readonly saved = signal(false);
 
   constructor() {
-    // Chuyển sang bài khác (cùng component) thì đọc lại trạng thái đã lưu
     effect(() => this.saved.set(readSaved().includes(this.articleId())));
   }
 
@@ -57,7 +53,6 @@ export class ArticleShare {
     try {
       localStorage.setItem(SAVED_KEY, JSON.stringify(list));
     } catch {
-      // Trình duyệt chặn lưu trữ thì chỉ đổi trạng thái tạm thời
     }
     this.saved.set(saved);
     this.toast.show(saved ? 'Đã lưu bài viết trên trình duyệt này.' : 'Đã bỏ lưu bài viết.');

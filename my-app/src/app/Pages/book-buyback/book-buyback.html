@@ -1,11 +1,9 @@
-<!-- Figma: https://www.figma.com/design/ZfMuDhU68BNYctxAZcNmET/Lightbook---Visual-Design?node-id=1023-17719 -->
 <app-buyback-hero [covers]="heroCovers()" (sell)="scrollToForm()" (browse)="scrollToUsed()"></app-buyback-hero>
 
 <app-marquee [items]="marquee" separator="‖"></app-marquee>
 
 <app-buyback-cycle></app-buyback-cycle>
 
-<!-- Khu thanh lý: hướng dẫn bên trái, phiếu bên phải -->
 <section class="sell" id="phieu-thanh-ly" #formSection aria-label="Phiếu thanh lý sách">
   <div class="container sell-inner">
     <app-buyback-guide class="sell-guide"></app-buyback-guide>
@@ -17,7 +15,6 @@
   <app-buyback-used [books]="usedBooks()" [state]="state()" (retry)="reload()"></app-buyback-used>
 </section>
 
-<!-- Banner cuối — Figma 837:3771 -->
 <section class="container cta-wrap">
   <div class="cta">
     <div>

@@ -8,11 +8,9 @@ import { CartService } from '../../services/cart-service';
 interface NavItem {
   label: string;
   path: string;
-  /** Mục có dropdown (Browse Book) */
   menu?: boolean;
 }
 
-/** Chờ một chút trước khi đóng dropdown để kịp rê chuột từ menu xuống bảng */
 const CLOSE_DELAY_MS = 150;
 
 @Component({
@@ -23,7 +21,6 @@ const CLOSE_DELAY_MS = 150;
   host: { '(keydown.escape)': 'closeMenu()' },
 })
 export class PageHeader {
-  // Menu chính — đường dẫn khớp với app-routing-module.ts
   protected readonly navItems: NavItem[] = [
     { label: 'About', path: '/about-us' },
     { label: 'Browse book', path: '/books', menu: true },
@@ -43,7 +40,6 @@ export class PageHeader {
   constructor() {
     afterNextRender(() => this.trackHeight());
 
-    // Chuyển trang thì đóng dropdown
     inject(Router)
       .events.pipe(
         filter((event) => event instanceof NavigationStart),
@@ -67,25 +63,17 @@ export class PageHeader {
     this.menuOpen.set(false);
   }
 
-  /** Màn hình cảm ứng không có hover: lần chạm đầu mở dropdown thay vì chuyển trang */
   protected onMenuTriggerClick(event: MouseEvent): void {
     if (this.menuOpen() || !window.matchMedia('(hover: none)').matches) return;
     event.preventDefault();
     this.openMenu();
   }
 
-  /** Tab ra khỏi cả nút menu lẫn bảng dropdown thì đóng */
   protected onMenuFocusOut(event: FocusEvent): void {
     const next = event.relatedTarget as HTMLElement | null;
     if (!next?.closest('app-browse-menu, .nav-link-menu')) this.scheduleClose();
   }
 
-  /**
-   * Header dính đầu trang và cao khác nhau theo màn hình (menu xuống hàng ở tablet/mobile).
-   * Báo chiều cao thật cho cả trang:
-   *   - scroll-padding-top: link #anchor / scrollIntoView dừng ngay dưới header, không bị che
-   *   - --header-height: cho các phần tử sticky khác (sidebar lọc...) đặt top bên dưới header
-   */
   private trackHeight(): void {
     if (typeof ResizeObserver === 'undefined') return;
 

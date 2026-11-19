@@ -1,4 +1,3 @@
-/** Sách trong trang admin (GET /api/admin/books) — đã ghép sẵn authorName, categoryName */
 export interface AdminBook {
   _id: string;
   title: string;
@@ -14,7 +13,6 @@ export interface AdminBook {
   condition?: string | null;
   ebookFileId?: string;
   stock: number;
-  /** active: đang bán | hidden: ẩn khỏi web khách */
   status: 'active' | 'hidden' | string;
   isbn: string | null;
   publisher?: string | null;
@@ -25,10 +23,8 @@ export interface AdminBook {
   updatedAt: string;
 }
 
-/** Bộ lọc danh sách sách */
 export interface BookQuery {
   q?: string;
-  /** '' = tất cả | active | hidden | low (sắp hết) | out (hết hàng) */
   status?: '' | 'active' | 'hidden' | 'low' | 'out';
   categoryId?: string;
   sort?: 'newest' | 'updated' | 'title' | 'price_asc' | 'price_desc' | 'stock_asc';
@@ -46,11 +42,9 @@ export interface BookListResponse {
   lowStockThreshold: number;
 }
 
-/** Dữ liệu form Thêm/Sửa gửi lên server */
 export interface BookPayload {
   revision?: string | null;
   title: string;
-  /** Chọn tác giả có sẵn thì gửi authorId; gõ tên mới thì gửi authorName (server tự tạo tác giả) */
   authorId: string | null;
   authorName: string;
   categoryId: string;
@@ -86,5 +80,4 @@ export interface InventoryReceipt {
 }
 export interface PdfUploadResult { fileId: string; size: number; sha256: string; revision: string; }
 
-/** Lỗi validate server trả về: { message, errors: { title: '...', price: '...' } } */
 export type FieldErrors = Partial<Record<keyof BookPayload, string>>;

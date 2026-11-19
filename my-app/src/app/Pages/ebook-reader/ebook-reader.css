@@ -1,4 +1,3 @@
-/* Trình đọc ebook (Figma "Đọc ebook"). Màu nền đọc riêng của trình đọc — chưa có token chung nên khai báo tại đây */
 .reader {
   --reader-bg: #f6f2ea; --reader-page: #fffdf8; --reader-text: var(--color-text-serif);
   --reader-swatch-dark: #262321;
@@ -40,7 +39,6 @@
   background: var(--reader-page); color: var(--reader-text); border: var(--border-default) solid var(--color-border-strong);
   border-radius: var(--radius-16); box-shadow: var(--shadow-offset-4);
 }
-/* Lật trang 2 trang: ghép ở gáy sách */
 .pages.is-spread { flex-direction: row; justify-content: center; align-items: flex-start; gap: 0; }
 .page.is-left { border-radius: var(--radius-16) 0 0 var(--radius-16); border-right-width: 0; }
 .page.is-right { border-radius: 0 var(--radius-16) var(--radius-16) 0; }
@@ -49,17 +47,14 @@
   background: linear-gradient(to left, rgb(0 0 0 / 0.16), transparent 7%);
 }
 .page.is-right .sheet::after { background: linear-gradient(to right, rgb(0 0 0 / 0.16), transparent 7%); }
-/* Hiệu ứng lật: trang mới xoay quanh gáy sách rồi nằm phẳng */
 .page.turn-next { transform-origin: right center; animation: turn-next 0.55s cubic-bezier(0.3, 0.7, 0.4, 1); }
 .page.turn-prev { transform-origin: left center; animation: turn-prev 0.55s cubic-bezier(0.3, 0.7, 0.4, 1); }
 .pages:not(.is-spread) .page.turn-next { transform-origin: left center; animation-name: turn-prev; }
 @keyframes turn-next { from { transform: rotateY(88deg); filter: brightness(0.75); } to { transform: none; filter: none; } }
 @keyframes turn-prev { from { transform: rotateY(-88deg); filter: brightness(0.75); } to { transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .page.turn-next, .page.turn-prev { animation: none; } }
-/* Cuộn dọc: trang rộng bằng cả cột đọc, viền mảnh cho đỡ rối */
 .pages.is-scroll { gap: var(--space-16); }
 .pages.is-scroll .page { border-radius: var(--radius-8); box-shadow: none; }
-/* Trang PDF: hình (canvas) + chữ trong suốt phủ lên trên để bôi đen. Kích thước đặt sẵn để giữ chỗ khi chưa vẽ */
 .sheet { position: relative; border-radius: inherit; overflow: hidden; }
 .sheet canvas { display: block; }
 .reader[data-theme='paper'] canvas { filter: sepia(0.12); }

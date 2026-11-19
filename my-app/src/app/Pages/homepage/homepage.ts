@@ -27,12 +27,10 @@ export class Homepage {
 
   protected readonly state = signal<LoadState>('loading');
   protected readonly books = signal<BookView[]>([]);
-  /** Chỉ sách mới, mới nhất trước: dùng cho Flash Sale, Sách mới phát hành và Gợi ý cho bạn */
   protected readonly newBooks = signal<BookView[]>([]);
   protected readonly authors = signal<Author[]>([]);
   protected readonly categories = signal<Category[]>([]);
 
-  // Dải vàng giữa Flash Sale và Sách mới
   protected readonly promoItems = [
     'Flash sale mỗi ngày',
     'Sách mới mỗi tuần',
@@ -41,14 +39,12 @@ export class Homepage {
     'Đổi trả 7 ngày',
   ];
 
-  // Ribbon nghiêng giữa "Góc tác giả" và "Combo"
   protected readonly ribbonItems = ['Author of the month', 'Góc tác giả', 'Bundle & save'];
 
   constructor() {
     this.load();
   }
 
-  /** Tải sách, tác giả, thể loại một lần rồi chia cho các section */
   protected load(): void {
     this.state.set('loading');
 
@@ -59,7 +55,6 @@ export class Homepage {
     forkJoin({
       books: this.bookService.getBooks({ limit: 200 }),
       newBooks: this.bookService.getBooks({ limit: 200, sort: 'newest', format: ['new'] }),
-      // Thiếu tác giả hoặc thể loại thì trang vẫn hiện sách
       authors: this.authorService.getAuthors().pipe(catchError(() => of<Author[]>([]))),
       categories: this.categoryService.getCategories().pipe(catchError(() => of<Category[]>([]))),
     })
@@ -79,7 +74,6 @@ export class Homepage {
       });
   }
 
-  /** Ghép tên tác giả, tên thể loại vào từng sách theo id */
   private toViews(books: Book[], authors: Author[], categories: Category[]): BookView[] {
     const authorNames = new Map(authors.map((author) => [author._id, author.name]));
     const categoryNames = new Map(categories.map((category) => [category._id, category.name]));

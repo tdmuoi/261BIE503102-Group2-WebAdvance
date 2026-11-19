@@ -17,14 +17,8 @@ const HISTORY_TURNS = 6;
 const GREETING = 'Chào bạn, mình là thủ thư của Lightbook. Hôm nay bạn đang muốn tìm một cuốn sách thế nào? Kể mình nghe nhé.';
 const ERROR_TEXT = 'Xin lỗi bạn, mình đang gặp chút trục trặc. Bạn thử lại sau một lát giúp mình nhé.';
 
-/**
- * Widget chat "Thủ thư Lightbook": nút tròn nổi góc phải dưới, mở panel trò chuyện.
- * Khách kể mục tiêu học tập / gu đọc, thủ thư gợi ý sách có trong kho kèm lý do.
- * Gắn một lần trong app.html (tải lazy khi trình duyệt rảnh) nên có ở mọi trang.
- */
 @Component({
   selector: 'app-librarian-chat',
-  // Standalone để tải lazy bằng import() trong App, không làm nặng bundle ban đầu
   imports: [ReactiveFormsModule, LibrarianBook, LibrarianMascot],
   styleUrl: './librarian-chat.css',
   templateUrl: './librarian-chat.html',
@@ -55,12 +49,10 @@ export class LibrarianChat {
     this.open.set(false);
   }
 
-  /** Mobile: panel phủ gần hết màn hình nên thu lại khi khách mở trang chi tiết sách */
   protected onBookOpened(): void {
     if (typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches) this.close();
   }
 
-  /** Form không gắn [formGroup] nên phải tự chặn submit mặc định, nếu không trình duyệt tải lại trang */
   protected submit(event: Event): void {
     event.preventDefault();
     this.send();
@@ -82,7 +74,6 @@ export class LibrarianChat {
     });
   }
 
-  /** Lượt bot kèm tên sách đã gợi ý, để khách hỏi tiếp được kiểu "cuốn thứ 2 có khó không" */
   private buildHistory(): ChatTurn[] {
     return this.messages()
       .slice(1)

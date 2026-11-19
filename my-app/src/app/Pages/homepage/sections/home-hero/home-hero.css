@@ -1,9 +1,6 @@
-/* Hero — Figma 772:1454. Khung gốc 1440px, các số % quy đổi từ toạ độ Figma. */
-
 .hero {
   position: relative;
   overflow: hidden;
-  /* Lưới hồng của Figma bắt đầu từ mép trên trang; header cao khoảng 117px */
   background: url('/images/decor/grid-pattern.png') center -117px / 1440px auto no-repeat;
 }
 
@@ -25,14 +22,12 @@
   letter-spacing: normal;
 }
 
-/* inline-block để dải hồng bám theo mép chữ; khoảng trắng thật giữa các từ */
 .hero-line {
   position: relative;
   z-index: 0;
   display: inline-block;
 }
 
-/* Dải hồng phía sau "discover a story": giãn theo đúng bề rộng cụm chữ */
 .hero-mark { position: relative; display: inline-block; }
 
 .hero-highlight {
@@ -101,7 +96,6 @@
   color: var(--color-text-body);
 }
 
-/* Hàng 4 bìa sách: khung 1440 × 342, đáy lấn xuống dưới dải chữ */
 .hero-books {
   position: relative;
   max-width: 1440px;

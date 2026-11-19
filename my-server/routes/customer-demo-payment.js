@@ -35,7 +35,6 @@ async function settle(db, userId, id, outcome = 'succeeded') {
     const payment = { _id:orderId, orderId, userId, paymentMethod:'qr_demo', amount:current.total,
       status:result === 'succeeded' ? 'paid' : result, reference, source:'demo_confirmation', isDemo:true,
       confirmedAt:now, createdAt:now };
-    // Built-in unique _id serializes retries. All ledger/order/grant writes commit together.
     await db.collection('payments').insertOne(payment,{session});
     const set = { demoPayment:{...current.demoPayment,status:result,reference,amount:current.total,confirmedAt:now}, updatedAt:now };
     if (result === 'succeeded') {
@@ -45,7 +44,6 @@ async function settle(db, userId, id, outcome = 'succeeded') {
         const bookId = toObjectId(String(item.bookId));
         if (!bookId) throw failure(409,'Tham chiếu Ebook không hợp lệ.');
         const existing = await db.collection('personalBooks').findOne({userId,bookId},{session});
-        // Never overwrite an existing free/real license with a simulated purchase.
         if (!existing) {
           const _id = new ObjectId(createHash('sha256').update('demo-ebook:'+userId+':'+bookId).digest('hex').slice(0,24));
           await db.collection('personalBooks').insertOne({_id,userId,bookId,orderId,orderCode:current.orderCode,

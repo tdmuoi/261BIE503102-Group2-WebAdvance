@@ -13,7 +13,6 @@ import { AuthorList } from './author-list/author-list';
 import { AuthorWorks } from './author-works/author-works';
 import { EventReserve } from './event-reserve/event-reserve';
 
-/** "events" phải đứng trước ":id" để không bị hiểu là id tác giả */
 const routes: Routes = [
   { path: '', component: AuthorList },
   { path: 'events', component: AuthorEvents },
@@ -21,7 +20,6 @@ const routes: Routes = [
   { path: ':id/works', component: AuthorWorks },
 ];
 
-/** Các trang Tác giả /authors/... — tải riêng khi vào trang (xem app-routing-module.ts) */
 @NgModule({
   declarations: [
     AuthorList,

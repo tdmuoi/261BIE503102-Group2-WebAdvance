@@ -2,7 +2,6 @@ import { Component } from '@angular/core';
 
 import { PRICE_TIERS } from '../../buyback-rules';
 
-/** Cột trái khu thanh lý: tiêu đề, bảng định giá, hình thức nhận tiền — Figma 837:3333 */
 @Component({
   selector: 'app-buyback-guide',
   standalone: false,

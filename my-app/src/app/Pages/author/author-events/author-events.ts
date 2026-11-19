@@ -19,7 +19,6 @@ const FILTERS: { key: EventFilter; label: string }[] = [
   { key: 'past', label: 'Đã diễn ra' },
 ];
 
-/** Trang sự kiện giao lưu chung /authors/events — query params: filter, month (YYYY-MM) */
 @Component({
   selector: 'app-author-events',
   standalone: false,
@@ -34,7 +33,6 @@ export class AuthorEvents {
 
   protected readonly status = signal<'loading' | 'ready' | 'error'>('loading');
   protected readonly events = signal<LbEvent[]>([]);
-  /** Sách + tác giả để lấy bìa sách thật và tên khách mời; lỗi thì để null (ẩn bìa) */
   protected readonly catalog = signal<Catalog | null>(null);
   protected readonly reserving = signal<LbEvent | null>(null);
 
@@ -56,10 +54,8 @@ export class AuthorEvents {
   private readonly upcoming = computed(() => this.events().filter((e) => new Date(e.startAt).getTime() >= this.now));
   private readonly past = computed(() => this.events().filter((e) => new Date(e.startAt).getTime() < this.now));
 
-  /** Sự kiện nổi bật: sắp diễn ra gần nhất */
   protected readonly featured = computed(() => this.upcoming()[0] ?? null);
 
-  /** Các tháng có sự kiện, mới nhất trước */
   protected readonly months = computed(() =>
     [...new Set(this.events().map((e) => monthKey(e.startAt)))].sort().reverse().map((key) => {
       const [year, month] = key.split('-');

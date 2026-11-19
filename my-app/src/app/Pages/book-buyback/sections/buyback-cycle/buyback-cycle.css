@@ -1,5 +1,3 @@
-/* Vòng đời thứ hai — Figma 829:3091 (nền mint + doodle), bước 829:3460, số liệu 846:3616 */
-
 .cycle {
   padding: 96px 0 104px;
   background: var(--color-tint-mint) url('/images/decor/doodle-pattern.svg') center top / 1440px auto no-repeat;

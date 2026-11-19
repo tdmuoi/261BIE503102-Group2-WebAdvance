@@ -27,7 +27,6 @@ describe('ForgotPassword', () => {
     await fixture.whenStable();
   }
 
-  /** Bước 1 xong: đã gửi mã, đang ở bước nhập OTP */
   function sendCode() {
     component.form.controls.email.setValue('Mai.Tran@gmail.com');
     component.submit();

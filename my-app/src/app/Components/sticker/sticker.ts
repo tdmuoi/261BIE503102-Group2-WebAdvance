@@ -1,6 +1,5 @@
 import { Component, input } from '@angular/core';
 
-/** Sticker trang trí nghiêng ±8° — Figma "Sticker" (860:139). Trang đặt vị trí (absolute) qua class */
 @Component({
   selector: 'app-sticker',
   standalone: false,

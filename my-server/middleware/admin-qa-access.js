@@ -1,5 +1,4 @@
 "use strict";
-// Uses the SAME authentication instance as index.js. Never trusts client roles.
 module.exports = function adminQaAccess(auth) {
   const modules = {
     books: "products",

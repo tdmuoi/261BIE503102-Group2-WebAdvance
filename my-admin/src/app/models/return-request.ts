@@ -1,4 +1,3 @@
-/** Luồng: pending -> approved -> received -> refunded | exchanged; từ chối được khi chưa nhận sách */
 export type ReturnStatus = 'pending' | 'approved' | 'received' | 'refunded' | 'exchanged' | 'rejected';
 export type ReturnReason = 'damaged' | 'wrong_item' | 'not_as_described' | 'missing' | 'changed_mind' | 'other';
 
@@ -10,10 +9,8 @@ export interface ReturnItem {
   quantity: number;
 }
 
-/** Yêu cầu đổi trả từ API admin (my-server/routes/admin-returns.js) */
 export interface ReturnRequest {
   isDemo?: boolean;
-  /** True only when the server has verified physical stock eligibility. */
   restockEligible?: boolean;
   _id: string;
   requestCode: string;
@@ -22,9 +19,7 @@ export interface ReturnRequest {
   userId: string | null;
   customer: { name: string; phone: string; email: string };
   items: ReturnItem[];
-  /** Tổng giá trị sách khách muốn trả */
   itemsValue: number;
-  /** refund: hoàn tiền | exchange: đổi sách khác */
   type: 'refund' | 'exchange';
   reason: ReturnReason;
   description: string;
@@ -40,13 +35,11 @@ export interface ReturnRequest {
   restocked: boolean;
   createdAt: string | null;
   updatedAt: string | null;
-  /** Chỉ có ở API chi tiết */
   order?: { _id: string; orderCode: string; total: number; status: string; paymentMethod: string; createdAt: string | null } | null;
 }
 
 export interface ReturnQuery {
   q?: string;
-  /** open = đang xử lý (chờ duyệt + chờ nhận sách + đã nhận sách) */
   status?: '' | 'open' | ReturnStatus;
   type?: '' | 'refund' | 'exchange';
   from?: string;

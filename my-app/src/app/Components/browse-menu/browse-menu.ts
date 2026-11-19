@@ -18,11 +18,9 @@ interface Featured {
   name: string;
 }
 
-/** Thể loại không đưa vào hàng "Nổi bật": chưa phân loại và 2 thể loại dùng để đánh dấu loại sách */
 const HIDDEN_CATEGORY_SLUGS = ['uncategorized', 'used-book', 'ebook'];
 const FEATURED_COUNT = 3;
 
-/** Dropdown "Browse Book" trên header — Figma "Browse dropdown" (894:10570) */
 @Component({
   selector: 'app-browse-menu',
   standalone: false,
@@ -30,7 +28,6 @@ const FEATURED_COUNT = 3;
   templateUrl: './browse-menu.html',
 })
 export class BrowseMenu {
-  /** Bấm vào một link trong menu (để header đóng menu) */
   readonly navigate = output<void>();
 
   protected readonly options: TypeOption[] = [
@@ -62,10 +59,6 @@ export class BrowseMenu {
     { initialValue: null },
   );
 
-  /**
-   * Số cuốn theo loại — chỉ hiện khi DB có field bookType thật.
-   * Hiện loại sách đang suy ra từ thể loại nên ẩn số đếm để tránh hiển thị sai.
-   */
   protected readonly counts = computed<Record<BookType, number> | null>(() => {
     const books = this.catalog()?.books ?? [];
     if (!books.some((book) => book.bookType)) return null;
@@ -74,7 +67,6 @@ export class BrowseMenu {
     return counts;
   });
 
-  /** Các thể loại có nhiều sách nhất */
   protected readonly featured = computed<Featured[]>(() => {
     const catalog = this.catalog();
     if (!catalog) return [];

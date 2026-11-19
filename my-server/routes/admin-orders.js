@@ -1,35 +1,6 @@
 // =====================================================================
 // API Đơn hàng cho my-admin   (gắn vào index.js: app.use('/api/admin', adminOrdersRoutes(() => database)))
-//
-//   GET   /api/admin/orders              danh sách + lọc + phân trang
-//           ?q=        tìm mã đơn, tên / SĐT / email khách
-//           ?status=   pending | confirmed | shipping | delivered | cancelled | returned
-//           ?payment=  unpaid | paid | refunded
-//           ?from=2026-10-01&to=2026-10-31   (ngày đặt, giờ Việt Nam)
-//           ?sort=     newest | oldest | total_desc | total_asc
-//           ?page=1&limit=10
-//   GET   /api/admin/orders/:id          chi tiết đơn + các trạng thái được phép chuyển tiếp (nextStatuses)
-//   PATCH /api/admin/orders/:id/status   { status, note?, trackingCode?, restock? }  chuyển trạng thái
-//   PATCH /api/admin/orders/:id          { adminNote?, trackingCode?, paymentStatus? } sửa thông tin phụ
-//
 // ---------------------------------------------------------------------
-// CẤU TRÚC 1 ĐƠN (collection "orders") — trang Thanh toán (my-app) nên lưu theo mẫu này:
-// {
-//   orderCode: 'LB-261027-0001',
-//   userId: ObjectId | null,
-//   customer: { name, email, phone },
-//   shippingAddress: { fullName, phone, address, ward, district, province } | null (đơn chỉ có ebook),
-//   items: [{ bookId, title, image, price, quantity, format: 'print' | 'ebook' }],
-//   subtotal, shippingFee, discount, voucherCode, total,
-//   paymentMethod: 'cod' | 'bank_transfer' | 'momo' | 'vnpay',
-//   paymentStatus: 'unpaid' | 'paid' | 'refunded',
-//   status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled' | 'returned',
-//   statusHistory: [{ status, at, note }],
-//   note (ghi chú của khách), adminNote, trackingCode,
-//   stockDeducted: true nếu lúc đặt đã trừ tồn kho (để huỷ đơn thì cộng lại),
-//   createdAt, updatedAt
-// }
-// API đọc được cả vài tên field khác (total/totalAmount, customerName...) nếu dữ liệu cũ đặt khác.
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
@@ -39,7 +10,6 @@ const dateRange = require('../middleware/admin-date-range');
 const STATUSES = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled', 'returned'];
 const PAYMENT_STATUSES = ['unpaid', 'paid', 'refunded'];
 
-/** Luồng xử lý đơn: trạng thái hiện tại -> được chuyển sang */
 const FLOW = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['shipping', 'cancelled'],
@@ -101,7 +71,6 @@ function totalOf(order, items) {
   return items.reduce((s, it) => s + it.price * it.quantity, 0) + toNumber(order.shippingFee) - toNumber(order.discount);
 }
 
-/** Đổi 1 document thành dạng thống nhất cho admin */
 function present(order, user = null) {
   const items = itemsOf(order);
   const address = order.shippingAddress ?? order.shipping ?? order.address ?? null;
@@ -133,7 +102,6 @@ function present(order, user = null) {
     paymentMode: order.paymentMode || 'standard',
     demoPayment: order.paymentMode === 'demo' ? order.demoPayment : null,
     status,
-    // Đơn chỉ có ebook không cần giao hàng: xác nhận xong là "Đã giao"
     nextStatuses: (onlyEbooks && status === 'confirmed' ? ['delivered', 'cancelled'] : FLOW[status])
       .filter((next) => order.paymentMethod !== 'qr_demo' || order.paymentStatus === 'paid' || next === 'cancelled')
       .filter((next) => next !== 'cancelled' || !order.paymentStatus || order.paymentStatus === 'unpaid'),
@@ -213,7 +181,6 @@ module.exports = function adminOrdersRoutes(getDb, getClient) {
 
       res.json({
         items: docs.map((d) => {
-          // Danh sách chỉ cần thông tin tóm tắt
           const { statusHistory, shippingAddress, adminNote, ...summary } = present(d, map.get(String(d.userId)));
           return summary;
         }),
@@ -240,14 +207,12 @@ module.exports = function adminOrdersRoutes(getDb, getClient) {
     }
   });
 
-  // Safety gate: no mutation of demo/unowned documents. No validator changes.
   router.use('/orders/:id', async (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     try {
       const doc = await findOrder(req.params.id);
       if (!doc) return res.status(404).json({ message: 'Not found' });
       if (doc.isDemo === true || doc.userId == null) return res.status(409).json({ message: 'Demo/owner policy is not approved; read only' });
-      // Status transitions below require a transactional client.
 
       return next();
     } catch { return res.status(503).json({ message: 'Cannot verify safe ownership' }); }

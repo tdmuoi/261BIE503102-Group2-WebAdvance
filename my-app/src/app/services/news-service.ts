@@ -10,11 +10,9 @@ export interface NewsQuery {
   search?: string;
   limit?: number;
   skip?: number;
-  /** popular: nhiều lượt xem trước */
   sort?: 'popular';
 }
 
-/** Bài viết đã đăng — GET /api/news, GET /api/news/:id (chỉ đọc) */
 @Injectable({ providedIn: 'root' })
 export class NewsService {
   private readonly http = inject(HttpClient);

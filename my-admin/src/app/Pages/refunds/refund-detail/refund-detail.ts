@@ -6,7 +6,6 @@ import { Component, EventEmitter, Input, Output, inject, signal } from '@angular
 import { REFUND_METHOD, RETURN_REASON, RETURN_STATUS, ReturnRequest, ReturnStatus } from '../../../models/return-request';
 import { ReturnService } from '../../../services/return-service';
 
-/** Thao tác cần hỏi lại trước khi gửi */
 type Ask = 'rejected' | 'received' | 'refunded';
 
 const ACTIONS: Record<ReturnStatus, { label: string; style: 'primary' | 'danger' }> = {
@@ -18,10 +17,6 @@ const ACTIONS: Record<ReturnStatus, { label: string; style: 'primary' | 'danger'
   rejected: { label: 'Từ chối', style: 'danger' },
 };
 
-/**
- * Panel chi tiết 1 yêu cầu đổi trả (đặt cạnh bảng trong trang Đổi trả & hoàn tiền):
- *   <app-refund-detail [requestId]="selectedId()" (closed)="..." (changed)="..."></app-refund-detail>
- */
 @Component({
   selector: 'app-refund-detail',
   standalone: false,
@@ -42,7 +37,6 @@ export class RefundDetail {
   readonly error = signal('');
   readonly message = signal('');
 
-  // Hộp thoại xác nhận
   readonly asking = signal<Ask | null>(null);
   readonly askError = signal('');
   note = '';
@@ -101,7 +95,6 @@ export class RefundDetail {
       this.note = '';
       this.askError.set('');
       this.refundAmount = (r.refundableTotal ?? r.itemsValue) || null;
-      // Sách lỗi / hư hỏng thường không bán lại được
       this.restock = r.restockEligible === true && !r.restocked && r.reason !== 'damaged';
       this.asking.set(next);
       return;

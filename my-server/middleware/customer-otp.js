@@ -1,16 +1,5 @@
 // =====================================================================
 // Mã OTP 6 số gửi qua email cho web khách hàng.
-//   register       — xác minh email khi đăng ký: tài khoản CHỈ được tạo sau khi nhập đúng mã
-//                    (thông tin đăng ký lưu tạm trong challenge.pending, mật khẩu đã băm)
-//   verify_email   — tài khoản cũ còn "chờ xác minh" (tạo theo luồng trước đây) khi đăng nhập
-//   login_2fa      — xác thực 2 lớp khi đăng nhập (khách bật trong hồ sơ)
-//   reset_password — quên mật khẩu
-//
-// Collection otp (tự xoá 1 giờ sau khi hết hạn — TTL index):
-//   { challengeId, purpose, accountId, userId, email, remember, codeHash, attempts,
-//     sendCount, lastSentAt, expiresAt, consumedAt, createdAt }
-// Database chỉ lưu SHA-256 của mã, không lưu mã gốc. challengeId là chuỗi ngẫu nhiên
-// trả cho trang để gửi kèm khi nhập mã; một mã chỉ dùng được một lần.
 // =====================================================================
 const { randomBytes, randomInt, timingSafeEqual } = require('node:crypto');
 const { digest } = require('./customer-auth');
@@ -46,7 +35,6 @@ function ensureIndexes(db) {
   return indexesReady;
 }
 
-/** hangnmkk24406h@st.uel.edu.vn → ha***********h@st.uel.edu.vn */
 function maskEmail(email) {
   const [name, domain] = String(email || '').split('@');
   if (!domain) return '';
@@ -88,14 +76,8 @@ function publicChallenge(doc, resendAfter = RESEND_SECONDS) {
   };
 }
 
-/**
- * Tạo mã mới và gửi email. accountId = null là "mã giả" cho email chưa đăng ký
- * (quên mật khẩu): trả về giống hệt nhưng không gửi gì, để không lộ email nào có tài khoản.
- * Gọi lại trong vòng 60 giây thì dùng lại mã vừa gửi, không gửi thêm.
- */
 async function startChallenge(db, { purpose, accountId = null, userId = null, email, remember = false, pending = null }) {
   if (!PURPOSES[purpose]) throw new Error(`OTP purpose không hợp lệ: ${purpose}`);
-  // Mã thật (gửi email) khi gắn với tài khoản có sẵn hoặc với thông tin đăng ký đang chờ
   const real = !!accountId || !!pending;
   await ensureIndexes(db);
   const col = db.collection(COLLECTION);
@@ -106,13 +88,11 @@ async function startChallenge(db, { purpose, accountId = null, userId = null, em
   if (recent) {
     const wait = RESEND_SECONDS - Math.floor((now.getTime() - new Date(recent.lastSentAt).getTime()) / 1000);
     if (wait > 0) {
-      // Đăng ký lại trong 60 giây: dùng mã vừa gửi nhưng lấy thông tin đăng ký mới nhất
       const set = { remember, ...(pending ? { pending } : {}) };
       await col.updateOne({ _id: recent._id }, { $set: set });
       return publicChallenge(recent, wait);
     }
   }
-  // Mã cũ chưa dùng của cùng mục đích bị vô hiệu, chỉ mã mới nhất có tác dụng
   await col.updateMany({ ...owner, purpose, consumedAt: null }, { $set: { consumedAt: now, replaced: true } });
 
   const challengeId = randomBytes(24).toString('hex');
@@ -136,7 +116,6 @@ async function startChallenge(db, { purpose, accountId = null, userId = null, em
   return publicChallenge(doc);
 }
 
-/** Gửi lại mã mới cho cùng challengeId (chờ 60 giây giữa 2 lần, tối đa 5 lần gửi) */
 async function resendChallenge(db, challengeId) {
   await ensureIndexes(db);
   const col = db.collection(COLLECTION);
@@ -162,7 +141,6 @@ async function resendChallenge(db, challengeId) {
   return publicChallenge({ ...doc, ...update });
 }
 
-/** Kiểm tra mã. Đúng thì đánh dấu đã dùng và trả bản ghi; sai thì throw OtpError */
 async function consumeChallenge(db, { challengeId, code, purposes }) {
   await ensureIndexes(db);
   const col = db.collection(COLLECTION);
@@ -178,7 +156,6 @@ async function consumeChallenge(db, { challengeId, code, purposes }) {
     throw new OtpError(429, `Bạn đã nhập sai ${MAX_ATTEMPTS} lần. Bấm "Gửi lại mã" để nhận mã mới.`, { code: 'OTP_TOO_MANY_ATTEMPTS', remainingAttempts: 0 });
   }
   const value = typeof code === 'string' ? code.trim() : '';
-  // Mã giả (email chưa đăng ký) không bao giờ đúng; mã đăng ký mới thì chưa có accountId nhưng có pending
   const expected = (doc.accountId || doc.pending) && doc.codeHash ? Buffer.from(doc.codeHash, 'hex') : null;
   const given = /^\d{6}$/.test(value) ? Buffer.from(hashCode(doc.challengeId, value), 'hex') : null;
   const ok = !!expected && !!given && expected.length === given.length && timingSafeEqual(expected, given);
@@ -190,7 +167,6 @@ async function consumeChallenge(db, { challengeId, code, purposes }) {
       remainingAttempts: remaining,
     });
   }
-  // Chỉ một request được dùng mã (chống bấm 2 lần / gửi lại cùng mã)
   const claimed = await col.updateOne({ _id: doc._id, consumedAt: null }, { $set: { consumedAt: new Date() } });
   if (claimed.matchedCount !== 1) throw expired();
   return doc;

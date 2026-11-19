@@ -1,10 +1,5 @@
 // =====================================================================
 // Đăng nhập cho web khách hàng (my-app). Không dùng chung phiên với trang admin.
-//
-// Token: chuỗi ngẫu nhiên gửi kèm header "Authorization: Bearer <token>".
-// Database chỉ lưu SHA-256 của token trong collection customer_sessions
-//   { tokenHash, accountId, userId, createdAt, expiresAt }  — tự xoá khi hết hạn (TTL index).
-// Mọi API khách hàng lấy userId từ token, KHÔNG nhận userId do trang gửi lên.
 // =====================================================================
 const { randomBytes, createHash, scrypt, timingSafeEqual } = require('node:crypto');
 const { promisify } = require('node:util');
@@ -36,7 +31,6 @@ async function hashPassword(password) {
   return bcrypt().hash(password, 10);
 }
 
-/** Đọc được mật khẩu bcrypt ($2a/$2b/$2y) và scrypt (dạng admin-auth dùng) */
 async function verifyPassword(password, encoded) {
   if (typeof password !== 'string' || typeof encoded !== 'string') return false;
   if (/^\$2[aby]\$\d{2}\$/.test(encoded)) {
@@ -72,7 +66,6 @@ async function deleteSession(db, req) {
   if (token) await db.collection('customer_sessions').deleteOne({ tokenHash: digest(token) });
 }
 
-/** Middleware: bắt buộc đăng nhập. Gắn req.customer = { accountId, userId, email, account, user } */
 function requireCustomer(getDb) {
   return async (req, res, next) => {
     try {
@@ -97,7 +90,6 @@ function requireCustomer(getDb) {
   };
 }
 
-/** Middleware: đăng nhập KHÔNG bắt buộc. Token hợp lệ thì gắn req.customer như requireCustomer, không thì cho qua */
 function optionalCustomer(getDb) {
   return async (req, _res, next) => {
     try {

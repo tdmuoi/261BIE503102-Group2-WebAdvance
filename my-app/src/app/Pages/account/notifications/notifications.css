@@ -1,4 +1,3 @@
-/* Style chung (tiêu đề, tab, nút) nằm ở ../account-page.css */
 .mark-all { flex: none; padding: 0; border: 0; background: none; font: 700 13px/normal var(--font-sans); text-decoration: underline; }
 .mark-all:disabled { color: var(--color-text-muted); cursor: default; }
 .chip { padding: var(--space-8) var(--space-12); font-size: 13px; }

@@ -20,11 +20,11 @@
   position: absolute; bottom: var(--space-14); left: var(--space-10); padding: var(--space-4) var(--space-10); background: var(--color-border-subtle);
   border: var(--border-default) solid var(--color-border-strong); border-radius: var(--radius-full); font: 700 11px/normal var(--font-sans);
 }
-.text { display: flex; flex: 1; flex-direction: column; gap: 3px; } /* đẩy nút xuống đáy thẻ để các thẻ thẳng hàng */
+.text { display: flex; flex: 1; flex-direction: column; gap: 3px; }
 .text p { margin: 0; }
 .title {
   display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
-  min-height: 2.6em; font: 800 14px/1.3 var(--font-sans); /* luôn chiếm 2 dòng: tên ngắn hay dài thì tác giả, giá vẫn cùng hàng */
+  min-height: 2.6em; font: 800 14px/1.3 var(--font-sans);
 }
 .author { font: 400 12px/normal var(--font-sans); color: var(--color-text-secondary); }
 .prices { display: flex; align-items: baseline; gap: var(--space-8); padding-top: var(--space-4); }

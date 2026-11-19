@@ -45,18 +45,14 @@ test('Public catalog and librarian redact paid Ebook sources while preserving pr
   } };
   const customerRoutes = require('./customer');
   const app = express(); app.use(express.json());
-  // Execute the real inline catalog route without starting index.js, loading
-  // dotenv, opening MongoClient, or creating the startup newsletter index.
   const source = fs.readFileSync(path.join(__dirname, '../index.js'), 'utf8');
   const start = source.indexOf("app.get('/api/books',");
-  const end = source.indexOf('// API lấy danh sách tác giả', start);
+  const end = source.indexOf("app.get('/api/authors',", start);
   assert(start >= 0 && end > start);
   vm.runInNewContext(source.slice(start, end), {
     app, database: db, customerRoutes, console, require: createRequire(path.join(__dirname, '../index.js')),
     listParam: value => String(value ?? '').split(',').map(item => item.trim()).filter(Boolean),
   });
-  // Real recommendation route with a deterministic provider response; no
-  // external AI calls or real credentials are used by this test.
   const librarianPath = path.join(__dirname, 'librarian.js');
   const nativeRequire = createRequire(librarianPath);
   const sandboxModule = { exports: {} };
@@ -145,7 +141,6 @@ test('PDF xref validation accepts linearized/incremental layouts and rejects bro
     classic.replace(/(\d{10}) 00000 n/, '9999999999 00000 n'), classic.replace('%%EOF', ''),
     build(true, true), '%PDF-1.4\nxref\n0 1\n0000000000 65535 f \ntrailer\n<< /Root 1 0 R >>\nstartxref\n9\n%%EOF\n',
   ]) assert.equal(validPdf(Buffer.from(bad)), false);
-  // An incremental trailer may inherit /Root through /Prev.
   const previousOffset = Number(/startxref\n(\d+)/.exec(classic)[1]);
   const appendedOffset = classic.length;
   const updated = classic + 'xref\n0 1\n0000000000 65535 f \ntrailer\n<< /Size 5 /Prev ' + previousOffset +

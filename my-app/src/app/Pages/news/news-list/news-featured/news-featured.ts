@@ -4,7 +4,6 @@ import { NewsItem } from '../../../../models/content';
 import { toInitials } from '../../../../services/author-directory-service';
 import { categoryLabel, fallbackCover, newsCover, newsDate } from '../../../../shared/news-utils';
 
-/** Bài nổi bật lớn cạnh thẻ vàng "Đọc nhiều this week" — Figma 878:7287, 878:7344 */
 @Component({
   selector: 'app-news-featured',
   standalone: false,
@@ -13,7 +12,6 @@ import { categoryLabel, fallbackCover, newsCover, newsDate } from '../../../../s
 })
 export class NewsFeatured {
   readonly article = input.required<NewsItem>();
-  /** Đã xếp theo lượt xem — rỗng thì ẩn thẻ vàng */
   readonly mostRead = input<NewsItem[]>([]);
 
   protected readonly categoryLabel = categoryLabel;

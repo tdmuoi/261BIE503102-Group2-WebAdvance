@@ -11,10 +11,8 @@ import { AuthorFollow } from '../author-follow';
 
 type WorkSort = 'newest' | 'price-asc' | 'price-desc';
 
-/** Số sách hiện ở mục "Tác phẩm" (1 hàng như Figma) */
 const SHELF_SIZE = 5;
 
-/** Trang chi tiết tác giả /authors/:id */
 @Component({
   selector: 'app-author-detail',
   standalone: false,
@@ -43,7 +41,6 @@ export class AuthorDetail {
     { label: this.author()?.name ?? '' },
   ]);
 
-  /** Chip thể loại kèm số sách */
   protected readonly genreChips = computed(() => {
     const books = this.author()?.books ?? [];
     return (this.author()?.genres ?? []).map((name) => ({ name, count: books.filter((b) => b.categoryName === name).length }));
@@ -58,7 +55,6 @@ export class AuthorDetail {
     return sorted.slice(0, SHELF_SIZE);
   });
 
-  /** Tăng lên để tải lại sau khi lỗi */
   private readonly retry$ = new BehaviorSubject(0);
 
   constructor() {
@@ -70,7 +66,6 @@ export class AuthorDetail {
           this.events.set([]);
           this.articles.set([]);
         }),
-        // undefined = lỗi tải, null = không có tác giả này
         switchMap(([id]) => this.directory.getProfile(id).pipe(catchError(() => of(undefined)))),
         takeUntilDestroyed(),
       )
@@ -87,7 +82,6 @@ export class AuthorDetail {
     this.retry$.next(this.retry$.value + 1);
   }
 
-  /** Sự kiện và bài viết liên quan — lỗi hoặc không có thì chỉ ẩn mục tương ứng */
   private loadRelated(author: AuthorProfile): void {
     this.eventService.getEvents({ authorId: author.id, when: 'upcoming', limit: 3 }).subscribe({
       next: (list) => this.events.set(list),

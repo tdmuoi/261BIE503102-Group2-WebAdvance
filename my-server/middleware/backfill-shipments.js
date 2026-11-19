@@ -2,8 +2,6 @@
 const transaction = require('./admin-transaction');
 const { document: shipmentDocument } = require('./shipment-sync');
 
-// Only derive missing records from real existing orders. Never edit the order,
-// inventory, payment or an existing shipment; rerunning is safe.
 module.exports = async function backfillShipments(db) {
   return transaction(db, async session => {
     const summary = { eligible: 0, inserted: 0, existing: 0 };

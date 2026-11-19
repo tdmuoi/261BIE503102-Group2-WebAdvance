@@ -1,5 +1,3 @@
-/* z-index 900: trên header (100), dưới modal (1000), toast (1100) */
-
 .lc-fab {
   position: fixed;
   right: var(--space-20);
@@ -137,7 +135,6 @@
 
 .lc-send:disabled { background: var(--color-bg-disabled); color: var(--color-text-muted); cursor: not-allowed; }
 
-/* Mobile: tránh thanh mua hàng dính đáy trang chi tiết */
 @media (max-width: 768px) {
   .lc-fab { right: var(--space-12); bottom: 80px; }
   .lc-fab-mascot { width: 64px; height: 64px; }

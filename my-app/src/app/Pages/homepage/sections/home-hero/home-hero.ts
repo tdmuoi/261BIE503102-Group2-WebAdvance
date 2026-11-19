@@ -3,7 +3,6 @@ import { Component, input } from '@angular/core';
 interface HeroBook {
   src: string;
   alt: string;
-  /** Vị trí tâm và bề rộng, tính theo % khung 1440 × 342 của Figma */
   x: number;
   y: number;
   width: number;
@@ -18,7 +17,6 @@ interface HeroBook {
 })
 export class HomeHero {
   readonly banner = input<{ title: string; subtitle: string; link: string; image: string | null } | null>(null);
-  // Ảnh trang trí xuất từ Figma (Hero header section 772:1454)
   protected readonly books: HeroBook[] = [
     { src: 'images/hero/book-ho-so-mat.png', alt: 'Bìa sách Hồ Sơ Mật', x: 58.61, y: 51.96, width: 22.81, layer: 1 },
     { src: 'images/hero/book-nhung-mien-linh-di.png', alt: 'Bìa sách Những Miền Linh Dị', x: 79.58, y: 49.36, width: 24.44, layer: 2 },

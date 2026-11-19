@@ -5,8 +5,6 @@ const servers = (process.env.MONGODB_DNS_SERVERS || '').split(',').map(s => s.tr
 if (servers.length) dns.setServers(servers);
 const { MongoClient } = require('mongodb');
 
-// Explicit maintenance command: node scripts/reconcile-data-flows.js --apply
-// No email is sent, no OTP is generated, no source orders are modified.
 async function reconcile(db) {
   const otp = await require('../middleware/prepare-data-flows')(db);
   const shipments = await require('../middleware/backfill-shipments')(db);

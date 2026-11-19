@@ -75,7 +75,6 @@ module.exports = function adminEvents(getDb) {
         if (existing.isDemo === true) throw fail(409, 'Sự kiện demo chỉ đọc. Hãy tạo sự kiện mới với nội dung đã xác nhận.');
         revisions.requireRevision(body, existing);
       }
-      // Editing already-public content, including unpublishing, also requires publish permission.
       if (body.status === 'published' || existing?.status === 'published') {
         let permitted = false;
         auth.requirePermission('content', 'publish')(req, res, () => { permitted = true; });

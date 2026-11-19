@@ -10,34 +10,23 @@ import { ToastService } from '../../../services/toast-service';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PASSWORD_MIN = 8;
-/** Thời gian chờ mặc định trước khi được gửi lại (giây) */
 const RESEND_SECONDS = 60;
 
-/** Mật khẩu phải có cả chữ và số */
 function letterAndDigit(control: AbstractControl): ValidationErrors | null {
   const value = String(control.value ?? '');
   return !value || (/\p{L}/u.test(value) && /\d/.test(value)) ? null : { letterDigit: true };
 }
 
-/** Ô "Nhập lại mật khẩu" phải trùng ô "Mật khẩu mới" */
 function sameAsPassword(control: AbstractControl): ValidationErrors | null {
   const password = control.parent?.get('password')?.value;
   return !control.value || control.value === password ? null : { mismatch: true };
 }
 
-/**
- * Quên mật khẩu, 3 bước:
- *   1. Nhập email → server gửi mã OTP 6 số
- *   2. Nhập mã OTP + mật khẩu mới
- *   3. Xong → quay lại đăng nhập (mọi thiết bị khác bị đăng xuất)
- */
 @Component({
   selector: 'app-forgot-password',
   standalone: false,
   styleUrls: ['../auth-form.css', './forgot-password.css'],
   templateUrl: './forgot-password.html',
-  // Bộ gõ tiếng Việt (Unikey/Telex) có thể để Angular kẹt ở trạng thái "đang gõ dở"
-  // khiến ô nhập không cập nhật vào form → tắt chờ composition, luôn đồng bộ theo sự kiện input.
   providers: [{ provide: COMPOSITION_BUFFER_MODE, useValue: false }],
 })
 export class ForgotPassword implements OnInit {
@@ -51,12 +40,9 @@ export class ForgotPassword implements OnInit {
   readonly submitted = signal(false);
   readonly resetSubmitted = signal(false);
   readonly serverError = signal<string | null>(null);
-  /** Email (đã che bớt) vừa gửi mã — có giá trị thì hiện bước nhập OTP */
   readonly sentTo = signal<string | null>(null);
-  /** Đổi mật khẩu thành công */
   readonly done = signal(false);
   readonly showPassword = signal(false);
-  /** Số giây còn lại trước khi được bấm "Gửi lại mã" */
   readonly countdown = signal(0);
 
   private challengeId: string | null = null;
@@ -80,7 +66,6 @@ export class ForgotPassword implements OnInit {
   }
 
   ngOnInit(): void {
-    // Trang Đăng nhập truyền sang ?email=... nếu người dùng đã gõ email
     const email = this.route.snapshot.queryParamMap.get('email');
     if (email) this.form.controls.email.setValue(email);
   }
@@ -104,7 +89,6 @@ export class ForgotPassword implements OnInit {
     return e['required'] ? 'Vui lòng nhập lại mật khẩu' : 'Mật khẩu nhập lại chưa khớp';
   }
 
-  /** Chỉ giữ chữ số trong ô mã OTP */
   onCodeInput(): void {
     const c = this.resetForm.controls.code;
     const digits = c.value.replace(/\D/g, '').slice(0, 6);
@@ -115,13 +99,11 @@ export class ForgotPassword implements OnInit {
     this.showPassword.update((v) => !v);
   }
 
-  /** 01:00 */
   countdownText(): string {
     const s = this.countdown();
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   }
 
-  /** Bước 1: gửi mã */
   submit(): void {
     this.submitted.set(true);
     this.serverError.set(null);
@@ -149,7 +131,6 @@ export class ForgotPassword implements OnInit {
       });
   }
 
-  /** Gửi lại mã cho cùng email */
   resend(): void {
     if (!this.challengeId || this.countdown() > 0 || this.loading()) return;
     this.loading.set(true);
@@ -173,7 +154,6 @@ export class ForgotPassword implements OnInit {
       });
   }
 
-  /** Bước 2: mã OTP + mật khẩu mới */
   reset(): void {
     this.resetSubmitted.set(true);
     this.serverError.set(null);
@@ -202,7 +182,6 @@ export class ForgotPassword implements OnInit {
       });
   }
 
-  /** Quay lại bước nhập email (đổi email khác / phiên OTP hết hạn) */
   startOver(): void {
     this.stopTimer();
     this.challengeId = null;

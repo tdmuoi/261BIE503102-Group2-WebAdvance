@@ -1,8 +1,5 @@
-/* Thẻ Flash deal — Figma "Flash deal card" 807:2855 */
-
 :host { display: block; height: 100%; }
 
-/* Bìa và giá (chép từ section-shared.css để file nhẹ hơn) */
 .cover {
   position: relative;
   overflow: hidden;

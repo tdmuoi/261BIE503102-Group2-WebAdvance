@@ -18,7 +18,6 @@
   box-shadow: var(--shadow-offset-sm); font: 700 12px/1.3 var(--font-sans);
 }
 
-/* Hero: lưới 80px rộng 960, chữ 72px */
 .hero { position: relative; height: 640px; max-width: 1440px; margin: 0 auto; overflow: hidden; text-align: center; }
 .hero-grid {
   position: absolute; left: 50%; top: 0; width: 961px; height: 420px; transform: translateX(-50%);

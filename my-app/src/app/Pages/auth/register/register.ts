@@ -10,19 +10,16 @@ import { ToastService } from '../../../services/toast-service';
 
 const NAME_PATTERN = /^[\p{L}][\p{L}\s'.-]*[\p{L}]$/u;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-/** Số di động Việt Nam: 0xxxxxxxxx hoặc +84xxxxxxxxx */
 const PHONE_PATTERN = /^(0|\+84)\d{9}$/;
 const PASSWORD_MIN = 8;
 
 type FieldName = 'fullName' | 'email' | 'phone' | 'password' | 'confirmPassword';
 
-/** Mật khẩu phải có cả chữ và số */
 function letterAndDigit(control: AbstractControl): ValidationErrors | null {
   const value = String(control.value ?? '');
   return !value || (/\p{L}/u.test(value) && /\d/.test(value)) ? null : { letterDigit: true };
 }
 
-/** Ô "Nhập lại mật khẩu" phải trùng ô "Mật khẩu" */
 function sameAsPassword(control: AbstractControl): ValidationErrors | null {
   const password = control.parent?.get('password')?.value;
   return !control.value || control.value === password ? null : { mismatch: true };
@@ -33,8 +30,6 @@ function sameAsPassword(control: AbstractControl): ValidationErrors | null {
   standalone: false,
   styleUrls: ['../auth-form.css', './register.css'],
   templateUrl: './register.html',
-  // Bộ gõ tiếng Việt (Unikey/Telex) có thể để Angular kẹt ở trạng thái "đang gõ dở"
-  // khiến ô nhập không cập nhật vào form → tắt chờ composition, luôn đồng bộ theo sự kiện input.
   providers: [{ provide: COMPOSITION_BUFFER_MODE, useValue: false }],
 })
 export class Register implements OnInit {
@@ -49,11 +44,8 @@ export class Register implements OnInit {
   readonly showConfirm = signal(false);
   readonly loading = signal(false);
   readonly submitted = signal(false);
-  /** Lỗi server không gắn được vào ô nào (mất mạng, lỗi lạ) */
   readonly serverError = signal<string | null>(null);
-  /** Đã tạo tài khoản, đang chờ nhập OTP xác minh email */
   readonly otp = signal<OtpChallenge | null>(null);
-  /** Xác minh email xong: hiện màn hình chào mừng thay cho form */
   readonly done = signal<{ email: string; coupon: string | null } | null>(null);
 
   readonly form = this.fb.nonNullable.group({
@@ -67,7 +59,6 @@ export class Register implements OnInit {
   });
 
   constructor() {
-    // Đổi mật khẩu thì kiểm tra lại ô nhập lại
     this.form.controls.password.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.form.controls.confirmPassword.updateValueAndValidity({ emitEvent: false }));
@@ -79,7 +70,6 @@ export class Register implements OnInit {
     }
   }
 
-  /** Ô đã được người dùng chạm vào hoặc đã bấm Tạo tài khoản */
   private shown(control: AbstractControl): boolean {
     return control.touched || this.submitted();
   }
@@ -105,7 +95,6 @@ export class Register implements OnInit {
     }
   }
 
-  /** Viền xanh khi ô đã nhập và hợp lệ (ô trống không bắt buộc thì để bình thường) */
   fieldOk(name: FieldName): boolean {
     const c = this.form.controls[name];
     return c.valid && this.shown(c) && c.value !== '';
@@ -116,7 +105,6 @@ export class Register implements OnInit {
     return c.invalid && this.shown(c);
   }
 
-  /** Số ô đang sai — hiện ở khung "Còn N trường cần sửa" sau khi bấm Tạo tài khoản */
   invalidCount(): number {
     return Object.values(this.form.controls).filter((c) => c.invalid).length;
   }
@@ -143,7 +131,6 @@ export class Register implements OnInit {
     this.loading.set(true);
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (challenge) => {
-        // Chưa tạo tài khoản: nhập đúng mã OTP gửi về email thì server mới tạo và đăng nhập luôn
         this.loading.set(false);
         this.otp.set(challenge);
       },
@@ -154,14 +141,12 @@ export class Register implements OnInit {
     });
   }
 
-  /** Nhập đúng OTP: email đã xác minh → đăng nhập luôn và hiện mã giảm giá */
   onVerified(res: VerifiedResponse): void {
     this.auth.setSession({ token: res.token, user: res.user }, true);
     this.otp.set(null);
     this.done.set({ email: res.user.email, coupon: res.coupon?.code ?? null });
   }
 
-  /** Quay lại form từ bước OTP — chưa nhập mã thì tài khoản CHƯA được tạo, giữ nguyên thông tin đã điền */
   cancelOtp(): void {
     this.otp.set(null);
     this.toast.show('Tài khoản chưa được tạo vì bạn chưa nhập mã xác minh. Bấm Đăng ký để nhận mã mới nhé.');
@@ -193,7 +178,6 @@ export class Register implements OnInit {
         return;
       }
       const body = (err.error ?? {}) as RegisterError;
-      // Email / SĐT đã có người dùng → đánh dấu đỏ đúng ô đó
       if (err.status === 409 && body.field) {
         const control = this.form.controls[body.field];
         const fallback = body.field === 'email' ? 'Email này đã được đăng ký' : 'Số điện thoại này đã được đăng ký';

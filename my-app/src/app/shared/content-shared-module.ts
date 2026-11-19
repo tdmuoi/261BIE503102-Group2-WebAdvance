@@ -8,10 +8,6 @@ import { EventCard } from '../Components/event-card/event-card';
 import { SectionHead } from '../Components/section-head/section-head';
 import { Sticker } from '../Components/sticker/sticker';
 
-/**
- * Component dùng chung giữa các trang tải sau (lazy) Tác giả và Lightbook News.
- * Không import vào AppModule để không làm bundle ban đầu lớn thêm.
- */
 @NgModule({
   declarations: [ArticleCard, AuthorAvatar, Breadcrumb, EventCard, SectionHead, Sticker],
   imports: [RouterModule],

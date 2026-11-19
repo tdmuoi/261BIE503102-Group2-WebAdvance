@@ -1,7 +1,3 @@
-/**
- * 34 tỉnh, thành phố theo đơn vị hành chính áp dụng từ 01/07/2025 (6 thành phố + 28 tỉnh).
- * Chưa có API địa giới nên viết tĩnh tại đây. Khi backend có API thì chỉ cần thay chỗ này.
- */
 export const PROVINCES: readonly string[] = [
   'An Giang',
   'Bắc Ninh',

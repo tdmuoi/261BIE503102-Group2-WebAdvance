@@ -3,14 +3,12 @@ import { Component, computed, input, linkedSignal, output, signal } from '@angul
 import { BookType } from '../../../../models/book';
 import { BrowseQuery, PRICE_MAX, normalizeText } from '../../browse-query';
 
-/** Tác giả có sách trong phạm vi đang xem, kèm số đầu sách */
 export interface AuthorFacet {
   id: string;
   name: string;
   count: number;
 }
 
-/** Một lựa chọn trong nhóm checkbox, kèm số đầu sách */
 export interface TypeFacet {
   id: BookType;
   label: string;
@@ -34,11 +32,6 @@ export interface FilterChange {
 const TOP_AUTHORS = 5;
 const SEARCH_LIMIT = 8;
 
-/**
- * Sidebar "Bộ lọc" — Figma "Filter sidebar" (893:9983). Chọn xong bấm "Áp dụng bộ lọc" mới đổi kết quả.
- * Tablet/mobile: thành drawer trượt từ phải (trang cha mở/đóng qua input open).
- * Nhóm "Ấn bản" (bìa cứng / bìa mềm) trong Figma chưa làm vì DB chưa có field loại bìa.
- */
 @Component({
   selector: 'app-browse-filters',
   standalone: false,
@@ -51,14 +44,12 @@ export class BrowseFilters {
   readonly types = input.required<TypeFacet[]>();
   readonly conditions = input.required<ConditionFacet[]>();
   readonly authors = input.required<AuthorFacet[]>();
-  /** Drawer đang mở (chỉ có tác dụng trên tablet/mobile) */
   readonly open = input(false);
 
   readonly apply = output<FilterChange>();
   readonly clearAll = output<void>();
   readonly close = output<void>();
 
-  // Lựa chọn tạm, chưa áp dụng — tự đặt lại mỗi khi URL đổi, nên vào từ menu "Sách mới" là ô đó đã tích sẵn
   protected readonly selectedTypes = linkedSignal(() => this.query().types);
   protected readonly selectedConditions = linkedSignal(() => this.query().conditions);
   protected readonly selectedAuthors = linkedSignal(() => this.query().authors);
@@ -66,13 +57,11 @@ export class BrowseFilters {
   protected readonly maxPrice = linkedSignal(() => this.query().maxPrice ?? PRICE_MAX);
   protected readonly authorSearch = signal('');
 
-  /** Tình trạng chỉ có ở sách cũ: ẩn khi đang chọn các loại sách khác */
   protected readonly showConditions = computed(() => {
     const types = this.selectedTypes();
     return this.conditions().length > 0 && (!types.length || types.includes('used'));
   });
 
-  /** Chưa gõ tìm: 5 tác giả nhiều sách nhất. Đang gõ: các tác giả khớp tên. Tác giả đã chọn luôn hiện. */
   protected readonly visibleAuthors = computed(() => {
     const all = this.authors();
     const search = normalizeText(this.authorSearch().trim());

@@ -5,19 +5,10 @@ import { Observable, delay, of, switchMap, throwError, timer } from 'rxjs';
 import { AccountNotification, AccountProfile, Address, Order, OrderItem, OrderStatus, ShippingAddress } from '../models/account';
 import { LibraryEbook } from '../Pages/account/bookshelf-ebooks/library';
 
-/**
- * CHỈ DÙNG TRONG TEST (*.spec.ts): giả lập các API khách hàng của my-server (routes/customer-*.js)
- * bằng một HttpInterceptor, để test chạy service thật mà không cần server.
- * Mỗi lần gọi provideFakeCustomerApi() là một "database" mới, dữ liệu mẫu theo Figma.
- *
- *   providers: [provideFakeCustomerApi()]          // mọi request trả sau 300ms
- *   const api = fakeCustomerApi();  providers: [api.providers]  → đọc / sửa api.db trong test
- */
 export const FAKE_DELAY = 300;
 
 export const FAKE_USER = { _id: 'u1', fullName: 'Nguyễn Thùy Dung', email: 'dung@lightbook.vn', phone: '0909123268', avatar: null };
 const DEMO_LOGIN = { email: 'demo@lightbook.vn', phone: '0901234567', password: 'lightbook123' };
-/** Tài khoản đã bật xác thực 2 lớp; mã OTP đúng trong mọi API giả là FAKE_OTP */
 const DEMO_2FA = { email: 'otp@lightbook.vn', password: 'lightbook123' };
 export const FAKE_OTP = '123456';
 const challenge = (purpose: 'verify_email' | 'login_2fa' | 'reset_password') =>
@@ -61,7 +52,6 @@ function seedOrders(): Order[] {
   ];
 }
 
-/** Câu tô sáng mẫu trong "Kitchen" (Figma Đọc ebook) */
 const KITCHEN_QUOTE = 'Khi đọc, người dùng có thể bôi đen một câu để tô sáng, thêm ghi chú hoặc tra từ.';
 
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
@@ -109,7 +99,6 @@ export interface FakeDb {
   wishlist: { bookId: string; title: string; image: string; price: number; addedAt: string; author?: string; originalPrice?: number }[];
   progress: Record<string, unknown>;
   failedLogins: number;
-  /** Ghi lại mọi request (method + đường dẫn sau /api) để test kiểm tra */
   calls: string[];
 }
 
@@ -151,7 +140,6 @@ function sortAddresses(list: Address[], defaultId?: string): Address[] {
   return list.map((a) => ({ ...a, isDefault: a._id === id })).sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
 }
 
-/** Xử lý một request giống my-server */
 function handle(db: FakeDb, req: HttpRequest<unknown>): Reply | null {
   const url = new URL(req.urlWithParams, 'http://x');
   const idx = url.pathname.indexOf('/api/');
@@ -285,7 +273,6 @@ function handle(db: FakeDb, req: HttpRequest<unknown>): Reply | null {
     db.orders = [created, ...db.orders];
     return ok(structuredClone(created), 201);
   }
-  // MoMo: link thanh toán giả; xác nhận = server đã hỏi MoMo và MoMo báo thành công
   if (m === 'POST' && seg[0] === 'orders' && seg[2] === 'momo') {
     const found = db.orders.find((o) => o._id === seg[1]);
     if (!found) return fail(404, { message: 'Không tìm thấy đơn hàng' });
@@ -361,7 +348,6 @@ export function provideFakeCustomerApi(delayMs = FAKE_DELAY): EnvironmentProvide
   return fakeCustomerApi(delayMs).providers;
 }
 
-/** Ghi phiên đăng nhập vào localStorage trước khi tạo AuthService (token 64 ký tự như server) */
 export function signInForTest(user: object = FAKE_USER): void {
   localStorage.setItem('lightbook.auth', JSON.stringify({ token: 'f'.repeat(64), user }));
 }

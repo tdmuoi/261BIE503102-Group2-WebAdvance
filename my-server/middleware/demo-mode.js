@@ -1,5 +1,4 @@
 'use strict';
-// Demo confirmation must never grant access or mutate payments on shared Atlas.
 function enabled(db) {
   const options = db?.client?.options;
   return process.env.DEMO_PAYMENTS_ENABLED === 'true' && process.env.NODE_ENV !== 'production' &&

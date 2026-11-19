@@ -14,7 +14,6 @@ import {
 } from '../../models/voucher';
 import { VoucherService } from '../../services/voucher-service';
 
-/** Quote CSV cells and keep user-provided names from becoming spreadsheet formulas. */
 export function voucherCsvCell(value: unknown): string {
   let text = String(value);
   if (/^\s*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
@@ -303,7 +302,6 @@ export class Vouchers implements OnInit, OnDestroy {
     if (v.categories.length || v.newOnly || v.suggest)
       this.errors.push('Schema hiện chưa hỗ trợ nhóm sách, khách hàng mới hoặc gợi ý giỏ hàng.');
     if (this.errors.length) return;
-    // Explicit whitelist: never send used, state, IDs, or revenue from the Admin form.
     const payload: VoucherPayload = {
       code,
       name: v.name?.trim(),

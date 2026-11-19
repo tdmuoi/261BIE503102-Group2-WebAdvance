@@ -5,19 +5,12 @@ import { Observable } from 'rxjs';
 import { Banner, BannerErrors, BannerPayload, BannerPosition, POSITION_LABELS, validBannerUrl } from '../../../models/banner';
 import { BannerService } from '../../../services/banner-service';
 
-/** ISO -> 'YYYY-MM-DD' theo giờ Việt Nam (cho <input type="date">) */
 export function toDateInput(iso: string | null): string {
   if (!iso) return '';
   const time = new Date(iso).getTime();
   return Number.isFinite(time) ? new Date(time + 7 * 3600 * 1000).toISOString().slice(0, 10) : '';
 }
 
-/**
- * Hộp thoại Thêm / Sửa banner (dùng trong trang Banners), có xem trước trực tiếp.
- *   <app-banner-form [banner]="null" position="hero" (saved)="..." (closed)="..." (deleteRequested)="..."></app-banner-form>
- * - banner = null  -> thêm mới ở vị trí `position`
- * - banner có giá trị -> sửa banner đó
- */
 @Component({
   selector: 'app-banner-form',
   standalone: false,
@@ -29,7 +22,6 @@ export class BannerForm implements OnInit {
 
   @Input() banner: Banner | null = null;
   @Input() position: BannerPosition = 'hero';
-  /** true khi đang có hộp thoại khác đè lên (vd xác nhận xoá) -> Esc không đóng form */
   @Input() paused = false;
 
   @Output() saved = new EventEmitter<Banner>();
@@ -65,8 +57,6 @@ export class BannerForm implements OnInit {
     if (!this.saving()) this.closed.emit();
   }
 
-  /** Bấm ra vùng nền mờ bên ngoài hộp thoại thì đóng.
-   *  (Viết thành hàm: biểu thức trả về false trong (click) sẽ chặn luôn nút submit của form) */
   onBackdrop(event: MouseEvent): void {
     if (event.target === event.currentTarget) this.close();
   }
@@ -97,7 +87,6 @@ export class BannerForm implements OnInit {
     return e;
   }
 
-  /** Sửa ô nào thì xoá lỗi của ô đó */
   clearError(field: string): void {
     const key = field as keyof BannerErrors;
     if (!this.errors()[key]) return;

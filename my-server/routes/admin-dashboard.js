@@ -1,15 +1,5 @@
 // =====================================================================
 // API cho trang Dashboard của my-admin
-//   GET /api/admin/dashboard?days=7      (days: 1 - 90, mặc định 7)
-//
-// Gắn vào index.js:
-//   const adminDashboardRoutes = require('./routes/admin-dashboard');
-//   app.use('/api/admin', adminDashboardRoutes(() => database));
-//
-// Vì dữ liệu MongoDB vẫn đang được bổ sung, API này:
-//   - tự dò tên collection (orders / users / refunds...) — thiếu collection nào thì số liệu đó = 0
-//   - chấp nhận nhiều tên field (total / totalAmount / totalPrice..., createdAt / orderDate...)
-//   - tính toán bằng JavaScript cho dễ đọc (dữ liệu đồ án nhỏ nên không ảnh hưởng tốc độ)
 // =====================================================================
 const express = require('express');
 const { verifiedPaymentDate } = require('../middleware/admin-safe-status');
@@ -23,7 +13,6 @@ const COLLECTIONS = {
   refunds: ['return_requests'],
 };
 
-// Trạng thái (đã bỏ dấu, viết thường, khoảng trắng -> _)
 const CANCELLED = ['cancelled', 'canceled', 'failed', 'da_huy', 'huy', 'that_bai'];
 const REFUND_PENDING = ['pending', 'approved', 'received', 'requested', 'processing', 'reviewing', 'cho_xu_ly', 'dang_xu_ly', 'cho_duyet', 'cho_xac_nhan'];
 const ORDER_RETURN_PENDING = ['return_requested', 'returning', 'refund_requested', 'cho_tra_hang', 'yeu_cau_tra_hang'];
@@ -45,7 +34,6 @@ function toDate(value) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** Ngày tạo của 1 document: createdAt / orderDate / date, nếu không có thì lấy từ _id */
 function docDate(doc) {
   return toDate(doc.createdAt) || toDate(doc.orderDate) || toDate(doc.date) ||
     (doc._id && typeof doc._id.getTimestamp === 'function' ? doc._id.getTimestamp() : null);
@@ -64,7 +52,6 @@ function itemQty(item) {
   return toNumber(item.quantity ?? item.qty ?? 1) || 1;
 }
 
-/** Tổng tiền đơn: lấy field tổng nếu có, không thì cộng giá * số lượng từng sản phẩm */
 function orderTotal(order) {
   for (const key of ['total', 'totalAmount', 'totalPrice', 'grandTotal', 'finalTotal', 'amount']) {
     if (order[key] !== undefined && order[key] !== null) return toNumber(order[key]);
@@ -73,7 +60,7 @@ function orderTotal(order) {
 }
 
 function percentChange(current, previous) {
-  if (!previous) return current ? null : 0; // kỳ trước = 0 thì không tính được %
+  if (!previous) return current ? null : 0;
   return Math.round(((current - previous) / previous) * 1000) / 10;
 }
 
@@ -105,7 +92,6 @@ async function buildDashboard(db, days, now = new Date()) {
     ['books', 'categories', 'orders', 'users', 'refunds', 'accounts'].map(load),
   );
 
-  // Khoảng thời gian: [start, end) = N ngày gần nhất (tính cả hôm nay), kỳ trước = N ngày liền trước
   const end = new Date(startOfDay(now).getTime() + DAY_MS);
   const start = new Date(end.getTime() - days * DAY_MS);
   const prevStart = new Date(start.getTime() - days * DAY_MS);
@@ -167,7 +153,6 @@ async function buildDashboard(db, days, now = new Date()) {
       if (catId) sold.set(catId, (sold.get(catId) || 0) + itemQty(it));
     }
   }
-  // Chưa có đơn nào có sản phẩm -> tạm tính theo số đầu sách đang bán của mỗi thể loại
   let categoryBasis = 'sold';
   if (sold.size === 0) {
     categoryBasis = 'books';
@@ -231,7 +216,6 @@ async function buildDashboard(db, days, now = new Date()) {
         _id: idString(b._id), title: b.title, image: b.image || null, stock: toNumber(b.stock),
       })),
     },
-    // Cho frontend biết collection nào đang có dữ liệu
     sources: { orders: pick('orders'), users: pick('users'), refunds: pick('refunds') },
   };
 }

@@ -1,9 +1,5 @@
 import { Component, input } from '@angular/core';
 
-/**
- * Khung thông báo trạng thái (đang tải / lỗi / không tìm thấy) — cùng kiểu status-card của trang chủ.
- * Nút hành động truyền vào qua <ng-content>.
- */
 @Component({
   selector: 'app-status-card',
   standalone: false,

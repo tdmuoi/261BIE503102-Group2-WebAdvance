@@ -8,10 +8,6 @@ import { adminApiError } from '../../services/admin-api-error';
 import { DEMO_PAYMENT_STATUS, ORDER_STATUS, Order, OrderListResponse, OrderQuery, OrderStatus, PAYMENT_STATUS, PaymentStatus } from '../../models/order';
 import { OrderService } from '../../services/order-service';
 
-/**
- * Trang Đơn hàng: bảng đơn (lọc theo trạng thái, thanh toán, ngày đặt, tìm kiếm) và panel chi tiết
- * ngay trong trang (Pages/orders/order-detail). Đơn đang mở nằm trên URL: /orders?id=... để gửi link được.
- */
 @Component({
   selector: 'app-orders',
   standalone: false,
@@ -68,7 +64,6 @@ export class Orders {
       this.load();
     });
 
-    // Đơn đang mở lấy từ URL (?id=...) — link từ Dashboard cũng mở thẳng panel
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => this.selectedId.set(params.get('id')));
 
     this.load();
@@ -134,7 +129,6 @@ export class Orders {
     this.router.navigate([], { relativeTo: this.route, queryParams: { id: null }, queryParamsHandling: 'merge' });
   }
 
-  /** Panel đổi trạng thái / thanh toán -> cập nhật lại dòng trong bảng và số đếm */
   onChanged(): void {
     this.load();
   }

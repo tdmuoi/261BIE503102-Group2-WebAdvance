@@ -12,7 +12,6 @@ import { ReviewTarget } from '../popups/review-popup/review-popup';
 export type OrderTab = 'all' | 'pending' | 'shipping' | 'delivered' | 'cancelled' | 'returned' | 'buyback';
 const ORDER_TABS: readonly OrderTab[] = ['all', 'pending', 'shipping', 'delivered', 'cancelled', 'returned', 'buyback'];
 
-/** Trạng thái → tab: "Đang giao" gồm cả đơn đã xác nhận đang chờ giao */
 const TAB_OF: Record<OrderStatus, Exclude<OrderTab, 'all' | 'buyback'>> = {
   pending: 'pending', confirmed: 'shipping', shipping: 'shipping', delivered: 'delivered', cancelled: 'cancelled', returned: 'returned',
 };
@@ -39,12 +38,10 @@ const TRACK_STEPS: { status: OrderStatus; label: string }[] = [
 
 export const SHOP_EMAIL = 'lightbook14@gmail.com';
 
-/** Mở khung soạn thư Gmail gửi cho shop (tab mới), điền sẵn tiêu đề */
 export function gmailCompose(subject: string): string {
   return `https://mail.google.com/mail/?view=cm&fs=1&to=${SHOP_EMAIL}&su=${encodeURIComponent(subject)}`;
 }
 
-/** Trang Quản lý đơn hàng (Figma "Pages/account/orders") */
 @Component({
   selector: 'app-orders',
   standalone: false,
@@ -64,11 +61,9 @@ export class Orders implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly buybacks = signal<BuybackRequest[]>([]);
   readonly ratings = signal<Record<string, number>>({});
-  /** ?tab=buyback (popup gửi phiếu thanh lý) mở thẳng tab tương ứng */
   readonly tab = signal<OrderTab>(initialTab(inject(ActivatedRoute, { optional: true })?.snapshot.queryParamMap.get('tab')));
   readonly query = signal('');
   readonly expanded = signal<string | null>(null);
-  /** Mã phiếu thanh lý đang mở báo giá */
   readonly quoteOpen = signal<string | null>(null);
   readonly cancelling = signal<string | null>(null);
 
@@ -112,7 +107,6 @@ export class Orders implements OnInit {
     forkJoin({
       orders: this.account.getOrders(),
       ratings: this.account.getMyRatings(),
-      // Tab "Thanh lý" lỗi thì vẫn hiện đơn hàng
       buybacks: this.account.getBuybacks().pipe(catchError(() => of<BuybackRequest[]>([]))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -140,7 +134,6 @@ export class Orders implements OnInit {
     this.expanded.update((id) => (id === order._id ? null : order._id));
   }
 
-  /** Số cuốn trong đơn: "Tổng cộng (2 sản phẩm)" */
   bookCount(order: Order): number {
     return order.items.reduce((s, i) => s + i.quantity, 0);
   }
@@ -149,7 +142,6 @@ export class Orders implements OnInit {
     return order.items.every((i) => i.format === 'ebook');
   }
 
-  /** Thanh tiến trình chỉ hiện với đơn sách giấy đang xử lý */
   showTracker(order: Order): boolean {
     return !this.isEbookOnly(order) && (order.status === 'confirmed' || order.status === 'shipping');
   }
@@ -175,7 +167,6 @@ export class Orders implements OnInit {
     this.quoteOpen.update((code) => (code === b.code ? null : b.code));
   }
 
-  /** Admin lưu "Giá thu mua" thì phiếu vẫn ở trạng thái reviewing, nên dựa vào quote để biết đã có báo giá */
   buybackLabel(b: BuybackRequest): string {
     if (b.status === 'completed') return 'Hoàn tất';
     return b.quote != null ? 'Đã có báo giá' : 'Đang định giá';
@@ -198,7 +189,6 @@ export class Orders implements OnInit {
     });
   }
 
-  /** Đơn MoMo chưa trả tiền: trả tiếp, không phải đặt đơn mới */
   readonly paying = signal<string | null>(null);
 
   canPay(order: Order): boolean {
@@ -217,7 +207,6 @@ export class Orders implements OnInit {
     });
   }
 
-  /** Sang trang thanh toán MoMo (tách riêng để test không điều hướng thật). MoMo trả khách về /checkout để xác nhận */
   openExternal(url: string): void {
     window.location.assign(url);
   }
@@ -241,7 +230,6 @@ export class Orders implements OnInit {
       });
   }
 
-  /** Đơn đã giao: viết đánh giá cuốn đầu tiên chưa đánh giá */
   firstUnreviewed(order: Order): OrderItem | undefined {
     return order.items.find((i) => !this.ratings()[i.bookId]);
   }
@@ -263,7 +251,6 @@ export class Orders implements OnInit {
   }
 }
 
-/** Bỏ dấu + chữ thường để tìm "lu tre" ra "Lũ Trẻ" */
 function normalize(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
 }

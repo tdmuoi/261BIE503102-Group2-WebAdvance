@@ -1,6 +1,5 @@
 import { Component, input, model } from '@angular/core';
 
-/** Chọn số lượng − 1 + (Figma "Quantity stepper" 860:228): nút trừ mờ khi = 1, nút cộng mờ khi = max */
 @Component({
   selector: 'app-quantity-stepper',
   standalone: false,

@@ -14,7 +14,6 @@ import {
   CustomerList,
 } from '../models/account-management';
 
-/** Cookie/CSRF protected API: my-server/routes/admin-accounts.js. */
 @Injectable({ providedIn: 'root' })
 export class AccountManagementService {
   private readonly http = inject(HttpClient);

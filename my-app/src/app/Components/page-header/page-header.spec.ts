@@ -51,7 +51,6 @@ describe('PageHeader', () => {
 
     const options = [...el().querySelectorAll('.menu-option')].map((a) => a.getAttribute('href'));
     expect(options).toEqual(['/books?type=new', '/books?type=used', '/books?type=ebook']);
-    // Bỏ qua "Chưa phân loại"; DB chưa có bookType nên không hiện số đếm
     expect(el().querySelector('.menu-genre')?.textContent?.trim()).toBe('Văn học');
     expect(el().querySelector('.menu-count')).toBeNull();
   });

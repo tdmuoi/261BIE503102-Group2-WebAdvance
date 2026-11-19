@@ -1,7 +1,5 @@
 'use strict';
 const { ObjectId } = require('mongodb');
-// Record successful admin mutations and authenticated login/logout. No bodies, cookies,
-// credentials, OTP codes or query strings are copied to the audit collection.
 module.exports = function adminAuditLog(getDb) {
   return (req, res, next) => {
     res.once('finish', () => {
@@ -24,8 +22,6 @@ module.exports = function adminAuditLog(getDb) {
   };
 };
 
-// Call only from the successful listen callback: this is an actual lifecycle
-// event, never a seed record or a fabricated administrator action.
 module.exports.recordServerStart = function recordServerStart(db, port) {
   return db.collection('audit_logs').insertOne({
     actorId: null, action: 'server.started', targetType: 'system', targetId: null,

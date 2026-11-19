@@ -85,7 +85,6 @@
           <article class="order">
             <div class="order-top">
               <p class="order-id"><b>#{{ o.orderCode }}</b> <span>Đặt ngày {{ o.createdAt | date: 'dd/MM/yyyy' }}</span></p>
-              <!-- Đơn trả online chưa trả tiền: đang chờ thanh toán, không phải chờ shop xác nhận -->
               <span class="status" [attr.data-tone]="meta.tone"><img [src]="meta.icon" alt="" width="14" height="14" />{{ o.status === 'pending' && o.paymentStatus === 'unpaid' && o.paymentMethod !== 'cod' ? 'Chờ thanh toán' : meta.label }}</span>
             </div>
 
@@ -165,7 +164,6 @@
                   @case ('pending') {
                     <button type="button" class="btn-sm" (click)="cancel(o)" [disabled]="cancelling() === o._id">{{ cancelling() === o._id ? 'Đang huỷ…' : 'Huỷ đơn' }}</button>
                     @if (canPay(o)) {
-                      <!-- Chưa trả tiền: trả tiếp qua MoMo thay vì đặt lại đơn mới -->
                       <button type="button" class="btn-sm" (click)="toggleDetail(o)" [attr.aria-expanded]="expanded() === o._id">{{ expanded() === o._id ? 'Thu gọn' : 'Xem chi tiết' }}</button>
                       <button type="button" class="btn-sm btn-sm--primary" (click)="pay(o)" [disabled]="paying() === o._id">{{ paying() === o._id ? 'Đang chuyển…' : 'Thanh toán' }}</button>
                     } @else {

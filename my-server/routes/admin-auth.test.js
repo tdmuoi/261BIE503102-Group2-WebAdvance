@@ -1,4 +1,3 @@
-// Isolated HTTP fixtures only. Does not load .env or connect to MongoDB.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');

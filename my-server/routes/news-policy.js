@@ -1,5 +1,3 @@
-// Read-time publication rules shared by the public and admin News APIs.
-// No migration, timer or database write is needed when a scheduled article becomes due.
 const publicationDate = () => ({
   $convert: { input: "$publishedAt", to: "date", onError: null, onNull: null },
 });

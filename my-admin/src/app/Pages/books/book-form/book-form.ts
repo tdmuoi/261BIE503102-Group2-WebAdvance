@@ -28,12 +28,6 @@ function emptyForm(): BookPayload {
   };
 }
 
-/**
- * Thêm sách (/book-form) và Sửa sách (/book-form/:id) dùng chung 1 form.
- * - Tác giả: chọn trong danh sách gợi ý hoặc gõ tên mới (server tự tạo tác giả).
- * - % giảm giá tự tính từ giá gốc và giá bán.
- * - Lưu xong quay về danh sách và hiện thông báo.
- */
 @Component({
   selector: 'app-book-form',
   standalone: false,
@@ -79,7 +73,6 @@ export class BookForm {
   readonly bookId = inject(ActivatedRoute).snapshot.paramMap.get('id');
   readonly isEdit = !!this.bookId;
 
-  /** Dữ liệu form (ngModel) — object thường, trạng thái tải/lưu dùng signal */
   form: BookPayload = emptyForm();
 
   readonly classificationSupported = signal(false);
@@ -95,7 +88,6 @@ export class BookForm {
   readonly confirmDelete = signal(false);
   readonly deleting = signal(false);
 
-  /** Thể loại trùng tên (vd 2 mục "Thiếu nhi") thì ghi thêm slug cho dễ phân biệt */
   readonly categoryOptions = computed(() => {
     const list = this.categories();
     const count = new Map<string, number>();
@@ -159,7 +151,6 @@ export class BookForm {
     return !!name && !this.findAuthor(name);
   }
 
-  /** Người dùng sửa ô nào thì xoá thông báo lỗi của ô đó */
   clearError(field: string): void {
     const key = (field === 'authorName' ? 'authorId' : field) as keyof FieldErrors;
     if (!this.errors()[key]) return;
@@ -173,14 +164,12 @@ export class BookForm {
   }
 
   onBookTypeChange(): void {
-    // Only a new digital product starts with zero stock; retain stored legacy data on edits.
     if (!this.isEdit && this.form.bookType === 'ebook') this.form.stock = 0;
     this.clearError('stock');
     this.clearError('bookType');
   }
 
   // ---------- Lưu ----------
-  /** Kiểm tra ở trình duyệt trước (server cũng kiểm tra lại) */
   validate(): FieldErrors {
     const f = this.form;
     const e: FieldErrors = {};

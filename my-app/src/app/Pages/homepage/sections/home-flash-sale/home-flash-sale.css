@@ -1,5 +1,3 @@
-/* Flash Sale — Figma 799:4078 */
-
 .flash { padding: 104px 0; }
 
 .flash-inner {
@@ -102,7 +100,6 @@
   list-style: none;
 }
 
-/* Mỗi thẻ nghiêng một chút như Figma */
 .deal-item { transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease; }
 
 .deal-item:hover { transform: rotate(0deg) translateY(-4px); }

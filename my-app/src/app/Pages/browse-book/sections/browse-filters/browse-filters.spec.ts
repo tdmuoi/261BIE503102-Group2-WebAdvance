@@ -11,7 +11,6 @@ describe('BrowseFilters', () => {
   async function open(params: Record<string, string>) {
     await TestBed.configureTestingModule({
       declarations: [BrowseFilters],
-      // app-browse-price có test riêng
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(BrowseFilters);

@@ -20,7 +20,6 @@
   border-radius: var(--radius-8);
 }
 
-/* Phóng nhẹ để khung che mép lề trắng còn sót của ảnh bìa */
 .pi-cover img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.08); }
 
 .pi-body { display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: var(--space-8); min-width: 0; }

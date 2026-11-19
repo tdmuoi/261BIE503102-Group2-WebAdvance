@@ -1,4 +1,3 @@
-// Compare-and-set using the document's existing updatedAt field; no schema change.
 function conflict() {
   return Object.assign(new Error('Dữ liệu đã thay đổi. Tải lại bản mới trước khi lưu.'), { status: 409 });
 }

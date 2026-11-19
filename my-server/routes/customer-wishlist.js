@@ -1,9 +1,5 @@
 // =====================================================================
 // Wishlist của web khách hàng (bắt buộc đăng nhập)
-//   GET    /api/wishlist           sách trong wishlist (kèm giá hiện tại, giảm giá, tác giả)
-//   POST   /api/wishlist/:bookId   thêm (không trùng)
-//   DELETE /api/wishlist/:bookId   bỏ
-// Collection wishlists: mỗi người một dòng { userId, items: [{ bookId, addedAt }], updatedAt }
 // =====================================================================
 const express = require('express');
 const { requireCustomer, toObjectId } = require('../middleware/customer-auth');

@@ -11,8 +11,6 @@ const COOKIE = "lightbook_admin_session";
 const OPTIONS = { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 };
 const WINDOW = 15 * 60 * 1000;
 const IDLE = 30 * 60 * 1000;
-// Single Node process only. A restart invalidates sessions; no database writes or indexes.
-// Multi-instance hosting requires an approved shared session/rate-limit store.
 const sessions = new Map();
 const attempts = new Map();
 let activeHashes = 0;
@@ -26,7 +24,6 @@ function same(a, b) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-/** Offline provisioning helper, not an HTTP registration API. Never writes accounts. */
 async function hashPassword(password) {
   if (
     typeof password !== "string" ||
@@ -62,7 +59,6 @@ async function verifyPassword(password, encoded) {
     if (cost < 10 || cost > 16) return false;
     return bcrypt.compare(password, encoded);
   }
-  // Strict cost/format allowlist avoids weak hashes and attacker-controlled memory costs.
   const valid =
     typeof encoded === "string" &&
     /^scrypt\$32768\$8\$3\$[a-f\d]{32}\$[a-f\d]{128}$/.test(encoded);
@@ -301,8 +297,6 @@ module.exports = function createAdminAuth(getDb, options = {}) {
       attempts.set(key, entry);
     });
     activeHashes++;
-    // Reserve attempts before hashing, then retain only authentication failures.
-    // A successful employee must not consume the shared office IP failure budget.
     let authenticationFailed = false;
     try {
       const escaped = email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -344,7 +338,6 @@ module.exports = function createAdminAuth(getDb, options = {}) {
         ...cookieOptions(req),
         ...(req.body.rememberMe ? { maxAge: duration } : {}),
       });
-      // Audit actor is assigned only after credentials and the role are verified.
       req.admin = safeUser(user);
       return res.json(response(session, user));
     } catch (error) {

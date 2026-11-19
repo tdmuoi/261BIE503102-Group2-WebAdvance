@@ -21,7 +21,6 @@ import {
 import { PROVINCES } from '../models/provinces';
 import { AuthService } from './auth-service';
 
-/** Một yêu cầu thanh lý sách — GET /api/account/buybacks */
 export interface BuybackRequest {
   code: string;
   createdAt: string;
@@ -31,7 +30,6 @@ export interface BuybackRequest {
   note: string;
 }
 
-/** Link thanh toán MoMo của một đơn; test = đang dùng môi trường test của MoMo (tiền ảo) */
 export interface MomoPaymentLink {
   payUrl: string;
   momoOrderId: string;
@@ -43,14 +41,12 @@ export interface StoreSettings {
   promotions: { combosEnabled: boolean };
 }
 
-/** Kết quả server tra MoMo: paid = đã ghi nhận (ebook đã vào tủ sách), pending = MoMo chưa có kết quả */
 export interface MomoVerifyResult {
   status: 'paid' | 'pending' | 'failed';
   message: string | null;
   order: Order;
 }
 
-/** Tiến độ đọc ebook lưu trên server — GET/PUT /api/account/ebooks/:bookId/progress */
 export interface EbookProgress {
   page: number;
   totalPages?: number;
@@ -60,11 +56,6 @@ export interface EbookProgress {
   lastReadAt?: string | null;
 }
 
-/**
- * API web khách hàng cần đăng nhập (my-server/routes/customer-*.js). Mọi request gắn token.
- * Server trả 401 (token hết hạn) thì tự đăng xuất để trang chuyển về Đăng nhập.
- * Giữ hồ sơ hiện tại + số thông báo chưa đọc để menu bên và các trang con dùng chung.
- */
 @Injectable({ providedIn: 'root' })
 export class AccountService {
   private readonly http = inject(HttpClient);
@@ -107,7 +98,6 @@ export class AccountService {
   private readonly unreadState = signal(0);
 
   readonly profile = this.profileState.asReadonly();
-  /** Tải hồ sơ bị lỗi — các trang con hiện thông báo lỗi thay vì chờ mãi */
   readonly profileError = this.profileErrorState.asReadonly();
   readonly unreadCount = this.unreadState.asReadonly();
 
@@ -132,7 +122,6 @@ export class AccountService {
     return this.http.put<AccountProfile>(`${this.baseUrl}/profile`, body, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** Lưu link ảnh đại diện đã tải lên Cloudinary (UploadService) */
   uploadAvatar(url: string): Observable<{ avatar: string }> {
     return this.http.put<{ avatar: string }>(`${this.baseUrl}/avatar`, { avatar: url }, { headers: this.headers() }).pipe(this.on401());
   }
@@ -168,7 +157,6 @@ export class AccountService {
     return this.http.put<Address[]>(`${this.baseUrl}/addresses/${id}/default`, {}, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** Tỉnh/thành + phường/xã — my-server chưa có API địa giới, dùng danh sách tĩnh trong models/provinces.ts */
   getLocations(): Observable<Province[]> {
     return of(PROVINCES);
   }
@@ -199,7 +187,6 @@ export class AccountService {
     }).pipe(timeout(20000), this.on401());
   }
 
-  /** Hỏi lại trạng thái đơn — dùng sau khi người dùng quét mã thanh toán online */
   getOrder(id: string): Observable<Order> {
     return this.http.get<Order>(`${environment.apiUrl}/orders/${id}`, { headers: this.headers() }).pipe(this.on401());
   }
@@ -213,24 +200,20 @@ export class AccountService {
     return this.http.put<Order>(`${this.baseUrl}/orders/${id}/cancel`, {}, { headers: this.headers() }).pipe(timeout(20000), this.on401());
   }
 
-  /** Bản demo: người dùng bấm "Tôi đã thanh toán" (chưa nối cổng MoMo/VNPay thật) */
   confirmPayment(id: string): Observable<Order> {
     return this.http.post<Order>(`${environment.apiUrl}/orders/${id}/confirm-payment`, {}, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** Tạo link thanh toán MoMo cho đơn đang chờ — POST /api/orders/:id/momo */
   createMomoPayment(id: string, method: 'atm' | 'wallet' = 'atm'): Observable<MomoPaymentLink> {
     return this.http.post<MomoPaymentLink>(`${environment.apiUrl}/orders/${id}/momo`, { method }, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** Khách quay lại từ MoMo: server tự hỏi MoMo rồi mới ghi "đã thanh toán" — POST /api/payments/momo/verify */
   verifyMomoPayment(momoOrderId: string): Observable<MomoVerifyResult> {
     return this.http
       .post<MomoVerifyResult>(`${environment.apiUrl}/payments/momo/verify`, { momoOrderId }, { headers: this.headers() })
       .pipe(this.on401());
   }
 
-  /** Kiểm tra mã giảm giá với giỏ hiện tại — POST /api/vouchers/apply */
   applyVoucher(body: VoucherRequest): Observable<VoucherResult> {
     return this.http.post<VoucherResult>(`${environment.apiUrl}/vouchers/apply`, body, { headers: this.headers() }).pipe(this.on401());
   }
@@ -240,12 +223,10 @@ export class AccountService {
   }
 
   // ---------- Tủ sách ----------
-  /** Thư viện ebook + tiến độ đọc. Kiểu dữ liệu: LibraryEbook (Pages/account/bookshelf-ebooks/library.ts) */
   getEbooks<T>(): Observable<T[]> {
     return this.http.get<T[]>(`${this.baseUrl}/ebooks`, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** 404 nếu sách không có trong tủ của người này */
   getEbookProgress(bookId: string): Observable<EbookProgress> {
     return this.http.get<EbookProgress>(`${this.baseUrl}/ebooks/${bookId}/progress`, { headers: this.headers() }).pipe(this.on401());
   }
@@ -255,17 +236,14 @@ export class AccountService {
   }
 
   // ---------- Đánh giá ----------
-  /** bookId → số sao người dùng đã chấm */
   getMyRatings(): Observable<Record<string, number>> {
     return this.http.get<Record<string, number>>(`${this.baseUrl}/reviews`, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** images: link Cloudinary đã tải lên bằng UploadService (purpose 'review') */
   submitReview(body: { bookId: string; rating: number; tags: string[]; content: string; anonymous: boolean; images: string[] }): Observable<{ bookId: string; rating: number }> {
     return this.http.post<{ bookId: string; rating: number }>(`${environment.apiUrl}/reviews`, body, { headers: this.headers() }).pipe(this.on401());
   }
 
-  /** Token hết hạn / bị huỷ → đăng xuất phía trình duyệt */
   private on401<T>(): MonoTypeOperatorFunction<T> {
     return tap({
       error: (error: unknown) => {

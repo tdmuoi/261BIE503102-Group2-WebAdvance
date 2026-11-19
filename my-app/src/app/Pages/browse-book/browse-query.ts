@@ -2,26 +2,16 @@ import { ParamMap, Params } from '@angular/router';
 
 import { BookType, CatalogBook } from '../../models/book';
 
-/**
- * Trạng thái trang Browse nằm hết trên URL để reload / nút Back giữ đúng bộ lọc:
- *   /books?type=new,used&condition=used&category=ky-nang-song&author=id1,id2&price=50000-200000&q=kitchen&sale=true&sort=price-asc&page=2
- * Trang chủ (thanh tìm kiếm, nút "Xem tất cả deal") đã gửi sẵn type / category / price / q / sale theo đúng dạng này.
- */
 export type BrowseSort = 'newest' | 'price-asc' | 'price-desc' | 'discount';
 
 export interface BrowseQuery {
-  /** Loại sách đang chọn, rỗng = mọi loại */
   types: BookType[];
-  /** Tình trạng sách cũ đang chọn, rỗng = mọi tình trạng */
   conditions: string[];
-  /** slug thể loại */
   category: string | null;
-  /** id tác giả */
   authors: string[];
   q: string;
   minPrice: number | null;
   maxPrice: number | null;
-  /** Chỉ sách đang giảm giá */
   sale: boolean;
   sort: BrowseSort;
   page: number;
@@ -29,7 +19,6 @@ export interface BrowseQuery {
 
 export const PAGE_SIZE = 24;
 
-/** Thanh trượt giá: 0 – 500.000đ+ (kéo hết bên phải = không giới hạn trên) */
 export const PRICE_MAX = 500_000;
 export const PRICE_STEP = 10_000;
 
@@ -46,7 +35,6 @@ export const TYPE_LABELS: Record<BookType, string> = {
   ebook: 'Sách điện tử',
 };
 
-/** Nhãn tình trạng sách cũ, theo hạng ở Bảng định giá thanh lý */
 export const CONDITION_LABELS: Record<string, string> = {
   'like-new': 'Như mới',
   good: 'Tốt',
@@ -54,7 +42,6 @@ export const CONDITION_LABELS: Record<string, string> = {
   used: 'Đã qua sử dụng',
 };
 
-/** Thanh tìm kiếm trang chủ dùng "paper" cho sách giấy mới */
 const TYPE_ALIASES: Record<string, BookType> = { new: 'new', paper: 'new', used: 'used', ebook: 'ebook' };
 
 export function parseQuery(params: ParamMap): BrowseQuery {
@@ -74,7 +61,6 @@ export function parseQuery(params: ParamMap): BrowseQuery {
   };
 }
 
-/** Chỉ ghi các giá trị khác mặc định cho URL gọn */
 export function toParams(query: BrowseQuery): Params {
   const params: Params = {};
   if (query.types.length) params['type'] = query.types.join(',');
@@ -91,13 +77,11 @@ export function toParams(query: BrowseQuery): Params {
   return params;
 }
 
-/** "new,used" → ['new', 'used']; bỏ giá trị lạ và giá trị trùng */
 function parseTypes(value: string | null): BookType[] {
   const types = (value ?? '').split(',').map((type) => TYPE_ALIASES[type]).filter(Boolean);
   return [...new Set(types)];
 }
 
-/** "50000-200000" | "-200000" | "500000-" → [min, max] */
 function parsePrice(value: string | null): [number | null, number | null] {
   const match = /^(\d*)-(\d*)$/.exec(value ?? '');
   if (!match) return [null, null];
@@ -106,17 +90,14 @@ function parsePrice(value: string | null): [number | null, number | null] {
   return min !== null && max !== null && min > max ? [max, min] : [min, max];
 }
 
-/** Bỏ dấu + chữ thường để "ky nang" tìm ra "Kỹ năng" */
 export function normalizeText(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
 }
 
-/** Lọc theo loại sách — phạm vi của cả trang (chip thể loại, danh sách tác giả, gợi ý) */
 export function booksOfTypes(books: CatalogBook[], types: BookType[]): CatalogBook[] {
   return types.length ? books.filter((book) => types.includes(book.type)) : books;
 }
 
-/** Lọc + sắp xếp danh sách sách theo bộ lọc trên URL */
 export function filterBooks(books: CatalogBook[], query: BrowseQuery): CatalogBook[] {
   const q = normalizeText(query.q);
   const result = booksOfTypes(books, query.types).filter(

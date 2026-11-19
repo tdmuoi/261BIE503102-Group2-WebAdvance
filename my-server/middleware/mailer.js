@@ -1,15 +1,5 @@
 // =====================================================================
 // Gửi email cho web khách (hiện dùng cho mã OTP).
-//
-// Cấu hình trong my-server/.env (chọn 1 trong 2):
-//   GMAIL_USER=tenNhom@gmail.com
-//   GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx   ← "Mật khẩu ứng dụng" 16 ký tự của Google,
-//                                              KHÔNG phải mật khẩu Gmail thường
-//   hoặc SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS cho máy chủ SMTP khác
-//   MAIL_FROM="Lightbook <tenNhom@gmail.com>"   (không bắt buộc)
-//
-// Chưa cấu hình gì → chế độ thử: không gửi thật, in nội dung email ra terminal của server
-// để nhóm vẫn chạy thử được các luồng OTP trên máy mình.
 // =====================================================================
 
 let transport = null;
@@ -35,15 +25,10 @@ function config() {
   return null;
 }
 
-/** true khi đã cấu hình Gmail/SMTP (gửi thật) */
 function mailConfigured() {
   return config() !== null;
 }
 
-/**
- * Gửi email. Trả { delivered: true } khi gửi thật, { delivered: false } ở chế độ thử.
- * Lỗi SMTP (sai mật khẩu ứng dụng, mất mạng…) sẽ throw để route báo lại cho khách.
- */
 async function sendMail({ to, subject, text, html }) {
   const settings = config();
   if (!settings) {
@@ -63,10 +48,6 @@ async function sendMail({ to, subject, text, html }) {
   return { delivered: true };
 }
 
-/**
- * Gọi lúc khởi động server: in rõ đang gửi mail thật hay chế độ thử,
- * và thử đăng nhập Gmail/SMTP ngay để biết sai mật khẩu ứng dụng / bị chặn mạng.
- */
 async function checkMailer() {
   const settings = config();
   if (!settings) {
@@ -88,7 +69,6 @@ async function checkMailer() {
   }
 }
 
-/** Cho test thay transport giả */
 function _setTransportForTest(fake) {
   transport = fake;
 }

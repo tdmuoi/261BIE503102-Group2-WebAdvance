@@ -1,13 +1,10 @@
-/** Dữ liệu trả về từ GET /api/admin/dashboard?days=7 (my-server/routes/admin-dashboard.js) */
 export interface DashboardStat {
   value: number;
-  /** % thay đổi so với kỳ trước; null khi kỳ trước = 0 */
   change?: number | null;
 }
 
 export interface SalesPoint {
   date: string;
-  /** "T2"... "CN" khi xem 7 ngày, "27/10" khi xem 30 ngày */
   label: string;
   revenue: number;
   orders: number;
@@ -47,7 +44,6 @@ export interface DashboardData {
   };
   salesChart: SalesPoint[];
   hotCategories: HotCategory[];
-  /** sold: theo số cuốn bán ra | books: chưa có đơn nên tính theo số đầu sách */
   categoryBasis: 'sold' | 'books';
   recentOrders: RecentOrder[];
   inventory: {
@@ -57,6 +53,5 @@ export interface DashboardData {
     threshold: number;
     lowStock: LowStockBook[];
   };
-  /** Tên collection đang dùng; null = MongoDB chưa có collection đó */
   sources: { orders: string | null; users: string | null; refunds: string | null };
 }

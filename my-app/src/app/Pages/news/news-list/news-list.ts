@@ -7,12 +7,9 @@ import { NewsItem } from '../../../models/content';
 import { NewsService } from '../../../services/news-service';
 import { categoryLabel } from '../../../shared/news-utils';
 
-/** Mỗi lần tải: 3 hàng × 3 cột */
 const PAGE_SIZE = 9;
-/** Số bài trong khối "Đọc nhiều" */
 const MOST_READ = 4;
 
-/** Trang Lightbook News /news — query params: category, q */
 @Component({
   selector: 'app-news-list',
   standalone: false,
@@ -27,7 +24,6 @@ export class NewsList {
   protected readonly crumbs = [{ label: 'Trang chủ', link: '/' }, { label: 'Lightbook News' }];
   protected readonly categoryLabel = categoryLabel;
 
-  /** Bài mới nhất + "Đọc nhiều" + chuyên mục: không phụ thuộc bộ lọc */
   protected readonly featured = signal<NewsItem | null>(null);
   protected readonly mostRead = signal<NewsItem[]>([]);
   protected readonly categories = signal<string[]>([]);
@@ -42,7 +38,6 @@ export class NewsList {
   protected readonly query = computed(() => ({ category: this.params().get('category') ?? '', q: this.params().get('q') ?? '' }));
   protected readonly hasFilter = computed(() => !!(this.query().category || this.query().q.trim()));
 
-  /** Lưới bỏ bài nổi bật khi không lọc (bài đó đã hiện ở trên) */
   protected readonly gridItems = computed(() => {
     const featuredId = this.featured()?._id;
     return this.hasFilter() ? this.items() : this.items().filter((item) => item._id !== featuredId);
@@ -71,7 +66,6 @@ export class NewsList {
       });
   }
 
-  /** Bài nổi bật, bảng "Đọc nhiều" và danh sách chuyên mục — lỗi thì chỉ ẩn các khối này */
   private loadTop(): void {
     this.newsService.getNews({ limit: 1 }).subscribe({
       next: (page) => {
@@ -81,7 +75,6 @@ export class NewsList {
       },
       error: () => this.featured.set(null),
     });
-    // Chỉ xếp hạng bài đã có lượt xem; chưa bài nào có thì ẩn khối
     this.newsService.getNews({ sort: 'popular', limit: MOST_READ }).subscribe({
       next: (page) => this.mostRead.set(page.items.filter((item) => (item.views ?? 0) > 0)),
       error: () => this.mostRead.set([]),

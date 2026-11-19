@@ -1,4 +1,3 @@
-/* Style chung của form nằm ở ../auth-form.css — file này chỉ chứa phần riêng của trang Đăng ký */
 .field-row { display: flex; gap: var(--space-16); }
 .field-row .field { flex: 1; }
 .agreements { display: flex; flex-direction: column; gap: var(--space-10); }
@@ -22,5 +21,4 @@
   .field-row, .success-actions { flex-direction: column; }
 }
 
-/* Link chính sách trong ô đồng ý (mở tab mới để không mất dữ liệu form) */
 .policy-link { color: var(--color-text-primary); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }

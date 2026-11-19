@@ -8,7 +8,6 @@
     <a class="announcement-link" routerLink="/browse-book">Ưu đãi vận chuyển theo chính sách hiện hành</a>
   </div>
 
-  <!-- Hàng chính: logo | menu | nút tiện ích -->
   <div class="header-main">
     <a class="brand" routerLink="/" aria-label="Lightbook - Trang chủ">
       <span class="brand-icon" aria-hidden="true">lib<span class="brand-icon-dot">.</span></span>
@@ -18,7 +17,6 @@
     <nav class="nav-pill" aria-label="Menu chính">
       @for (item of navItems; track item.path) {
         @if (item.menu) {
-          <!-- Browse Book: rê chuột / focus mở dropdown, bấm vẫn sang trang /books -->
           <a class="nav-link nav-link-menu" [routerLink]="item.path" routerLinkActive="is-active"
              aria-haspopup="menu" aria-controls="browse-menu" [attr.aria-expanded]="menuOpen()"
              (mouseenter)="openMenu()" (mouseleave)="scheduleClose()" (focus)="openMenu()"

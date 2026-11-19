@@ -6,28 +6,20 @@ import { AccountService } from '../../../../services/account-service';
 import { ToastService } from '../../../../services/toast-service';
 import { UploadService } from '../../../../services/upload-service';
 
-/** Sách được đánh giá */
 export interface ReviewTarget {
   bookId: string;
   title: string;
   image: string | null;
   author?: string;
-  /** Dòng nhỏ dưới tên: "Sách mới · mua 18/10/2026" */
   meta?: string;
 }
 
 export const REVIEW_TAGS = ['Cốt truyện cuốn', 'Bản dịch mượt', 'Đóng gói cẩn thận', 'Giao nhanh', 'Đáng tiền'];
-/** Figma chỉ có nhãn 4 sao "Rất thích"; các mức còn lại tự đặt */
 export const RATING_LABELS = ['', 'Không thích', 'Chưa ưng lắm', 'Bình thường', 'Rất thích', 'Tuyệt vời'];
 export const MAX_CONTENT = 500;
 const MAX_PHOTOS = 3;
 const MAX_PHOTO_MB = 5;
 
-/**
- * Pop-up "Viết đánh giá" (Figma 908:15047). Dùng lại được ở trang chi tiết sách:
- *   @if (reviewing(); as b) { <app-review-popup [book]="b" (closed)="reviewing.set(null)" (submitted)="..." /> }
- * Ảnh được tải lên Cloudinary trước, đánh giá chỉ gửi kèm đường link ảnh.
- */
 @Component({
   selector: 'app-review-popup',
   standalone: false,
@@ -119,7 +111,6 @@ export class ReviewPopup implements OnDestroy {
     };
     this.sending.set(true);
     this.error.set(null);
-    // Tải ảnh lên Cloudinary trước (forkJoin([]) không phát giá trị nên không có ảnh thì dùng of([]))
     const photos = this.photos();
     const images$ = photos.length ? forkJoin(photos.map((p) => this.uploads.uploadImage(p.file, 'review'))) : of<string[]>([]);
     images$.pipe(

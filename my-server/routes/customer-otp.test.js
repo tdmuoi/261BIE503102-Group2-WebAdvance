@@ -1,5 +1,3 @@
-// Kiểm tra luồng OTP của web khách: xác minh email khi đăng ký, xác thực 2 lớp, quên mật khẩu.
-// Chạy: node --test routes/customer-otp.test.js   (dùng database giả trong bộ nhớ, không cần MongoDB)
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
@@ -39,7 +37,7 @@ function fakeDb() {
       return {
         async createIndex() {},
         listIndexes: () => ({ toArray: async () => [] }),
-        async findOne(q) { const d = col(name).find((x) => matches(x, q)); return d ? { ...d } : null; }, // bản sao như MongoDB thật
+        async findOne(q) { const d = col(name).find((x) => matches(x, q)); return d ? { ...d } : null; },
         async insertOne(d) { const _id = d._id || new ObjectId(); col(name).push({ ...d, _id }); return { insertedId: _id }; },
         async updateOne(q, u, opts) {
           const d = col(name).find((x) => matches(x, q));
@@ -78,7 +76,6 @@ async function setup(t) {
     return { status: r.status, body: await r.json() };
   };
   const lastCode = () => /(\d{6})/.exec(sent.at(-1).subject)[1];
-  // Cho phép "gửi lại" ngay mà không phải đợi 60 giây thật
   const skipCooldown = () => db.data.otp.forEach((c) => { c.lastSentAt = new Date(Date.now() - 61000); });
   return { db, sent, post, lastCode, skipCooldown };
 }
@@ -101,12 +98,10 @@ test('đăng ký: chưa tạo tài khoản, gửi OTP; nhập đúng mã mới t
   assert.equal((db.data.accounts || []).length, 0, 'chưa nhập OTP thì chưa có tài khoản');
   assert.equal((db.data.users || []).length, 0);
 
-  // Chưa xác minh thì chưa đăng nhập được (tài khoản chưa tồn tại)
   const login = await post('/auth/login', { identifier: account.email, type: 'email', password: account.password, remember: true });
   assert.equal(login.status, 401);
   assert.equal(login.body.token, undefined);
 
-  // Bấm đăng ký lại trong 60 giây: dùng lại mã vừa gửi, không gửi thêm
   const again1 = await post('/auth/register', account);
   assert.equal(again1.status, 201);
   assert.equal(again1.body.challengeId, reg.body.challengeId);
@@ -127,12 +122,9 @@ test('đăng ký: chưa tạo tài khoản, gửi OTP; nhập đúng mã mới t
   assert.equal(db.data.users[0].phone, account.phone);
   assert.equal(db.data.otp[0].pending, undefined, 'xoá thông tin lưu tạm sau khi tạo tài khoản');
 
-  // Đã có tài khoản thì không đăng ký trùng email được
   assert.equal((await post('/auth/register', account)).status, 409);
 
-  // Mã chỉ dùng được 1 lần
   assert.equal((await post('/auth/otp/verify', { challengeId: reg.body.challengeId, code: lastCode() })).status, 400);
-  // Đã xác minh thì đăng nhập thẳng
   const again = await post('/auth/login', { identifier: account.email, type: 'email', password: account.password, remember: false });
   assert.match(again.body.token, /^[a-f\d]{64}$/);
 });
@@ -175,7 +167,6 @@ test('xác thực 2 lớp: bật trong hồ sơ thì đăng nhập phải nhập
   assert.equal(sent.length, 2);
   assert.match(sent[1].subject, /đăng nhập/i);
 
-  // Mã đăng nhập không dùng để đặt lại mật khẩu được
   const misuse = await post('/auth/reset-password', { challengeId: login.body.challengeId, code: lastCode(), newPassword: 'Moi12345' });
   assert.equal(misuse.status, 410);
 
@@ -186,7 +177,6 @@ test('xác thực 2 lớp: bật trong hồ sơ thì đăng nhập phải nhập
   const session = db.data.customer_sessions.at(-1);
   assert.ok(session.expiresAt - Date.now() > 20 * 24 * 3600 * 1000, '"Ghi nhớ đăng nhập" được giữ qua bước OTP');
 
-  // Sai mật khẩu thì không gửi OTP
   const wrong = await post('/auth/login', { identifier: account.email, type: 'email', password: 'Sai123456', remember: false });
   assert.equal(wrong.status, 401);
   assert.equal(sent.length, 2);

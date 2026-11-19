@@ -1,11 +1,5 @@
 // =====================================================================
 // Tạo YÊU CẦU ĐỔI TRẢ DEMO để thử trang Đổi trả & hoàn tiền của admin.
-// Lấy từ các đơn demo đã giao (chạy scripts/seed-demo-orders.js trước).
-//
-//   node scripts/seed-demo-returns.js          tạo tối đa 12 yêu cầu demo
-//   node scripts/seed-demo-returns.js --clear  xoá toàn bộ yêu cầu demo (isDemo: true)
-//
-// Yêu cầu demo có mã RR-DEMO-xxxx, không đổi tồn kho, không sửa đơn hàng.
 // =====================================================================
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { MongoClient } = require('mongodb');

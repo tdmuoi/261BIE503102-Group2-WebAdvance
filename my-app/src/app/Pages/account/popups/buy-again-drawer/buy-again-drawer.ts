@@ -4,13 +4,8 @@ import { CatalogBook } from '../../../../models/book';
 import { CartFacade, CartLine } from '../../../cart/cart-facade';
 import { computeTotals } from '../../../cart/pricing';
 
-/** Sách bấm "Mua lại" */
 export type BuyAgainTarget = Pick<CatalogBook, '_id' | 'title' | 'image' | 'price'> & { type?: string };
 
-/**
- * Ngăn kéo giỏ hàng sau khi bấm "Mua lại" (Figma 908:15323): thêm sách vào giỏ rồi hiện cả giỏ.
- *   @if (buying(); as b) { <app-buy-again-drawer [book]="b" (closed)="buying.set(null)" /> }
- */
 @Component({
   selector: 'app-buy-again-drawer',
   standalone: false,

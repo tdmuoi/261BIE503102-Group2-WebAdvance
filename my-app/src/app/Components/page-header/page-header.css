@@ -1,7 +1,3 @@
-/* Header dùng chung — thông số lấy từ Figma (Hero header section 772:1454) */
-
-/* Luôn dính đầu màn hình khi cuộn. Nền đặc cùng màu trang để không lộ nội dung phía sau.
-   z-index: trên nội dung trang (≤ 5), dưới drawer/modal (1000) và toast (1100). */
 :host {
   position: sticky;
   top: 0;
@@ -44,13 +40,12 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--space-24);
-  position: relative; /* mốc cho dropdown Browse Book */
+  position: relative;
   max-width: 1440px;
   margin: 0 auto;
   padding: 26px 57px 22px;
 }
 
-/* Logo: ô vuông "lib." + chữ "lightbook." */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -146,7 +141,6 @@
   box-shadow: 0 0 0 2px var(--color-bg-surface);
 }
 
-/* Số cuốn trong giỏ (Figma "Cart count") */
 .cart-count {
   position: absolute;
   top: -4px;

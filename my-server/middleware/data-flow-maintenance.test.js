@@ -150,7 +150,6 @@ function shipmentFixture() {
         if (++writes === failAt) throw new Error('Injected shipment failure');
         let row = shipments.find(row => String(row._id) === String(query._id));
         const fields = row ? update.$set : { ...update.$setOnInsert, ...update.$set };
-        // Match the live partial unique trackingCode index, including empty strings.
         if (typeof fields?.trackingCode === 'string' && shipments.some(other => other !== row && other.trackingCode === fields.trackingCode))
           throw Object.assign(new Error('Duplicate tracking code'), { code: 11000 });
         if (!row) { row = { ...query, ...fields }; shipments.push(row); return { upsertedCount: 1 }; }

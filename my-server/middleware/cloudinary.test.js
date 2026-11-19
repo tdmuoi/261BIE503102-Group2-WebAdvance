@@ -1,4 +1,3 @@
-// Unit tests for Cloudinary signed uploads. No network, no MongoDB.
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');

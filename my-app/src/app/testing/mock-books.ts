@@ -1,6 +1,5 @@
 import { BookView } from '../models/book';
 
-/** Tạo sách giả cho unit test */
 export function makeBook(overrides: Partial<BookView> = {}): BookView {
   return {
     _id: 'b1',
@@ -22,7 +21,6 @@ export function makeBook(overrides: Partial<BookView> = {}): BookView {
   };
 }
 
-/** Danh sách n sách khác nhau, sách sau mới hơn sách trước */
 export function makeBooks(count: number): BookView[] {
   return Array.from({ length: count }, (_, i) =>
     makeBook({

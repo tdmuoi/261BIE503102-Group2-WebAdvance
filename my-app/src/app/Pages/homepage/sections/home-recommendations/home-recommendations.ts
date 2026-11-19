@@ -31,7 +31,6 @@ export class HomeRecommendations {
   protected readonly activeChip = signal(ALL);
   protected readonly sort = signal<SortKey>('newest');
 
-  /** "Tất cả" + các thể loại đang có sách, thể loại nhiều sách đứng trước */
   protected readonly chips = computed<Chip[]>(() => {
     const counts = new Map<string, { label: string; count: number }>();
     for (const book of this.books()) {
@@ -61,7 +60,6 @@ export class HomeRecommendations {
     }
   });
 
-  /** Số sách đang hiện; đổi bộ lọc thì quay về 15 cuốn đầu */
   protected readonly visibleCount = linkedSignal({ source: this.filtered, computation: () => PAGE_SIZE });
 
   protected readonly visible = computed(() => this.filtered().slice(0, this.visibleCount()));

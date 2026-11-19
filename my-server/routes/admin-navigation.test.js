@@ -1,4 +1,3 @@
-// No network database, environment credentials, or Atlas access.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
@@ -67,7 +66,7 @@ test('Real session middleware rejects anonymous resource requests before databas
 
 test('Dashboard uses Vietnam day boundaries, canonical customer names and verified stock', async () => {
   const build = require('./admin-dashboard').buildDashboard;
-  const now = new Date('2026-11-08T18:00:00Z'); // Nov 9 in Vietnam
+  const now = new Date('2026-11-08T18:00:00Z');
   const data = {
     books: [
       { _id: 'missing', status: 'active', bookType: 'new' },

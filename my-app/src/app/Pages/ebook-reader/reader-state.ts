@@ -1,7 +1,3 @@
-// Trạng thái trình đọc ebook. Nội dung sách là file PDF (pdf-book.ts).
-// Tiến độ / đánh dấu / ghi chú lưu trên server (PUT /api/account/ebooks/:bookId/progress), localStorage chỉ là bản nháp.
-
-/** Một mục lục lấy từ bookmark của file PDF */
 export interface Chapter {
   index: number;
   title: string;
@@ -12,12 +8,10 @@ export function chapterOf(chapters: Chapter[], page: number): Chapter | null {
   return [...chapters].reverse().find((c) => c.startPage <= page) ?? null;
 }
 
-/** Lật trang 2 trang: cặp 1–2, 3–4, … → trang trái của cặp chứa `page` */
 export function spreadStart(page: number): number {
   return page - ((page - 1) % 2);
 }
 
-/** Các trang đang mở khi lật trang: 2 trang (màn hình rộng) hoặc 1 trang */
 export function spreadPages(page: number, total: number, twoUp: boolean): number[] {
   if (!twoUp) return [page];
   const left = spreadStart(page);
@@ -37,7 +31,6 @@ export interface ReaderState {
   page: number;
   bookmarks: number[];
   notes: ReaderNote[];
-  /** Câu đã tô sáng, theo trang */
   highlights: { page: number; text: string }[];
   lastReadAt: string | null;
 }
@@ -46,7 +39,6 @@ export type ReaderTheme = 'white' | 'paper' | 'dark';
 export type ReadMode = 'page' | 'scroll';
 
 export interface ReaderSettings {
-  /** Thu phóng trang PDF, % */
   zoom: number;
   theme: ReaderTheme;
   mode: ReadMode;
@@ -63,13 +55,11 @@ function emptyState(page: number): ReaderState {
   return { page: Math.max(1, page), bookmarks: [], notes: [], highlights: [], lastReadAt: null };
 }
 
-/** Bản nháp trên trình duyệt (xoá khi đăng xuất). startPage: trang đang đọc theo tủ sách */
 export function loadState(bookId: string, startPage = 1): ReaderState {
   try {
     const raw = localStorage.getItem(stateKey(bookId));
     if (raw) return { ...emptyState(startPage), ...(JSON.parse(raw) as Partial<ReaderState>) };
   } catch {
-    // bỏ qua
   }
   return emptyState(startPage);
 }
@@ -78,7 +68,6 @@ export function saveState(bookId: string, state: ReaderState): void {
   try {
     localStorage.setItem(stateKey(bookId), JSON.stringify(state));
   } catch {
-    // bỏ qua
   }
 }
 
@@ -100,11 +89,9 @@ export function saveSettings(settings: ReaderSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
-    // bỏ qua
   }
 }
 
-/** "Còn khoảng 1 giờ 20 phút đọc" — ước tính ~1 phút/trang */
 export function remainingLabel(pagesLeft: number): string {
   const minutes = Math.max(0, Math.round(pagesLeft));
   if (minutes === 0) return 'Đã đến trang cuối';
@@ -113,7 +100,6 @@ export function remainingLabel(pagesLeft: number): string {
   return `Còn khoảng ${h ? `${h} giờ ` : ''}${m ? `${m} phút ` : ''}đọc`.replace(/\s+đọc$/, ' đọc');
 }
 
-/** Bỏ dấu cách thừa — so khớp chữ trên lớp chữ PDF với câu đã tô sáng */
 export function squash(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }

@@ -1,9 +1,5 @@
 import { Component, ElementRef, effect, input, output, viewChild } from '@angular/core';
 
-/**
- * Popup sau khi gửi phiếu thanh lý thành công: mã phiếu + đường tới
- * Tài khoản › Quản lý đơn hàng › tab Thanh lý để theo dõi.
- */
 @Component({
   selector: 'app-buyback-success',
   standalone: false,

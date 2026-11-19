@@ -7,7 +7,6 @@ export interface TopicChip {
   queryParams?: Params;
 }
 
-/** Hàng chip "Chủ đề:" cuối bài — Figma "Tags" (879:7656) */
 @Component({
   selector: 'app-article-tags',
   standalone: false,

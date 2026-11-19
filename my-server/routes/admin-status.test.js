@@ -1,4 +1,3 @@
-// Business logic fixtures only: never opens a MongoDB connection.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { ObjectId } = require('mongodb');
@@ -35,8 +34,6 @@ function fixture({ ebook = false, missingBook = false } = {}) {
   };
   let ended = false;
   const client = { startSession: () => ({
-    // Snapshot rollback models the business callback only; real MongoDB transactions
-    // remain covered by the opt-in replica-set integration suite.
     async withTransaction(work) {
       const snapshot = Object.fromEntries(Object.entries(records).map(([name, rows]) => [name,
         rows.map((row) => ({ ...row, items: row.items?.map((item) => ({ ...item })), statusHistory: [...(row.statusHistory ?? [])] })),

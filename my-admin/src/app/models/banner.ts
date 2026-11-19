@@ -1,21 +1,15 @@
-/** Vị trí đặt banner trên web khách */
 export type BannerPosition = 'hero' | 'flash_sale' | 'promo_strip' | 'home_secondary';
 
-/** live: đang hiển thị | scheduled: chưa tới ngày | expired: đã hết hạn | off: admin tắt */
 export type BannerState = 'live' | 'scheduled' | 'expired' | 'off';
 
-/** Banner từ GET /api/admin/banners (my-server/routes/admin-banners.js) */
 export interface Banner {
   contractIssues?: string[];
   sourceSchedule?: Record<string, string | null>;
   _id: string;
-  /** Tên nội bộ để admin nhận biết, không hiện cho khách */
   name: string;
-  /** Chữ lớn trên banner (bỏ trống nếu ảnh đã có chữ) */
   title: string;
   subtitle: string;
   image: string | null;
-  /** Bấm vào banner thì đi tới đâu: /books?type=ebook hoặc https://... */
   link: string;
   bgColor: string;
   textColor: string;
@@ -35,7 +29,6 @@ export interface BannerListResponse {
   positions: BannerPosition[];
 }
 
-/** Dữ liệu form gửi lên. Ngày dạng 'YYYY-MM-DD' (giờ Việt Nam), bỏ trống = không giới hạn */
 export interface BannerPayload {
   revision?: string | null;
   name: string;

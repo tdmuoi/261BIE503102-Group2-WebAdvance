@@ -10,7 +10,6 @@ type WorkSort = 'newest' | 'price-asc' | 'price-desc' | 'title';
 
 const TYPE_LABELS: Record<BookType, string> = { new: 'Sách mới', used: 'Sách cũ', ebook: 'Ebook' };
 
-/** Khoảng giá (VNĐ) — max null là không giới hạn */
 const PRICE_RANGES = [
   { key: 'under-100', label: 'Dưới 100.000đ', min: 0, max: 100_000 },
   { key: '100-200', label: '100.000đ – 200.000đ', min: 100_000, max: 200_000 },
@@ -22,7 +21,6 @@ function fold(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
 }
 
-/** Tất cả tác phẩm của một tác giả /authors/:id/works — query params: genre, type, price, q, sort */
 @Component({
   selector: 'app-author-works',
   standalone: false,
@@ -64,10 +62,8 @@ export class AuthorWorks {
     ];
   });
 
-  /** Font serif của accent chỉ có chữ Latin không dấu — tên có dấu thì dùng font thường nghiêng */
   protected readonly plainName = computed(() => /^[\x20-\x7E]*$/.test(this.author()?.name ?? ''));
 
-  /** Loại sách thực tế có trong các tác phẩm */
   protected readonly types = computed(() => {
     const present = new Set((this.author()?.books ?? []).map((b) => b.type));
     return (Object.keys(TYPE_LABELS) as BookType[]).filter((t) => present.has(t));
@@ -92,7 +88,6 @@ export class AuthorWorks {
     return sorted;
   });
 
-  /** Chip bộ lọc đang áp dụng — bấm x để bỏ */
   protected readonly activeFilters = computed(() => {
     const { genre, type, price, q } = this.query();
     const chips: { label: string; patch: Params }[] = [];
@@ -112,7 +107,6 @@ export class AuthorWorks {
     combineLatest([this.route.paramMap.pipe(map((params) => params.get('id') ?? '')), this.retry$])
       .pipe(
         tap(() => this.status.set('loading')),
-        // undefined = lỗi tải, null = không có tác giả này
         switchMap(([id]) => this.directory.getProfile(id).pipe(catchError(() => of(undefined)))),
         takeUntilDestroyed(),
       )

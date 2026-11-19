@@ -9,15 +9,12 @@ import { AuthorFollow } from '../author-follow';
 
 type SortKey = 'az' | 'za' | 'books';
 
-/** Số thẻ mỗi trang: 3 hàng × 4 cột như Figma */
 const PAGE_SIZE = 12;
 
-/** Bỏ dấu, chữ thường — để tìm kiếm không phân biệt dấu */
 function fold(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
 }
 
-/** Trang danh sách tác giả /authors — query params: q, genre, sort, letter, page */
 @Component({
   selector: 'app-author-list',
   standalone: false,
@@ -52,19 +49,16 @@ export class AuthorList {
     };
   });
 
-  /** Thể loại thực tế của các tác giả (từ sách đang bán) */
   protected readonly genres = computed(() =>
     [...new Set(this.authors().flatMap((a) => a.genres))].sort((a, b) => a.localeCompare(b, 'vi')),
   );
 
-  /** Chữ cái có tác giả, theo thứ tự bảng chữ cái tiếng Việt; "#" cho tên bắt đầu bằng số/ký hiệu */
   protected readonly letters = computed(() => {
     const present = new Set(this.authors().map((a) => a.letter));
     const latin = [...present].filter((l) => l !== '#' && !VI_LETTERS.includes(l)).sort();
     return [...VI_LETTERS.filter((l) => present.has(l)), ...latin, ...(present.has('#') ? ['#'] : [])];
   });
 
-  /** "Tác giả của tháng": nhiều sách đang bán nhất */
   protected readonly featured = computed(() =>
     this.authors().reduce<AuthorProfile | null>((best, a) => (a.books.length > (best?.books.length ?? 0) ? a : best), null),
   );
@@ -93,7 +87,6 @@ export class AuthorList {
 
   constructor() {
     this.load();
-    // Không có sự kiện sắp tới (hoặc lỗi) thì chỉ ẩn thẻ "Sắp diễn ra"
     this.eventService.getEvents({ when: 'upcoming', limit: 1 }).subscribe({
       next: (list) => this.nextEvent.set(list[0] ?? null),
       error: () => this.nextEvent.set(null),
@@ -111,7 +104,6 @@ export class AuthorList {
     });
   }
 
-  /** Đổi bộ lọc thì về trang 1 */
   protected update(patch: Params): void {
     this.router.navigate([], {
       relativeTo: this.route,

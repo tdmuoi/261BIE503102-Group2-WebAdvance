@@ -7,8 +7,6 @@ const revisions = require('../middleware/admin-revision');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const text = v => typeof v === 'string' ? v.trim() : '';
 
-// One booking per event/email. Event counter and booking commit together; concurrent
-// requests for the final seats serialize on the event document, including retries.
 async function reserve(db, body) {
   if (!body || Object.keys(body).some(k => !['eventId', 'fullName', 'email', 'phone', 'seats'].includes(k)))
     throw fail(400, 'Dữ liệu giữ chỗ không hợp lệ.');

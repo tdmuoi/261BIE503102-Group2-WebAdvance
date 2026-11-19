@@ -1,12 +1,5 @@
 // =====================================================================
 // API đăng ký nhận bản tin   (gắn vào index.js: app.use('/api', newsletterRoutes(() => database)))
-//
-//   POST /api/newsletter   body { email, topic }   topic: 'news' | 'events'
-//     → 201 đăng ký mới · 200 email đã có, thêm chủ đề mới
-//     → 409 email đã đăng ký chủ đề này · 400 email hoặc chủ đề không hợp lệ
-//
-// Collection newsletters: mỗi email một dòng { email, topics, createdAt }.
-// Email unique nhờ index tạo lúc khởi động server (xem startServer trong index.js).
 // =====================================================================
 const express = require('express');
 
@@ -36,7 +29,6 @@ module.exports = function newsletterRoutes(getDb) {
       if (result.modifiedCount) return res.json({ message: 'Đăng ký thành công' });
       return alreadySubscribed();
     } catch (error) {
-      // Hai yêu cầu cùng email đến một lúc: yêu cầu sau vướng index unique
       if (error.code === DUPLICATE_KEY) return alreadySubscribed();
       console.error('POST /api/newsletter failed:', error.message);
       return res.status(500).json({ message: 'Cannot subscribe to newsletter' });

@@ -98,7 +98,6 @@ describe('Vouchers with authenticated HttpClient', () => {
     page.loadVouchers();
     flushList();
     expect(page.accessDenied).toBe(false);
-    // No second session check: resource-level 403 did not clear authentication.
     http.expectNone(authBase + '/session');
   });
   it('requires a server session before requesting vouchers', async () => {

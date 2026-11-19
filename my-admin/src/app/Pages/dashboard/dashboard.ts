@@ -15,10 +15,6 @@ export interface ChartBar {
   isToday: boolean;
 }
 
-/**
- * Trang Tổng quan (Dashboard) — lấy số liệu từ GET /api/admin/dashboard?days=7|30
- * Lưu ý: my-admin chạy zoneless nên trạng thái dùng signal() để giao diện tự cập nhật.
- */
 @Component({
   selector: 'app-dashboard',
   standalone: false,
@@ -39,11 +35,10 @@ export class Dashboard {
   readonly error = signal('');
   readonly updatedAt = signal<Date | null>(null);
 
-  /** Cột biểu đồ doanh thu (chiều cao % theo ngày cao nhất) */
   readonly chartBars = computed<ChartBar[]>(() => {
     const points = this.data()?.salesChart ?? [];
     const max = Math.max(0, ...points.map((p) => p.revenue));
-    const step = points.length > 10 ? 5 : 1; // 30 ngày: cứ 5 ngày hiện 1 nhãn cho đỡ rối
+    const step = points.length > 10 ? 5 : 1;
     return points.map((p, i) => ({
       label: p.label,
       showLabel: i === points.length - 1 || (points.length - 1 - i) % step === 0,
@@ -91,7 +86,6 @@ export class Dashboard {
     return value.toLocaleString('vi-VN') + ' đ';
   }
 
-  /** Viết gọn cho trục biểu đồ: 1.250.000 -> 1,3tr */
   shortMoney(value: number): string {
     if (value >= 1e9) return (value / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tỷ';
     if (value >= 1e6) return (value / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr';
@@ -111,7 +105,6 @@ export class Dashboard {
     return change > 0 ? 'ok' : change < 0 ? 'bad' : 'default';
   }
 
-  /** "Hôm nay, 12:45" | "Hôm qua, 09:00" | "25/10/2026" */
   orderTime(value: string | null): string {
     if (!value) return '—';
     const d = new Date(value);

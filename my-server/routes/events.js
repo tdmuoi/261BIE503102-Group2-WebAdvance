@@ -1,12 +1,5 @@
 // =====================================================================
 // API Sự kiện giao lưu   (gắn vào index.js: app.use('/api', eventsRoutes(() => database)))
-//
-// Cho web khách (my-app), CHỈ ĐỌC, chỉ trả sự kiện có status "published" và đã có ngày (startAt):
-//   GET /api/events                  tất cả, sắp diễn ra trước (gần nhất trước), rồi đã diễn ra (mới nhất trước)
-//       ?when=upcoming               chỉ sự kiện chưa bắt đầu (startAt >= hiện tại)
-//       ?when=past                   chỉ sự kiện đã diễn ra (startAt < hiện tại)
-//       ?authorId=<id>               chỉ sự kiện của một tác giả
-//       ?limit=20                    số sự kiện tối đa (mặc định 50, tối đa 200)
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');

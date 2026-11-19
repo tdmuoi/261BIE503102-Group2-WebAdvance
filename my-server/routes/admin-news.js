@@ -196,8 +196,6 @@ module.exports = function adminNews(getDb) {
       doc.contentFormat = "html";
       doc.updatedAt = new Date();
       if (req.params.id) {
-        // Keep the legacy image alias consistent when the editor explicitly changes/removes a cover.
-        // An omitted cover still preserves both original fields, including large Base64 images.
         if (Object.hasOwn(body, "cover") && Object.hasOwn(old, "img"))
           doc.img = doc.cover;
         if (

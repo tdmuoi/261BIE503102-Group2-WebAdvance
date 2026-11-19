@@ -18,10 +18,6 @@ import { ReturnService } from '../../services/return-service';
 
 type StatusTab = NonNullable<ReturnQuery['status']>;
 
-/**
- * Trang Đổi trả & hoàn tiền: thống kê, lý do trả hàng, bảng yêu cầu và panel xử lý trong cùng trang
- * (Pages/refunds/refund-detail). Yêu cầu đang mở nằm trên URL: /refunds?id=...
- */
 @Component({
   selector: 'app-refunds',
   standalone: false,
@@ -57,7 +53,6 @@ export class Refunds {
   readonly requests = computed(() => this.data()?.items ?? []);
   readonly hasFilter = computed(() => !!(this.q() || this.type() || this.from() || this.to()));
 
-  /** Lý do trả hàng: % trên tổng yêu cầu, sắp giảm dần */
   readonly reasonStats = computed(() => {
     const reasons = this.data()?.reasons;
     if (!reasons) return [];

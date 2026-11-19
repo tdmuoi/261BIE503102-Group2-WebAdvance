@@ -11,7 +11,6 @@ import { BuybackGuide } from './sections/buyback-guide/buyback-guide';
 import { BuybackHero } from './sections/buyback-hero/buyback-hero';
 import { BuybackUsed } from './sections/buyback-used/buyback-used';
 
-/** Trang Thu mua sách /book-buyback — tải riêng khi vào trang (xem app-routing-module.ts) */
 @NgModule({
   declarations: [BookBuyback, BuybackHero, BuybackCycle, BuybackGuide, BuybackForm, BuybackSuccess, BuybackUsed],
   imports: [SharedModule, ReactiveFormsModule, RouterModule.forChild([{ path: '', component: BookBuyback }])],

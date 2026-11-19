@@ -9,23 +9,14 @@ import { AuthorService } from './author-service';
 import { CategoryService } from './category-service';
 
 export interface BookQuery {
-  /** Số sách tối đa (server giới hạn 200) */
   limit?: number;
-  /** newest: mới tạo trước, updated: mới cập nhật trước */
   sort?: 'newest' | 'updated';
-  /** Chỉ lấy sách đang giảm giá */
   discounted?: boolean;
-  /** Chỉ lấy các loại sách này */
   format?: BookType[];
 }
 
-/** Server trả tối đa 500 cuốn mỗi lần */
 const CATALOG_LIMIT = 500;
 
-/**
- * DB chưa có field loại sách (bookType). Tạm suy ra từ thể loại đặc biệt có sẵn trong DB:
- * slug "used-book" (Sách cũ) và "ebook" (Ebook); còn lại là sách mới.
- */
 const TYPE_BY_CATEGORY: Record<string, BookType> = {
   'used-book': 'used',
   ebook: 'ebook',
@@ -48,14 +39,9 @@ export class BookService {
     return this.http.get<Book[]>(this.baseUrl, { params });
   }
 
-  /**
-   * Đọc lại danh mục khi trang yêu cầu để nhận giá và ảnh mới từ Admin.
-   * API chưa có lọc / phân trang / tra theo id nên các trang xử lý trên danh sách này.
-   */
   getCatalog(): Observable<Catalog> {
     return forkJoin({
       books: this.getBooks({ limit: CATALOG_LIMIT, sort: 'newest' }),
-      // Thiếu tác giả hoặc thể loại thì vẫn hiện sách
       authors: this.authorService.getAuthors().pipe(catchError(() => of<Author[]>([]))),
       categories: this.categoryService.getCategories().pipe(catchError(() => of<Category[]>([]))),
     }).pipe(
@@ -64,18 +50,12 @@ export class BookService {
     );
   }
 
-  /**
-   * Đánh giá của độc giả đã mua (GET /api/books/:id/reviews) — khách viết ở Tài khoản › Quản lý đơn hàng.
-   * Lỗi thì coi như chưa có đánh giá, trang chi tiết vẫn hiện sách.
-   */
   getReviews(bookId: string): Observable<Review[]> {
-    // Gửi kèm token (nếu có) để server trả về vote của chính mình (myVote / isMine)
     return this.http
       .get<Review[]>(`${this.baseUrl}/${encodeURIComponent(bookId)}/reviews`, { headers: this.authHeaders() })
       .pipe(catchError(() => of<Review[]>([])));
   }
 
-  /** Đánh dấu đánh giá hữu ích (1) / không hữu ích (-1) / bỏ vote (0) — POST /api/reviews/:id/vote, cần đăng nhập */
   voteReview(reviewId: string, value: ReviewVote): Observable<ReviewVoteResult> {
     return this.http.post<ReviewVoteResult>(
       `${environment.apiUrl}/reviews/${encodeURIComponent(reviewId)}/vote`,
@@ -90,7 +70,6 @@ export class BookService {
   }
 }
 
-/** Ghép tên tác giả, thể loại và loại sách vào từng cuốn */
 function toCatalogBooks(books: Book[], authors: Author[], categories: Category[]): CatalogBook[] {
   const authorNames = new Map(authors.map((author) => [author._id, author.name]));
   const categoryById = new Map(categories.map((category) => [category._id, category]));

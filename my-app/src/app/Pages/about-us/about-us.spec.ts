@@ -17,7 +17,6 @@ describe('AboutUs', () => {
       declarations: [AboutUs],
       imports: [RouterModule],
       providers: [provideRouter([]), { provide: EngagementService, useValue: { subscribeNewsletter } }],
-      // app-marquee có test riêng
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(AboutUs);

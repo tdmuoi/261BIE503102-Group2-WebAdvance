@@ -14,7 +14,6 @@ import { ComboTotals } from './pricing';
 const DESELECTED_KEY = 'lightbook.cart.deselected';
 const VOUCHER_KEY = 'lightbook.cart.voucher';
 
-/** Một dòng giỏ hàng đã ghép thông tin sách từ danh mục */
 export interface CartLine {
   bookId: string;
   title: string;
@@ -23,13 +22,10 @@ export interface CartLine {
   originalPrice: number;
   discountPercent: number;
   quantity: number;
-  /** Tối đa được mua: ebook = 1, sách giấy = tồn kho */
   max: number;
   ebook: boolean;
-  /** "Sách mới" / "Sách cũ" / "Sách điện tử" */
   variant: string;
   author: string;
-  /** "Bìa mềm · NXB Trẻ" */
   meta: string;
   bestseller: boolean;
   selected: boolean;
@@ -37,11 +33,6 @@ export interface CartLine {
 
 const VARIANT = { new: 'Sách mới', used: 'Sách cũ', ebook: 'Sách điện tử' } as const;
 
-/**
- * Lớp làm việc với giỏ hàng cho các trang Giỏ hàng / Thanh toán / Mua lại.
- *
- * Mọi cập nhật đi qua CartService.replace() để badge, cache và MongoDB đồng bộ.
- */
 @Injectable({ providedIn: 'root' })
 export class CartFacade {
   private readonly cart = inject(CartService);
@@ -54,7 +45,6 @@ export class CartFacade {
   readonly freeshipText = this.account.freeshipText;
   readonly catalogError = signal(false);
 
-  /** null = đang tải danh mục */
   private readonly catalog = toSignal(
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd && /^\/(cart|checkout)(?:[?#]|$)/.test(event.urlAfterRedirects)),
@@ -86,15 +76,12 @@ export class CartFacade {
   readonly stockError = computed(() => this.selectedLines().some(line => line.max < line.quantity));
   readonly allSelected = computed(() => this.lines().length > 0 && this.lines().every((l) => l.selected));
 
-  /** Giảm combo cho các cuốn đang chọn: combo đủ sách mới được giảm 10% */
   private readonly comboDiscount = computed(() => this.publicSettings()?.promotions?.combosEnabled === true
     ? this.comboService.discountFor(this.selectedLines()) : { amount: 0, freeship: false, labels: new Map<string, string>() });
   readonly comboTotals = computed<ComboTotals>(() => ({ amount: this.comboDiscount().amount, freeship: this.comboDiscount().freeship }));
-  /** bookId → tên combo đang được giảm, để gắn nhãn trên dòng giỏ hàng */
   readonly comboLabels = computed(() => this.comboDiscount().labels);
 
   constructor() {
-    // Ebook chỉ được mua 1: dữ liệu cũ trong giỏ có ebook số lượng > 1 thì đưa về 1
     effect(() => {
       const fix = this.lines().filter((l) => l.ebook && l.quantity > 1);
       if (fix.length) untracked(() => fix.forEach((l) => this.setQuantity(l.bookId, 1)));
@@ -124,7 +111,6 @@ export class CartFacade {
     this.setDeselected(this.allSelected() ? this.lines().map((l) => l.bookId) : []);
   }
 
-  /** Dùng cho "Mua lại": thêm sách vào giỏ (ebook luôn 1 cuốn) và đánh dấu chọn */
   addBook(book: Pick<CatalogBook, '_id' | 'title' | 'image' | 'price'> & { type?: string }, quantity = 1): void {
     const ebook = book.type === 'ebook';
     const items = [...this.cart.items()];
@@ -135,10 +121,6 @@ export class CartFacade {
     this.setDeselected(this.deselected().filter((id) => id !== book._id));
   }
 
-  /**
-   * Thêm combo: cuốn chưa có trong giỏ thì thêm 1 cuốn, cuốn đã có giữ nguyên số lượng;
-   * tất cả được đánh dấu chọn và ghi nhận là một combo để giỏ hàng trừ 10%.
-   */
   addCombo(name: string, books: Pick<CatalogBook, '_id' | 'title' | 'image' | 'price'>[], freeship = false): void {
     const items = [...this.cart.items()];
     for (const book of books) {
@@ -152,7 +134,6 @@ export class CartFacade {
     this.comboService.add({ name, bookIds: books.map((b) => b._id), freeship });
   }
 
-  /** Kiểm tra mã với các sách đang chọn (server đọc mã trong collection vouchers, cần đăng nhập) */
   validateVoucher(code: string): Observable<VoucherResult> {
     return this.account.applyVoucher({
       code: code.trim().toUpperCase(),
@@ -161,7 +142,6 @@ export class CartFacade {
     });
   }
 
-  /** Combo gửi kèm khi kiểm tra mã / đặt hàng để server tính giảm combo giống giỏ hàng */
   combosForOrder(): { bookIds: string[]; freeship: boolean }[] {
     if (this.publicSettings()?.promotions?.combosEnabled !== true) return [];
     return this.comboService.combos().map((c) => ({ bookIds: c.bookIds, freeship: c.freeship }));
@@ -172,7 +152,6 @@ export class CartFacade {
     writeSession(VOUCHER_KEY, voucher);
   }
 
-  /** Sau khi đặt hàng: bỏ các sách đã mua khỏi giỏ và xoá mã giảm giá */
   completeOrder(bookIds: string[]): void {
     this.remove(bookIds);
     this.setVoucher(null);
@@ -209,7 +188,6 @@ function toLine(item: CartItem, book: CatalogBook | undefined, selected: boolean
   };
 }
 
-/** Mã lưu từ bản cũ (chỉ có "percent") thì bỏ, người dùng nhập lại */
 function validVoucher(v: VoucherResult | null): VoucherResult | null {
   return v && typeof v.code === 'string' && ['percent', 'fixed', 'freeship'].includes(v.type) ? v : null;
 }
@@ -228,6 +206,5 @@ function writeSession(key: string, value: unknown): void {
     if (value === null) sessionStorage.removeItem(key);
     else sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // bỏ qua
   }
 }

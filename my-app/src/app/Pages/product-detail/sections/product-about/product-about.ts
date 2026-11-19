@@ -7,13 +7,8 @@ interface Spec {
   value: string;
 }
 
-/** Mô tả dài hơn mức này thì thu gọn, có nút "Xem thêm" */
 const COLLAPSE_LENGTH = 600;
 
-/**
- * "Giới thiệu sách" + card "Thông tin chi tiết" (Figma 873:5591).
- * Chỉ hiện dòng nào DB có dữ liệu; thiếu hết thì ẩn cả section.
- */
 @Component({
   selector: 'app-product-about',
   standalone: false,
@@ -23,14 +18,12 @@ const COLLAPSE_LENGTH = 600;
 export class ProductAbout {
   readonly book = input.required<CatalogBook>();
 
-  /** Mỗi dòng xuống hàng trong mô tả là một đoạn */
   protected readonly paragraphs = computed(() =>
     (this.book().description ?? '').split(/\n+/).map((p) => p.trim()).filter(Boolean),
   );
 
   protected readonly collapsible = computed(() => (this.book().description ?? '').length > COLLAPSE_LENGTH);
 
-  /** Đổi sách thì thu gọn lại */
   protected readonly expanded = linkedSignal({ source: this.book, computation: () => false });
 
   protected readonly specs = computed<Spec[]>(() => {

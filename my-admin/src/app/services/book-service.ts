@@ -6,7 +6,6 @@ import { AdminAuthService } from './admin-auth-service';
 import { environment } from '../../environments/environment';
 import { AdminBook, Author, BookListResponse, BookPayload, BookQuery, Category, InventoryReceipt, StockInRequest, PdfUploadResult } from '../models/book';
 
-/** Gọi API Quản lý sách — my-server/routes/admin-books.js */
 @Injectable({ providedIn: 'root' })
 export class BookService {
   private readonly http = inject(HttpClient);
@@ -52,17 +51,14 @@ export class BookService {
     return this.auth.withSession((csrfToken) => this.http.put<AdminBook>(`${this.baseUrl}/${id}`, data, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  /** Xoá mềm: sách chuyển sang status "deleted", web khách và admin không thấy nữa */
   deleteBook(id: string): Observable<{ deleted: boolean }> {
     return this.auth.withSession((csrfToken) => this.http.delete<{ deleted: boolean }>(`${this.baseUrl}/${id}`, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  /** Ẩn / hiện / xoá nhiều sách cùng lúc */
   bulk(ids: string[], action: 'hide' | 'show' | 'delete'): Observable<{ modified: number }> {
     return this.auth.withSession((csrfToken) => this.http.patch<{ modified: number }>(`${this.baseUrl}/bulk`, { ids, action }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  // Danh sách chọn trong form & bộ lọc (API dùng chung với web khách)
   getCategories(): Observable<Category[]> {
     return this.http.get<Category[]>(`${environment.apiUrl}/categories`);
   }

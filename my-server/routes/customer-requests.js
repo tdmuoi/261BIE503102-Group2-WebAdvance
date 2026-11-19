@@ -36,11 +36,9 @@ module.exports = function customerRequests(getDb) {
       });
       for(const item of items)if(item.bookId && !await getDb().collection('books').findOne({_id:item.bookId,isDemo:{$ne:true}}))
         throw fail(400,'Sách tham chiếu không tồn tại. Có thể gửi sách tự nhập không kèm bookId.');
-      // Lightbook chỉ có 1 cửa hàng (442 Cộng Hòa): mang sách đến cửa hàng hoặc gửi bưu điện về kho
       if(!['store','post'].includes(b.delivery)||!['bank','voucher'].includes(b.payout))throw fail(400,'Chọn cách gửi sách và hình thức nhận tiền/voucher.');
       const phone=text(b.customer?.phone),address=text(b.customer?.returnAddress),province=text(b.customer?.province);
       if(!/^0\d{9}$/.test(phone)||!address||address.length>500||!province||province.length>100)throw fail(400,'Thông tin liên hệ/địa chỉ hoàn sách không hợp lệ.');
-      // Ảnh sách bắt buộc (1–6 ảnh), đã tải lên Cloudinary trong thư mục của chính khách này
       const images=b.images,delivery=b.delivery;
       if(!Array.isArray(images)||!images.length||images.length>6||new Set(images).size!==images.length||
         images.some(v=>!cloudinary.isOwnImageUrl(v,'buyback',req.customer.userId)))throw fail(400,'Cần 1–6 ảnh sách đã tải lên.');

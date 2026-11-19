@@ -12,10 +12,6 @@ const VISIBLE_COUNT = 3;
 const AVATAR_TONES = ['pink', 'mint', 'yellow'] as const;
 const dateFormat = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-/**
- * Section "Đánh giá" nền vàng (Figma 873:5627): điểm trung bình, phân bố 1–5 sao, danh sách review.
- * my-server chưa có API đánh giá nên hiện tại luôn rơi vào trạng thái "Chưa có đánh giá".
- */
 @Component({
   selector: 'app-product-reviews',
   standalone: false,
@@ -30,11 +26,8 @@ export class ProductReviews {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
-  /** Bản sao danh sách để cập nhật số vote ngay tại chỗ; đổi sách thì lấy lại từ input */
   protected readonly items = linkedSignal(() => this.reviews());
-  /** Review có ảnh đại diện lỗi link → quay về chữ viết tắt */
   protected readonly brokenAvatars = signal<ReadonlySet<string>>(new Set());
-  /** Review đang gửi vote (khoá nút, tránh bấm liên tục) */
   protected readonly pendingVote = signal<string | null>(null);
 
   protected readonly stars = [1, 2, 3, 4, 5];
@@ -45,7 +38,6 @@ export class ProductReviews {
     return list.length ? list.reduce((sum, review) => sum + review.rating, 0) / list.length : 0;
   });
 
-  /** % số đánh giá theo từng mức sao, 5 → 1 */
   protected readonly distribution = computed(() => {
     const list = this.reviews();
     return [5, 4, 3, 2, 1].map((star) => ({
@@ -54,7 +46,6 @@ export class ProductReviews {
     }));
   });
 
-  /** Đổi sách thì thu gọn lại */
   protected readonly showAll = linkedSignal({ source: this.reviews, computation: () => false });
 
   protected readonly visible = computed(() => (this.showAll() ? this.items() : this.items().slice(0, VISIBLE_COUNT)));
@@ -68,7 +59,6 @@ export class ProductReviews {
     this.brokenAvatars.update((set) => new Set(set).add(reviewId));
   }
 
-  /** Bấm 👍 / 👎; bấm lại lựa chọn đang chọn thì bỏ vote */
   protected vote(review: Review, value: 1 | -1): void {
     if (!this.auth.isLoggedIn()) {
       this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });

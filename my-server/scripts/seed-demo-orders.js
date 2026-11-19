@@ -1,13 +1,4 @@
-// =====================================================================
-// Tạo ĐƠN HÀNG DEMO để thử trang Đơn hàng / Dashboard của admin khi web khách chưa có ai đặt hàng.
-//
-//   node scripts/seed-demo-orders.js           tạo 30 đơn demo (dùng sách + tài khoản có sẵn trong DB)
-//   node scripts/seed-demo-orders.js 50        tạo 50 đơn demo
-//   node scripts/seed-demo-orders.js --clear   xoá toàn bộ đơn demo (chỉ xoá đơn có isDemo: true)
-//
-// Đơn demo có mã LB-DEMO-xxxx và isDemo: true, KHÔNG trừ tồn kho sách.
-// Lưu ý: DB dùng chung cả nhóm — báo nhóm trước khi chạy, xoá đơn demo trước khi nộp/quay video nếu cần.
-// =====================================================================
+
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { MongoClient } = require('mongodb');
 
@@ -51,7 +42,6 @@ async function main() {
     const status = pick(STATUS_POOL);
     const paymentMethod = pick(['cod', 'cod', 'bank_transfer', 'momo']);
 
-    // Lịch sử trạng thái giả lập theo đúng luồng
     const history = [{ status: 'pending', at: createdAt, note: null }];
     const target = status === 'cancelled' ? 'pending' : status === 'returned' ? 'delivered' : status;
     let t = createdAt.getTime();

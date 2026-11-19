@@ -1,4 +1,3 @@
-/* Định dạng nội dung bài viết — Figma news-detail 879:7578 (H2, H3, đoạn văn, blockquote nền vàng, ảnh có chú thích) */
 .nb-content { font: 400 16px/1.75 var(--font-sans); color: var(--color-text-body); overflow-wrap: break-word; }
 
 .nb-content > * { margin: 0 0 var(--space-24); }

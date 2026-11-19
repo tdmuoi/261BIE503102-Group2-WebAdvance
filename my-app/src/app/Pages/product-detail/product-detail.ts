@@ -11,11 +11,9 @@ import { ToastService } from '../../services/toast-service';
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
 
-/** Thể loại không đáng để gợi ý "liên quan" / hiện trên breadcrumb */
 const HIDDEN_CATEGORY_SLUGS = ['uncategorized', 'used-book', 'ebook'];
 const ROW_SIZE = 5;
 
-/** Trang chi tiết sách /books/:slug (slug hoặc _id) — Figma 873:5393 */
 @Component({
   selector: 'app-product-detail',
   standalone: false,
@@ -30,7 +28,6 @@ export class ProductDetail {
   private readonly toast = inject(ToastService);
   private readonly title = inject(Title);
   private readonly destroyRef = inject(DestroyRef);
-  /** Bấm "Thử lại" khi lỗi mạng */
   private readonly reload$ = new BehaviorSubject<void>(undefined);
 
   protected readonly state = signal<LoadState>('loading');
@@ -38,23 +35,19 @@ export class ProductDetail {
   protected readonly book = signal<CatalogBook | null>(null);
   protected readonly reviews = signal<Review[]>([]);
 
-  /** Số cuốn của sách này đã có trong giỏ */
   protected readonly inCart = computed(() => {
     const book = this.book();
     return book ? this.cart.quantityOf(book._id) : 0;
   });
 
-  /** Số cuốn còn thêm được: sách giấy = tồn kho trừ số trong giỏ; ebook không có tồn kho, mỗi đơn 1 bản */
   protected readonly maxQuantity = computed(() => {
     const book = this.book();
     const limit = book?.type === 'ebook' ? (book.ebookReady === false ? 0 : 1) : (book?.stock ?? 0);
     return Math.max(0, limit - this.inCart());
   });
 
-  /** Đổi sách thì số lượng về 1 */
   protected readonly quantity = linkedSignal({ source: this.book, computation: () => 1 });
 
-  /** Hiện thể loại thật (bỏ "Chưa phân loại") trên breadcrumb / tag */
   protected readonly category = computed(() => {
     const book = this.book();
     return book && !HIDDEN_CATEGORY_SLUGS.includes(book.categorySlug)
@@ -68,7 +61,6 @@ export class ProductDetail {
     return this.otherBooks().filter((other) => other.authorId === book.authorId).slice(0, ROW_SIZE);
   });
 
-  /** Cùng thể loại; thiếu thì lấy sách mới cùng loại (mới / cũ / ebook) */
   protected readonly related = computed(() => {
     const book = this.book();
     if (!book) return [];
@@ -132,7 +124,6 @@ export class ProductDetail {
     this.toast.show(`Đã thêm ${quantity} cuốn vào giỏ`, { label: 'Xem giỏ hàng', path: '/cart' });
   }
 
-  /** Thêm vào giỏ (nếu còn thêm được) rồi sang trang giỏ hàng */
   protected buyNow(): void {
     const book = this.book();
     if (!book) return;
@@ -153,7 +144,6 @@ export class ProductDetail {
       await navigator.clipboard.writeText(url);
       this.toast.show('Đã sao chép liên kết sách');
     } catch {
-      // Người dùng huỷ hộp thoại chia sẻ — không cần báo
     }
   }
 
@@ -167,7 +157,6 @@ function findBook(catalog: Catalog, slug: string): CatalogBook | null {
   return catalog.books.find((book) => book.slug === slug || book._id === slug) ?? null;
 }
 
-/** Số sao ở đầu trang: điểm trung bình và số lượt từ các đánh giá thật của độc giả */
 function withRating(book: CatalogBook, reviews: Review[]): CatalogBook {
   if (!reviews.length) return book;
   const average = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;

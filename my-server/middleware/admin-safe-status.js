@@ -26,8 +26,6 @@ function quantities(items) {
   }
   return result;
 }
-// books and old_books share _id for used copies. Refuse ambiguous/mismatched stock;
-// both updates must participate in the caller's transaction.
 async function adjustStock(db, session, items, direction) {
   if (![1, -1].includes(direction)) throw failure(400, 'Invalid stock direction');
   let count = 0;
@@ -85,8 +83,6 @@ async function releaseVoucher(db, session, order) {
     { $inc: { usedCount: -1 }, $set: { updatedAt: revisions.nextUpdatedAt(voucher) } }, { session });
   if (result.modifiedCount !== 1) throw failure(409, 'Voucher changed; retry');
 }
-// One settlement policy for revenue, refunds and ebook entitlements. No client
-// request is allowed to manufacture these fields; legacy paid requires review.
 function verifiedPaymentDate(order, now = new Date()) {
   if (order?.paymentMode === 'demo' || order?.paymentVerification?.source === 'demo') return null;
   const date = (value) => {
@@ -107,8 +103,6 @@ function freeEbookClaimId(userId, bookId) {
   return new ObjectId(createHash('sha256').update('free-ebook:' + String(userId).toLowerCase() + ':' + String(bookId).toLowerCase()).digest('hex').slice(0, 24));
 }
 async function hasEbookEntitlement(db, row, session) {
-  // Only this server's explicit free-claim records qualify. A legacy/mock row
-  // labelled "free" is not proof, and refunded/revoked rows never qualify.
   if (row && row.isDemo !== true && row.accessRevokedAt == null && row.accessRevokedOrderId == null &&
       row.acquisitionType === 'free' && row.acquisitionPrice === 0 && row.orderId == null && row.orderCode == null &&
       row.createdAt instanceof Date && Number.isFinite(+row.createdAt) && row.createdAt <= new Date() &&
@@ -121,7 +115,7 @@ async function ebookEntitlementOrder(db, row, session) {
   const link = row.orderId != null
     ? { _id: { $in: identityVariants(row.orderId) }, ...(row.orderCode ? { orderCode: row.orderCode } : {}) }
     : typeof row.orderCode === 'string' && row.orderCode ? { orderCode: row.orderCode } : null;
-  if (!link) return null; // No guessed ownership/payment link for legacy rows.
+  if (!link) return null;
   const orders = await db.collection('orders').find({ ...link, userId: { $in: identityVariants(row.userId) },
     isDemo: { $ne: true } }, { session }).limit(2).toArray();
   if (orders.length !== 1) return null;
@@ -283,8 +277,6 @@ async function transition(db, client, kind, id, body) {
             }
             if (next === "refunded") {
               const amount = Number(body.refundAmount);
-              // New customer requests explicitly use a basic full-order internal
-              // refund policy, including the stored shipping/discount allocation.
               const fullOrder = doc.refundPolicy === 'full-order-total-v1' && Number.isSafeInteger(order.total) &&
                 doc.refundableTotal === order.total;
               if (
@@ -301,7 +293,6 @@ async function transition(db, client, kind, id, body) {
                   409,
                   "Thiếu bằng chứng thanh toán đã xác minh; cần đối soát thủ công trước khi hoàn tiền.",
                 );
-              // Shipping/discount refund allocation is deliberately not inferred.
               if (
                 (!fullOrder && Number(order.shippingFee || 0) !== 0) ||
                 (!fullOrder && Number(order.discount || 0) !== 0) ||

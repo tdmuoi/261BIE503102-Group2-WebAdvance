@@ -3,10 +3,6 @@ import { Component, computed, input, output, signal } from '@angular/core';
 import { LbEvent } from '../../models/content';
 import { dateBlock, eventState, placeLabel, seatsLeft, timeRange } from '../../shared/event-utils';
 
-/**
- * Thẻ sự kiện giao lưu — Figma "Event card" (874:484).
- * Upcoming: số chỗ còn lại + nút giữ chỗ; Full: hết chỗ; Past: đã diễn ra, xem lại (nếu có bản ghi).
- */
 @Component({
   selector: 'app-event-card',
   standalone: false,

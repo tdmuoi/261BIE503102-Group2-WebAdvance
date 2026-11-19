@@ -34,7 +34,6 @@ export class AdminAuthService {
       }),
     );
   }
-  /** The session ID stays in an HttpOnly cookie. Only CSRF/user state lives in memory. */
   withSession<T>(request: (csrfToken: string) => Observable<T>): Observable<T> {
     const current = this.state.value;
     const session =

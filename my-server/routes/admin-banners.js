@@ -1,20 +1,5 @@
 // =====================================================================
 // API Banner & quảng cáo   (gắn vào index.js: app.use('/api', bannersRoutes(() => database)))
-//
-// Cho web khách (my-app):
-//   GET    /api/banners?position=hero     banner đang bật và trong thời gian chạy, theo thứ tự
-//
-// Cho admin (my-admin):
-//   GET    /api/admin/banners             tất cả banner + số đếm theo trạng thái
-//   POST   /api/admin/banners             thêm banner
-//   PUT    /api/admin/banners/:id         sửa banner
-//   PATCH  /api/admin/banners/:id         bật/tắt nhanh: { active: true | false }
-//   PATCH  /api/admin/banners/reorder     đổi thứ tự trong 1 vị trí: { ids: [id1, id2, ...] }
-//   DELETE /api/admin/banners/:id         xoá banner
-//
-// Trạng thái (state) tính lúc gọi API:
-//   live = đang hiển thị | scheduled = chưa tới ngày bắt đầu | expired = đã qua ngày kết thúc | off = admin tắt
-// Ngày nhập từ form là ngày giờ Việt Nam (UTC+7): bắt đầu 00:00, kết thúc 23:59 của ngày đó.
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
@@ -36,7 +21,6 @@ function cleanText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/** 'YYYY-MM-DD' -> Date theo giờ VN; endOfDay = 23:59:59.999 */
 function parseDay(value, endOfDay = false) {
   const text = cleanText(value);
   if (!text) return null;
@@ -72,7 +56,6 @@ const orderFields = (doc, order) => ({
   ...(Object.hasOwn(doc, 'order') || !Object.hasOwn(doc, 'sortOrder') ? { order } : {}),
 });
 
-/** Chấp nhận vài tên field khác (nếu dữ liệu cũ đặt tên khác) và tính state */
 function present(doc, now = new Date()) {
   const active = doc.active ?? doc.isActive ?? (doc.status ? doc.status === 'active' : true);
   const startDate = toDate(doc.startDate ?? doc.startAt);
@@ -127,7 +110,6 @@ function parseBanner(body, existing = null) {
   const textColor = cleanText(body.textColor) || '#ffffff';
   let startDate = parseDay(body.startDate);
   let endDate = parseDay(body.endDate, true);
-  // A date-only form must not round an existing timestamp when its day did not change.
   for (const [canonical, alias] of [['startDate', 'startAt'], ['endDate', 'endAt']]) {
     const stored = existing?.[canonical] ?? existing?.[alias];
     if (stored != null && dayOf(stored) === body[canonical]) {
@@ -199,7 +181,6 @@ module.exports = function bannersRoutes(getDb) {
     }
   });
 
-  // No alias/position normalization until the shared contract is approved.
   router.use('/admin/banners/:id', async (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     try {
@@ -289,8 +270,6 @@ module.exports = function bannersRoutes(getDb) {
       delete update.active;
       Object.assign(update, activeFields(existing, data.active));
       const unset = {};
-      // Preserve the date keys already used by this document; never create a
-      // competing canonical field beside an existing legacy alias.
       for (const [canonical, alias] of [['startDate', 'startAt'], ['endDate', 'endAt']]) {
         if (data[canonical] == null) {
           delete update[canonical];
@@ -303,7 +282,6 @@ module.exports = function bannersRoutes(getDb) {
           delete update[canonical];
         }
       }
-      // Đổi sang vị trí khác thì xếp xuống cuối vị trí mới
       if (data.position !== existing.position) {
         const group = await banners().find({ position: data.position }).toArray();
         Object.assign(update, orderFields(existing, Math.max(0, ...group.map(doc => present(doc).order)) + 1));

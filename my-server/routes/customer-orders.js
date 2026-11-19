@@ -1,22 +1,11 @@
 // =====================================================================
 // Đơn hàng + mã giảm giá của web khách hàng (bắt buộc đăng nhập)
-//   POST /api/vouchers/apply              { code, items:[{bookId,quantity}], shippingMethod, combos }  → mã + số tiền giảm
-//   POST /api/orders                      Idempotency-Key + { items, addressId, shippingMethod, paymentMethod, voucherCode, note }
-//   GET  /api/account/orders              đơn của chính người đăng nhập (đơn cũ chưa có userId thì khớp theo email)
-//   GET  /api/orders/:id
-//   PUT  /api/account/orders/:id/cancel   chỉ đơn "pending"
-//   POST /api/orders/:id/confirm-payment  trả 409 chờ xác minh, không ghi paid hoặc cấp ebook
-//   POST /api/orders/:id/demo-payment     QR Demo riêng; chỉ database QA/demo local được bật rõ ràng
-//   MoMo (cổng thật, mặc định môi trường test): xem customer-momo-payment.js
-// Tiền luôn tính lại ở đây từ giá trong collection books + vouchers (không tin số tiền trang gửi lên).
-// Cấu trúc đơn theo my-server/routes/admin-orders.js.
 // =====================================================================
 const express = require('express');
 const { requireCustomer, toObjectId } = require('../middleware/customer-auth');
 const { computeTotals, voucherProblem, publicVoucher } = require('./customer-pricing');
 
 const PAYMENT_METHODS = ['momo', 'vnpay', 'bank_transfer', 'cod', 'qr_demo'];
-/** Trả online: chưa trả tiền sau thời gian này thì đơn tự hủy (xem expireUnpaid) */
 const ONLINE_METHODS = ['momo', 'vnpay', 'bank_transfer'];
 const UNPAID_TTL_MS = 2 * 60 * 60 * 1000;
 const demoMode = require('../middleware/demo-mode');
@@ -101,7 +90,6 @@ module.exports = function customerOrderRoutes(getDb) {
       shippingMethod: b.shippingMethod === 'express' ? 'express' : 'standard',
       voucherCode: text(b.voucherCode).toUpperCase(), note: text(b.note).slice(0, 300) };
     const keyHash = digest(String(req.customer.userId) + ':' + key);
-    // Built-in unique _id serializes retries across processes; no new index/collection.
     return { id: new ObjectId(keyHash.slice(0, 24)), keyHash, requestHash: digest(JSON.stringify(canonical)), items };
   }
   function replay(order, identity, req) {
@@ -175,7 +163,7 @@ module.exports = function customerOrderRoutes(getDb) {
       let order;
       try {
         order = await transaction(db(), async (session) => {
-          created = false; // Driver can retry the entire callback after a write conflict.
+          created = false;
           const existing = await db().collection('orders').findOne({ _id: identity.id }, { session });
           if (existing) return replay(existing, identity, req);
           const lines = await loadLines(identity.items, session);
@@ -194,8 +182,6 @@ module.exports = function customerOrderRoutes(getDb) {
           if (totals.voucherError) throw failure(400, totals.voucherError);
           if (![totals.subtotal, totals.total].every(Number.isSafeInteger)) throw failure(400, 'Tổng tiền vượt giới hạn');
           if (voucher) {
-            // Writing the shared voucher serializes total AND per-user quota checks
-            // across Node processes. Driver retries rerun the count on a new snapshot.
             const used = voucher.usedCount ?? 0;
             const reserved = await db().collection('vouchers').updateOne({ _id: voucher._id,
               usedCount: Object.hasOwn(voucher, 'usedCount') ? used : { $exists: false }, isDemo: { $ne: true }, ...revisions.snapshot(voucher) },
@@ -207,8 +193,6 @@ module.exports = function customerOrderRoutes(getDb) {
           const document = { _id: identity.id, idempotencyKeyHash: identity.keyHash, requestHash: identity.requestHash,
             orderCode: 'LB-' + String(identity.id).toUpperCase(), userId: req.customer.userId,
             customer: { name: req.customer.user.fullName || '', email: req.customer.email, phone: req.customer.user.phone || shippingAddress?.phone || '' },
-            // Ebook-only orders have no shipping address. Omit the optional BSON
-            // object instead of storing null (public orderView still returns null).
             ...(shippingAddress ? { shippingAddress } : {}), items: lines.map(({ ebook, ...line }) => line), subtotal: totals.subtotal, comboDiscount: 0,
             discount: totals.discount, voucherCode: voucher?.code || null, ...(voucher ? { voucherId: voucher._id, voucherReleased: false } : {}),
             shippingFee: totals.shippingFee, shippingMethod: totals.shippingMethod, total: totals.total,
@@ -227,7 +211,6 @@ module.exports = function customerOrderRoutes(getDb) {
           return document;
         });
       } catch (error) {
-        // E11000 may be returned for simultaneous inserts of the same _id.
         if (error.code !== 11000) throw error;
         const existing = await db().collection('orders').findOne({ _id: identity.id });
         if (!existing) throw error;
@@ -266,7 +249,6 @@ module.exports = function customerOrderRoutes(getDb) {
     } catch (error) { next(error); }
   });
 
-  /** Hủy đơn đang chờ, chưa trả tiền: trả lại tồn kho + lượt mã giảm giá, ghi lịch sử, báo cho khách */
   async function cancelPending(userId, id, note, message) {
     return transaction(db(), async (session) => {
       const current = await db().collection('orders').findOne({ _id: id, userId }, { session });
@@ -290,11 +272,6 @@ module.exports = function customerOrderRoutes(getDb) {
     });
   }
 
-  /**
-   * Đơn trả online (MoMo / VNPay / chuyển khoản) quá hạn mà chưa trả tiền thì tự hủy, để không đọng đơn
-   * "Chờ thanh toán" và không giữ tồn kho. Hạn dài hơn thời gian sống của link MoMo (~100 phút).
-   * Đơn MoMo: hỏi MoMo lần cuối trước khi hủy — đã trả thì ghi nhận thay vì hủy; không hỏi được thì để lần sau.
-   */
   async function expireUnpaid(userId) {
     const cutoff = Date.now() - UNPAID_TTL_MS;
     const candidates = await db().collection('orders').find({ userId, status: 'pending', paymentStatus: 'unpaid',
@@ -311,8 +288,6 @@ module.exports = function customerOrderRoutes(getDb) {
       }
     }
   }
-  // Customer clicks are never settlement proof. No online payment writes or ebook
-  // grants until a separately authenticated provider verification is implemented.
   router.post('/orders/:id/confirm-payment', auth, async (req, res, next) => {
     try {
       const id = toObjectId(req.params.id);

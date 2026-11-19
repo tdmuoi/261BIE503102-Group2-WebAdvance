@@ -1,13 +1,6 @@
 'use strict';
 // =====================================================================
 // Thanh toán MoMo (cổng thật, mặc định môi trường TEST — tiền ảo, không trừ tiền thật)
-//   POST /api/orders/:id/momo          { method: 'atm' | 'wallet' } tạo link thanh toán MoMo cho đơn "momo" đang chờ → { payUrl }
-//   POST /api/payments/momo/verify     { momoOrderId } khách quay lại từ MoMo → server hỏi MoMo rồi ghi nhận
-//   POST /api/payments/momo/ipn        MoMo gọi về (cần địa chỉ public, vd. ngrok) — kiểm chữ ký rồi ghi nhận
-// Đơn chỉ thành "paid" khi chính API tra cứu của MoMo trả resultCode 0 và đúng số tiền.
-// Cùng một transaction: đơn → paid + paymentVerification {source:'provider_webhook', provider:'momo', transactionId},
-// ghi sổ payments, thêm ebook trong đơn vào tủ sách (personalBooks).
-// Key test lấy từ mã mẫu công khai của MoMo (github.com/momo-wallet/payment). Lên production: đặt MOMO_* trong .env.
 // =====================================================================
 const express = require('express');
 const { createHash, createHmac, timingSafeEqual } = require('node:crypto');
@@ -19,12 +12,11 @@ const { orderView } = require('./customer-orders');
 
 const failure = (status, message) => Object.assign(new Error(message), { status });
 const TEST_ENDPOINT = 'https://test-payment.momo.vn';
-const PENDING_CODES = [1000, 7000, 7002]; // đã tạo / đang xử lý — chưa có kết quả cuối
+const PENDING_CODES = [1000, 7000, 7002];
 
 function config() {
   const endpoint = (process.env.MOMO_ENDPOINT || TEST_ENDPOINT).replace(/\/+$/, '');
   const isTest = endpoint === TEST_ENDPOINT;
-  // Key test công khai chỉ dùng khi đang trỏ tới môi trường test
   const partnerCode = process.env.MOMO_PARTNER_CODE || (isTest ? 'MOMO' : '');
   const accessKey = process.env.MOMO_ACCESS_KEY || (isTest ? 'F8BBA842ECF85' : '');
   const secretKey = process.env.MOMO_SECRET_KEY || (isTest ? 'K951B6PE1waDMi640xX08PD3vg6EkVlz' : '');
@@ -54,7 +46,6 @@ async function callMomo(cfg, path, body) {
   return data;
 }
 
-/** Tạo link thanh toán cho đơn. Mỗi lần tạo là một mã giao dịch MoMo mới, lưu vào order.momoAttempts */
 async function createPayment(db, userId, id, method = 'atm') {
   const cfg = config();
   const orderId = toObjectId(String(id));
@@ -71,8 +62,6 @@ async function createPayment(db, userId, id, method = 'atm') {
   const orderInfo = `Thanh toán đơn ${order.orderCode || code} tại Lightbook`;
   const redirectUrl = `${cfg.clientUrl}/checkout`;
   const extraData = '';
-  // atm: trang nhập thẻ ATM nội địa (môi trường test dùng thẻ test, không cần app)
-  // wallet: mã QR ví MoMo — môi trường test chỉ app MoMo bản test (UAT) quét được, app MoMo thật báo lỗi QR
   const requestType = method === 'wallet' ? 'captureWallet' : 'payWithATM';
   const raw = `accessKey=${cfg.accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${cfg.ipnUrl}&orderId=${momoOrderId}` +
     `&orderInfo=${orderInfo}&partnerCode=${cfg.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
@@ -87,14 +76,12 @@ async function createPayment(db, userId, id, method = 'atm') {
   return { payUrl: data.payUrl, momoOrderId, test: cfg.isTest };
 }
 
-/** Hỏi MoMo trạng thái giao dịch. Chỉ kết quả từ API này mới được dùng để ghi "paid" */
 async function queryPayment(cfg, attempt) {
   const raw = `accessKey=${cfg.accessKey}&orderId=${attempt.orderId}&partnerCode=${cfg.partnerCode}&requestId=${attempt.requestId}`;
   return callMomo(cfg, '/v2/gateway/api/query', { partnerCode: cfg.partnerCode, requestId: attempt.requestId,
     orderId: attempt.orderId, lang: 'vi', signature: sign(cfg.secretKey, raw) });
 }
 
-/** Ghi nhận đã thanh toán + cấp ebook — một transaction, chạy lại nhiều lần vẫn an toàn */
 async function settlePaid(db, orderId, attempt, transId) {
   try {
     return await transaction(db, async (session) => {
@@ -114,8 +101,6 @@ async function settlePaid(db, orderId, attempt, transId) {
         source: 'provider_webhook', confirmedAt: now, createdAt: now }, { session });
       const set = { paymentStatus: 'paid', paidAt: now, updatedAt: now,
         paymentVerification: { source: 'provider_webhook', provider: 'momo', transactionId: transId, momoOrderId: attempt.orderId, verifiedAt: now } };
-      // Đơn chỉ có ebook không cần xác nhận / giao hàng: trả tiền xong là hoàn tất (ebook vào tủ sách ngay bên dưới).
-      // Đơn có sách giấy vẫn "pending" để shop xác nhận và giao.
       const ebookOnly = (current.items || []).length > 0 && current.items.every((line) => line.format === 'ebook');
       if (ebookOnly) Object.assign(set, { status: 'delivered', deliveredAt: now });
       const changed = await orders.updateOne({ _id: orderId, status: 'pending', paymentStatus: 'unpaid' },
@@ -129,7 +114,7 @@ async function settlePaid(db, orderId, attempt, transId) {
         const rows = await db.collection('personalBooks').find({ userId: current.userId, bookId: { $in: [bookId, String(bookId)] }, isDemo: { $ne: true } }, { session }).toArray();
         let owned = false;
         for (const row of rows) if (await hasEbookEntitlement(db, row, session)) { owned = true; break; }
-        if (owned) continue; // đã có quyền đọc (vd. nhận miễn phí trước đó) thì không thêm bản trùng
+        if (owned) continue;
         const _id = new ObjectId(createHash('sha256').update(`purchase-ebook:${orderId}:${bookId}`).digest('hex').slice(0, 24));
         await db.collection('personalBooks').insertOne({ _id, userId: current.userId, bookId, orderId, orderCode: current.orderCode,
           acquisitionType: 'purchase', acquisitionPrice: Number(item.price) || 0, paymentMode: 'standard', readingStatus: 'unread',
@@ -143,14 +128,12 @@ async function settlePaid(db, orderId, attempt, transId) {
     });
   } catch (error) {
     if (error.code !== 11000) throw error;
-    // Hai lần xác nhận chạy cùng lúc: lần sau gặp khoá trùng, đọc lại kết quả lần trước
     const committed = await db.collection('orders').findOne({ _id: orderId });
     if (committed?.paymentStatus === 'paid' && committed.paymentVerification?.transactionId === transId) return committed;
     throw error;
   }
 }
 
-/** Tra MoMo cho giao dịch của đơn → 'paid' | 'pending' | 'failed' */
 async function verifyAttempt(db, order, attempt) {
   const cfg = config();
   const result = await queryPayment(cfg, attempt);
@@ -187,7 +170,6 @@ module.exports = function customerMomoPaymentRoutes(getDb) {
     } catch (error) { next(error); }
   });
 
-  // MoMo gọi server-to-server. Luôn trả 204 để MoMo không gửi lại liên tục; lỗi ghi log.
   router.post('/payments/momo/ipn', async (req, res) => {
     try {
       const b = req.body || {};
@@ -211,7 +193,6 @@ module.exports = function customerMomoPaymentRoutes(getDb) {
 };
 module.exports.settlePaid = settlePaid;
 
-/** Hỏi MoMo mọi giao dịch của đơn (mới nhất trước) — có cái thành công thì ghi nhận. Dùng trước khi tự hủy đơn quá hạn */
 module.exports.verifyOrder = async function verifyOrder(db, order) {
   let last = { status: 'failed', order };
   for (const attempt of [...(order.momoAttempts || [])].reverse()) {

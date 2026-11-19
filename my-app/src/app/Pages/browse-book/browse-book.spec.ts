@@ -28,7 +28,6 @@ describe('BrowseBook', () => {
         provideRouter([{ path: 'books', component: BrowseBook }]),
         { provide: BookService, useValue: { getCatalog } },
       ],
-      // Các section con có test riêng
       schemas: [NO_ERRORS_SCHEMA],
     });
     harness = await RouterTestingHarness.create();
@@ -37,7 +36,6 @@ describe('BrowseBook', () => {
   }
 
   beforeEach(() => {
-    // jsdom chưa có scrollIntoView
     Element.prototype.scrollIntoView = () => undefined;
     catalog = {
       books: [

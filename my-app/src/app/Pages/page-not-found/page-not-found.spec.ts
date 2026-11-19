@@ -12,7 +12,6 @@ describe('PageNotFound', () => {
       declarations: [PageNotFound],
       imports: [RouterModule],
       providers: [provideRouter([])],
-      // app-suggested-books có test riêng
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
     fixture = TestBed.createComponent(PageNotFound);

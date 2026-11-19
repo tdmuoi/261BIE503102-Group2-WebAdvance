@@ -8,7 +8,6 @@ import { BookService } from '../../services/book-service';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
-/** Trang Thu mua sách /book-buyback — Figma 829:2668 */
 @Component({
   selector: 'app-book-buyback',
   standalone: false,
@@ -30,14 +29,9 @@ export class BookBuyback {
   ];
 
   protected readonly state = signal<LoadState>('loading');
-  /** Toàn bộ sách đang bán — dùng để gợi ý tên sách trong phiếu */
   protected readonly books = signal<CatalogBook[]>([]);
   protected readonly usedBooks = computed(() => this.books().filter((book) => book.type === 'used'));
 
-  /**
-   * 3 bìa cho hero: ưu tiên sách cũ mới lên kệ.
-   * Chưa có sách cũ nào thì lấy sách mới nhất có ảnh để cụm ảnh không trống.
-   */
   protected readonly heroCovers = computed(() => {
     const withImage = (list: CatalogBook[]) => list.filter((book) => book.image);
     const used = withImage(this.usedBooks());

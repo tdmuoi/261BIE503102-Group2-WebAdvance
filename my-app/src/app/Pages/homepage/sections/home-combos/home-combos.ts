@@ -9,7 +9,6 @@ interface ComboDefinition {
   name: string;
   size: 2 | 3;
   tint: 'pink' | 'mint' | 'yellow';
-  /** Từ khoá tìm trong tên sách để chọn sách đúng chủ đề */
   keywords: string[];
   gift?: string;
 }
@@ -25,7 +24,6 @@ interface Combo {
   discountPercent: number;
 }
 
-// Tên combo gõ cứng, sách bên trong lấy từ API
 const COMBO_DEFINITIONS: ComboDefinition[] = [
   {
     name: 'Chữa lành cuối tuần',
@@ -66,7 +64,6 @@ export class HomeCombos {
     const used = new Set<string>();
     const all = this.books();
 
-    // Lượt 1: mọi combo nhận sách đúng chủ đề trước, mỗi từ khoá 1 cuốn theo thứ tự ưu tiên
     const picked = COMBO_DEFINITIONS.map((definition) => {
       const books: BookView[] = [];
       for (const keyword of definition.keywords.map(normalize)) {
@@ -80,7 +77,6 @@ export class HomeCombos {
       return books;
     });
 
-    // Lượt 2: combo nào chưa đủ thì lấy thêm sách chưa dùng
     COMBO_DEFINITIONS.forEach((definition, index) => {
       const books = picked[index];
       for (const book of all) {
@@ -111,7 +107,6 @@ export class HomeCombos {
     }).filter((combo) => combo.books.length > 0);
   });
 
-  /** Thêm đủ các cuốn của combo vào giỏ; giỏ hàng tự trừ thêm 10% khi đủ bộ */
   protected addCombo(combo: Combo): void {
     this.facade.addCombo(combo.name, combo.books);
     this.toast.show(`Đã thêm combo “${combo.name}” vào giỏ.`, { label: 'Xem giỏ hàng', path: '/cart' });

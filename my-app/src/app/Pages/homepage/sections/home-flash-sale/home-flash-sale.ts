@@ -2,7 +2,6 @@ import { Component, DestroyRef, computed, inject, input, signal } from '@angular
 
 import { BookView } from '../../../../models/book';
 
-/** Các khung giờ flash sale trong ngày (giờ bắt đầu, giờ kết thúc) */
 const SALE_SLOTS: ReadonlyArray<[number, number]> = [
   [8, 12],
   [12, 18],
@@ -10,7 +9,6 @@ const SALE_SLOTS: ReadonlyArray<[number, number]> = [
 ];
 
 interface Countdown {
-  /** running: đang diễn ra, upcoming: chưa tới khung đầu tiên */
   mode: 'running' | 'upcoming';
   slotLabel: string;
   hours: string;
@@ -25,10 +23,8 @@ interface Countdown {
   templateUrl: './home-flash-sale.html',
 })
 export class HomeFlashSale {
-  /** Sách mới đã tải; section tự lọc sách đang giảm giá */
   readonly books = input.required<BookView[]>();
 
-  /** 5 sách giảm sâu nhất; cùng mức giảm thì ưu tiên sách tiết kiệm được nhiều tiền hơn */
   protected readonly deals = computed(() =>
     this.books()
       .filter((book) => book.discountPercent > 0)
@@ -44,7 +40,6 @@ export class HomeFlashSale {
     this.deals().reduce((max, book) => Math.max(max, book.discountPercent), 0),
   );
 
-  // Màu nền ô ảnh và góc nghiêng của từng thẻ, lặp theo thứ tự như Figma
   protected readonly tints = ['mint', 'yellow', 'pink', 'mint', 'yellow'];
   protected readonly tilts = [2, -1.5, 1.5, -2, 2];
 

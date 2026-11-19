@@ -10,7 +10,6 @@ import { BookService } from '../../../services/book-service';
 
 type StatusTab = NonNullable<BookQuery['status']>;
 
-/** Hộp thoại xác nhận đang mở cho thao tác nào */
 interface PendingAction {
   ids: string[];
   action: 'delete' | 'hide';
@@ -20,11 +19,6 @@ interface PendingAction {
   confirmText: string;
 }
 
-/**
- * Trang Quản lý sách: tìm kiếm, lọc theo trạng thái/thể loại, sắp xếp, phân trang,
- * chọn nhiều để ẩn/hiện/xoá. Xoá luôn hỏi lại bằng app-confirm-dialog.
- * (my-admin chạy zoneless nên trạng thái dùng signal)
- */
 @Component({
   selector: 'app-book-list',
   standalone: false,
@@ -86,14 +80,12 @@ export class BookList {
 
     this.bookService.getCategories().subscribe({ next: (list) => this.categories.set(list), error: () => {} });
 
-    // Ô tìm kiếm: chờ người dùng ngừng gõ 300ms mới gọi API
     this.search$.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed()).subscribe((text) => {
       this.q.set(text);
       this.page.set(1);
       this.load();
     });
 
-    // Tìm từ ô search trên topbar: /book-list?q=...
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       this.q.set(params.get('q') ?? '');
       this.page.set(1);
@@ -116,7 +108,6 @@ export class BookList {
       })
       .subscribe({
         next: (res) => {
-          // Trang hiện tại trống (vd vừa xoá hết sách ở trang cuối) thì lùi 1 trang
           if (!res.items.length && res.total > 0 && this.page() > 1) {
             this.page.set(Math.ceil(res.total / this.pageSize));
             this.load();
@@ -184,7 +175,6 @@ export class BookList {
   }
 
   // ----- Thao tác -----
-  /** Ẩn/hiện 1 sách hoặc các sách đang chọn (không cần hỏi lại vì làm lại được) */
   setVisibility(ids: string[], visible: boolean): void {
     if (!ids.length) return;
     this.working.set(true);
@@ -247,12 +237,10 @@ export class BookList {
     return (value ?? 0).toLocaleString('vi-VN') + 'đ';
   }
 
-  /** 83,3% */
   percentOf(part: number, total: number): string {
     return total ? (Math.round((part / total) * 1000) / 10).toLocaleString('vi-VN') + '%' : '0%';
   }
 
-  /** Mã trạng thái cho app-status-badge */
   badge(book: AdminBook): { status: string; label: string } {
     const threshold = this.data()?.lowStockThreshold ?? 5;
     if (book.status === 'hidden') return { status: 'hidden', label: 'Đã ẩn' };

@@ -1,4 +1,3 @@
-/* Style chung (breadcrumb, thẻ trống, tóm tắt đơn) nằm ở ./shop.css */
 .list-card {
   padding: var(--space-8) 28px; background: var(--color-bg-surface); border: var(--border-default) solid var(--color-border-strong);
   border-radius: var(--radius-22); box-shadow: var(--shadow-offset-md);

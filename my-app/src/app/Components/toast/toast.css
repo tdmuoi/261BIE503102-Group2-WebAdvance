@@ -1,5 +1,3 @@
-/* Thông báo nổi. z-index 1100: trên header (100), drawer/modal (1000) */
-
 .toast-stack {
   position: fixed;
   left: 50%;
@@ -51,7 +49,6 @@
   from { opacity: 0; transform: translateY(8px); }
 }
 
-/* Mobile: chừa chỗ cho thanh "Thêm vào giỏ / Mua ngay" dính đáy ở trang chi tiết sách */
 @media (max-width: 768px) {
   .toast-stack { bottom: 88px; }
 }

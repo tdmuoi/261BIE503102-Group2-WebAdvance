@@ -12,7 +12,6 @@ import { chapterOf, remainingLabel, spreadPages, spreadStart } from './reader-st
 
 const QUOTE = 'Khi đọc, người dùng có thể bôi đen một câu để tô sáng, thêm ghi chú hoặc tra từ.';
 
-/** PDF giả 140 trang (jsdom không vẽ được canvas): lớp chữ mỗi trang có 2 dòng */
 function fakeBook(): PdfBook & { rendered: number[] } {
   const rendered: number[] = [];
   return {
@@ -63,11 +62,11 @@ describe('EbookReader', () => {
     component = fixture.componentInstance;
     el = fixture.nativeElement;
     fixture.detectChanges();
-    await vi.advanceTimersByTimeAsync(500); // tủ sách
+    await vi.advanceTimersByTimeAsync(500);
     fixture.detectChanges();
-    await vi.advanceTimersByTimeAsync(500); // tiến độ trên server + mở PDF
+    await vi.advanceTimersByTimeAsync(500);
     fixture.detectChanges();
-    await vi.advanceTimersByTimeAsync(10); // vẽ trang
+    await vi.advanceTimersByTimeAsync(10);
     fixture.detectChanges();
   }
 
@@ -135,8 +134,8 @@ describe('EbookReader', () => {
     expect(component.twoUp()).toBe(false);
     expect(component.visiblePages().length).toBe(140);
     component.setSetting('zoom', 100);
-    expect(component.pageWidth()).toBe(1192); // cả cột đọc
-    expect(component.pageHeight()).toBe(1788); // giữ chỗ theo tỉ lệ trang PDF
+    expect(component.pageWidth()).toBe(1192);
+    expect(component.pageHeight()).toBe(1788);
     component.next();
     expect(component.page()).toBe(59);
     fixture.detectChanges();

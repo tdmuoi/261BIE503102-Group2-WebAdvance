@@ -1,4 +1,3 @@
-// Chạy: node --test routes/customer-pricing.test.js   (trong thư mục my-server)
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { computeTotals, voucherProblem, voucherKind, publicVoucher } = require('./customer-pricing');
@@ -68,9 +67,6 @@ test('publicVoucher không trả usageLimit/usedCount', () => {
 });
 
 
-// Isolated HTTP regression tests. No MongoClient, environment variables, or disk
-// writes. MVCC fixture retries callbacks on commit conflicts like withTransaction;
-// this validates business behavior, not the MongoDB storage engine.
 const express = require('express');
 const { ObjectId, BSON } = require('mongodb');
 const { digest: tokenDigest } = require('../middleware/customer-auth');
@@ -102,7 +98,6 @@ function matches(doc, query) {
       });
     }
     if (equal(actual, value)) return true;
-    // Như MongoDB: "a.b" khớp khi a là mảng và một phần tử có b bằng giá trị
     const walk = (node, fields) => !fields.length ? [node]
       : Array.isArray(node) ? node.flatMap((item) => walk(item, fields)) : node == null ? [] : walk(node[fields[0]], fields.slice(1));
     return key.includes('.') && walk(doc, key.split('.')).some((v) => v !== undefined && equal(v, value));
@@ -341,7 +336,7 @@ async function freeEbookFixture(t) {
 
 test('Free Ebook claim is explicit, idempotent, owns only the caller and never creates payment/order data', async t => {
   const { f, book, claim } = await freeEbookFixture(t), business = clone(f.records);
-  f.allowAtomicWrites(); // Existing progress API uses an atomic revision predicate.
+  f.allowAtomicWrites();
   const created = await claim(); assert.equal(created.status, 201); assert.equal(created.body.acquisitionType, 'free');
   assert.equal(created.body.owned, true); assert.equal(f.records.personalBooks.length, 1);
   const row = f.records.personalBooks[0]; assert.equal(String(row.userId), String(f.records.users[0]._id));
@@ -353,7 +348,7 @@ test('Free Ebook claim is explicit, idempotent, owns only the caller and never c
   const shelf = await f.request('/account/ebooks', null, { method: 'GET' });
   assert.equal(shelf.body.length, 1); assert.equal(shelf.body[0].format, 'PDF'); assert.equal(shelf.body[0].acquisitionType, 'free');
   for (const name of ['orders', 'vouchers', 'notifications', 'books', 'old_books']) assert.deepEqual(f.records[name], business[name]);
-  f.records.books[0].price = 50000; // A later price change does not revoke a legitimately acquired copy.
+  f.records.books[0].price = 50000;
   assert.equal((await f.request('/account/ebooks/' + f.bookId + '/progress', null, { method: 'GET' })).status, 200);
   assert.equal((await claim({}, { other: true })).status, 403);
 });
@@ -923,7 +918,6 @@ const { createHmac } = require('node:crypto');
 const MOMO_SECRET = 'K951B6PE1waDMi640xX08PD3vg6EkVlz', MOMO_ACCESS = 'F8BBA842ECF85';
 const momoSign = (raw) => createHmac('sha256', MOMO_SECRET).update(raw).digest('hex');
 
-/** Thay fetch: gọi tới MoMo thì trả kết quả giả, còn lại (server test) đi qua bình thường */
 function fakeMomo(t, queryResult) {
   const real = globalThis.fetch, sent = [];
   globalThis.fetch = async (url, init) => {
@@ -940,7 +934,7 @@ function fakeMomo(t, queryResult) {
 
 async function momoOrder(t, queryResult) {
   const f = await checkoutFixture(t, { ebook: true });
-  f.allowAtomicWrites(); // lưu momoAttempts là một updateOne có điều kiện, không cần transaction
+  f.allowAtomicWrites();
   const sent = fakeMomo(t, queryResult);
   const created = await f.request('/orders', f.body);
   assert.equal(created.status, 201); assert.equal(created.body.paymentMethod, 'momo');
@@ -995,7 +989,6 @@ test('MoMo: sai số tiền hoặc giao dịch thất bại thì không ghi paid
   const refused = await f.request('/payments/momo/verify', { momoOrderId: link.body.momoOrderId });
   assert.equal(refused.body.status, 'failed'); assert.match(refused.body.message, /từ chối/);
   reply = { amount: order.total, transId: 99, resultCode: 0, message: 'Thành công.' };
-  // IPN trả 204 không có body nên fixture không đọc được JSON — chỉ cần dữ liệu không đổi
   await f.request('/payments/momo/ipn', { partnerCode: 'MOMO', orderId: link.body.momoOrderId, requestId: link.body.momoOrderId,
     amount: order.total, resultCode: 0, transId: 99, signature: 'gia-mao' }, { authenticated: false }).catch(() => null);
   assert.equal(f.records.orders[0].paymentStatus, 'unpaid'); assert.equal(f.records.personalBooks.length, 0);
@@ -1004,7 +997,6 @@ test('Đơn MoMo bỏ dở quá 2 giờ: xem danh sách đơn thì tự hủy, t
   let reply = { amount: 0, transId: 0, resultCode: 1005, message: 'Giao dịch thất bại do url hoặc QR code đã hết hạn.' };
   const { f, order } = await momoOrder(t, () => reply);
   const usedBefore = f.records.vouchers[0].usedCount;
-  // Đơn mới tạo: chưa quá hạn thì vẫn chờ thanh toán
   let list = await f.request('/account/orders', null, { method: 'GET' });
   assert.equal(list.body[0].status, 'pending');
   f.records.orders[0].createdAt = new Date(Date.now() - 3 * 60 * 60 * 1000);
@@ -1012,7 +1004,6 @@ test('Đơn MoMo bỏ dở quá 2 giờ: xem danh sách đơn thì tự hủy, t
   assert.equal(list.body[0].status, 'cancelled'); assert.equal(list.body[0].statusHistory.at(-1).note, 'Tự hủy vì quá hạn thanh toán');
   assert.equal(f.records.vouchers[0].usedCount, usedBefore - 1, 'Trả lại lượt dùng mã giảm giá');
 
-  // Đơn thứ hai: khách đã trả trên MoMo nhưng không quay lại web → không được hủy, ghi nhận đã trả
   const again = await f.request('/orders', f.body, { key: 'fixture-order-key-0002' });
   assert.equal(again.status, 201);
   await f.request('/orders/' + again.body._id + '/momo', {});

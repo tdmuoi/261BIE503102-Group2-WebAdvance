@@ -1,4 +1,3 @@
-// Existing singleton in collection settings. No upsert, seed, index or secret exposure.
 const express = require("express");
 const createAuth = require("../middleware/admin-auth");
 const revisions = require('../middleware/admin-revision');
@@ -237,7 +236,6 @@ module.exports = function settingsRoutes(getDb) {
         return res.status(409).json({
           message: "Cấu hình vừa được cập nhật. Tải lại trước khi lưu.",
         });
-      // Apply the allowlisted patch to the projected document; never return unrelated secrets.
       for (const [path, value] of Object.entries(patch)) {
         const parts = path.split(".");
         let target = doc;
@@ -255,7 +253,6 @@ module.exports = function settingsRoutes(getDb) {
   return router;
 };
 
-// Shared read policy: never expose a raw settings document or integration secrets.
 async function publicSettings(db, session) {
   const projection = Object.fromEntries(['_id', 'isDemo', 'storeName', 'slogan', 'supportEmail', 'hotline', 'logoUrl',
     'language', 'currency', 'timezone', 'shipping.standardFee', 'shipping.freeShippingThreshold'].map(key => [key, 1]));
@@ -270,7 +267,7 @@ async function publicSettings(db, session) {
   const shipping = { standardFee: 30000, expressFee: 45000, freeShippingThreshold: 500000 };
   for (const [name, field] of [['shippingFee', 'standardFee'], ['freeShippingThreshold', 'freeShippingThreshold']]) {
     const value = doc.shipping?.[field];
-    if (value == null) continue; // Keep existing checkout defaults until explicitly configured.
+    if (value == null) continue;
     if (!validate(name, value)) throw Object.assign(new Error(`Settings ${name} chưa hợp lệ; chưa tính phí đơn hàng.`), { status: 503 });
     shipping[field] = value;
   }

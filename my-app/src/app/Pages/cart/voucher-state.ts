@@ -3,10 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CartFacade } from './cart-facade';
 
-/**
- * Ô "Mã giảm giá" dùng chung cho Giỏ hàng và Thanh toán (cùng một mã, lưu ở CartFacade).
- * Tạo trong component: `readonly voucherField = new VoucherState(inject(CartFacade), inject(DestroyRef));`
- */
 export class VoucherState {
   readonly voucher;
   readonly input;
@@ -42,7 +38,6 @@ export class VoucherState {
         error: (err: { status?: number; error?: { message?: string } }) => {
           this.checking.set(false);
           this.facade.setVoucher(null);
-          // Mã giảm giá gắn với tài khoản (lượt dùng mỗi người) nên cần đăng nhập
           if (err?.status === 401) this.error.set('Vui lòng đăng nhập để dùng mã giảm giá');
           else this.error.set(err?.error?.message ?? 'Mã giảm giá không hợp lệ');
         },

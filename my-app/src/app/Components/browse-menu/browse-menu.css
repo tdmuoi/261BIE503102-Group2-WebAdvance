@@ -1,5 +1,3 @@
-/* Figma "Browse dropdown" 894:10570 — nằm dưới menu viên thuốc của header */
-
 :host {
   position: absolute;
   top: calc(100% - 4px);
@@ -9,7 +7,6 @@
   margin: 0 auto;
 }
 
-/* Lớp mờ phủ nội dung trang phía dưới header (Figma "Dim overlay": nền kem 72%) */
 .menu-dim {
   position: fixed;
   inset: var(--header-height, 0px) 0 0;

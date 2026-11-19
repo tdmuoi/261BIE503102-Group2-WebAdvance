@@ -211,7 +211,6 @@ module.exports = function adminAccountsRoutes(getDb, options) {
       .sort({ createdAt: -1 })
       .toArray();
   }
-  // tierOrders: các đơn dùng để xếp hạng (mặc định là orders). Cùng quy tắc với web khách (customer-tier.js).
   function customerView(account, profile, orders, tierOrders = orders) {
     const own = orders?.filter((order) => id(order.userId) === id(profile._id));
     const amounts = own?.filter(paid).map(totalOf);
@@ -763,8 +762,6 @@ module.exports = function adminAccountsRoutes(getDb, options) {
         throw fail(409, "Chưa có hồ sơ users liên kết với Admin.");
       const changesProfile =
         body.fullName !== undefined && text(body.fullName) !== profile?.fullName;
-      // Account-only changes are one atomic update. A profile change still needs
-      // a transaction so accounts/users cannot be partially updated.
       if (changesProfile && !source.db.client?.startSession)
         throw fail(
           501,

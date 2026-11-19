@@ -125,7 +125,6 @@ export class Login implements OnInit, OnDestroy {
           },
           error: (error: unknown) => {
             this.user.password = '';
-            // Clearing a submitted secret must not introduce a second validation error.
             form.resetForm({ ...this.user });
             this.loading = false;
             this.error = this.describe(error);

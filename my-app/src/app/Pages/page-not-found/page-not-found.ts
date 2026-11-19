@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 
-/** Trang 404 (Figma "Pages/page-not-found · Không tìm thấy trang") — route '**' */
 @Component({
   selector: 'app-page-not-found',
   standalone: false,

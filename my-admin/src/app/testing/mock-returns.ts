@@ -1,6 +1,5 @@
 import { ReturnListResponse, ReturnRequest } from '../models/return-request';
 
-/** Yêu cầu đổi trả giả cho unit test */
 export function makeReturn(overrides: Partial<ReturnRequest> = {}): ReturnRequest {
   return {
     _id: 'r1', requestCode: 'RR-001', orderId: 'o1', orderCode: 'LB-001', userId: null,

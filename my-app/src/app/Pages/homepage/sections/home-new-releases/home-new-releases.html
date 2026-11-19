@@ -19,7 +19,6 @@
 
     @if (featured(); as book) {
       <div class="releases-body">
-        <!-- Sách nổi bật: ảnh và tên cùng lấy từ một object -->
         <article class="featured">
           <a class="cover featured-cover" [routerLink]="['/product-detail', book._id]">
             <img [appTrimCover]="book.image" [alt]="book.title" />

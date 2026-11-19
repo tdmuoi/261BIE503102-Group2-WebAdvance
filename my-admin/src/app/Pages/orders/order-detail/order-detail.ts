@@ -9,7 +9,6 @@ import { OrderService } from '../../../services/order-service';
 
 const STEPS: OrderStatus[] = ['pending', 'confirmed', 'shipping', 'delivered'];
 
-/** Nút chuyển trạng thái: nhãn + kiểu nút */
 const ACTIONS: Record<OrderStatus, { label: string; style: 'primary' | 'danger' | 'default' }> = {
   pending: { label: '', style: 'default' },
   confirmed: { label: 'Xác nhận đơn', style: 'primary' },
@@ -19,11 +18,6 @@ const ACTIONS: Record<OrderStatus, { label: string; style: 'primary' | 'danger' 
   returned: { label: 'Xử lý qua yêu cầu đổi trả', style: 'default' },
 };
 
-/**
- * Panel chi tiết đơn, đặt cạnh bảng trong trang Đơn hàng:
- *   <app-order-detail [orderId]="selectedId()" (closed)="..." (changed)="..."></app-order-detail>
- * Mở trực tiếp /order-detail/:id (link cũ) sẽ được chuyển sang /orders?id=:id
- */
 @Component({
   selector: 'app-order-detail',
   standalone: false,
@@ -52,11 +46,9 @@ export class OrderDetail {
       (!!o && ['pending', 'confirmed'].includes(o.status) && o.paymentStatus === 'unpaid'));
   });
 
-  /** Ô nhập phụ: mã vận đơn khi giao, ghi chú nội bộ */
   trackingCode = '';
   adminNote = '';
 
-  /** Hộp thoại xác nhận huỷ / trả hàng */
   readonly pending = signal<OrderStatus | null>(null);
   reason = '';
   restock = true;
@@ -104,7 +96,6 @@ export class OrderDetail {
   }
 
   constructor() {
-    // Mở bằng route cũ /order-detail/:id -> chuyển về trang Đơn hàng, mở sẵn panel
     const routeId = inject(ActivatedRoute).snapshot.paramMap.get('id');
     if (routeId) this.router.navigate(['/orders'], { queryParams: { id: routeId }, replaceUrl: true });
   }

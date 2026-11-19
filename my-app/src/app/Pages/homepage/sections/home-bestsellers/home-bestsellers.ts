@@ -11,22 +11,16 @@ import { BookView } from '../../../../models/book';
 export class HomeBestsellers {
   readonly books = input.required<BookView[]>();
 
-  /**
-   * Chưa có dữ liệu đơn hàng (collection orders trống) nên tạm lấy
-   * 5 sách được cập nhật gần nhất.
-   */
   protected readonly top = computed(() =>
     [...this.books()]
       .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
       .slice(0, 5),
   );
 
-  /** Vị trí sách đang xem ở panel bên phải */
   protected readonly selectedIndex = linkedSignal({ source: this.top, computation: () => 0 });
 
   protected readonly selected = computed<BookView | undefined>(() => this.top()[this.selectedIndex()]);
 
-  /** Khoảng ngày của tuần hiện tại, ví dụ "20–26/10" */
   protected readonly weekLabel = (() => {
     const today = new Date();
     const monday = new Date(today);

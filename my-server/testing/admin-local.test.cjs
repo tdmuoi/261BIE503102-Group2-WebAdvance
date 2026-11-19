@@ -92,7 +92,6 @@ if (process.env.LIGHTBOOKS_LOCAL_QA !== "1") {
         (x) => x.name === dbName,
       ),
     );
-    // Explicit isolated fixture database. No production/backup data is copied or edited.
     for (const name of [
       "books",
       "old_books",

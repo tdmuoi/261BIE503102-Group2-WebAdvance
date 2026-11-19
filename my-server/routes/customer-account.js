@@ -1,14 +1,5 @@
 // =====================================================================
 // Khu vực Tài khoản của web khách hàng — mọi route bắt buộc đăng nhập, chỉ đọc/ghi dữ liệu của chính người đó
-//   GET/PUT  /api/account/profile          PUT/DELETE /api/account/avatar   PUT /api/account/password
-//   GET/POST /api/account/addresses        PUT/DELETE /api/account/addresses/:id   PUT /api/account/addresses/:id/default
-//   GET /api/account/notifications?type=&page=   PUT /api/account/notifications/:id/read   PUT /api/account/notifications/read-all
-//   GET /api/account/ebooks   PUT /api/account/ebooks/:bookId (explicit free claim)
-//   GET /api/account/ebooks/:bookId/content   GET/PUT /api/account/ebooks/:bookId/progress
-//   GET /api/account/reviews  POST /api/reviews   GET /api/books/:bookId/reviews (công khai)
-//   POST /api/reviews/:id/vote  { value: 1 | -1 | 0 }  — hữu ích / không hữu ích / bỏ vote
-//   GET /api/account/buybacks
-// Collections: users, accounts, addresses, notifications, personalBooks, reviews, liquidation, orders
 // =====================================================================
 const express = require('express');
 const { tierLabel, tierOrderQuery } = require('./customer-tier');
@@ -115,7 +106,6 @@ module.exports = function customerAccountRoutes(getDb) {
 
   router.put('/account/avatar', auth, async (req, res, next) => {
     try {
-      // Ảnh đã tải lên Cloudinary (GET /api/uploads/signature?purpose=avatar), chỉ lưu link
       const avatar = text(req.body?.avatar);
       if (!cloudinary.isOwnImageUrl(avatar, 'avatar', req.customer.userId)) {
         return res.status(400).json({ message: 'Ảnh đại diện không hợp lệ, bạn tải lại ảnh giúp mình nhé' });
@@ -129,7 +119,6 @@ module.exports = function customerAccountRoutes(getDb) {
 
   router.delete('/account/avatar', auth, async (req, res, next) => {
     try {
-      // users.avatar is an optional BSON string; absence means no avatar.
       await db().collection('users').updateOne({ _id: req.customer.userId }, { $unset: { avatar: '' }, $set: { updatedAt: new Date() } });
       res.status(204).end();
     } catch (error) {
@@ -303,8 +292,6 @@ module.exports = function customerAccountRoutes(getDb) {
     throw Object.assign(new Error('Quyền đọc đã thu hồi hoặc chưa xác minh thanh toán; cần đối soát thủ công.'), { status: 403 });
   }
 
-  // No suitable acquisition mutation existed: PUT is an idempotent explicit
-  // claim by the authenticated customer, never a payment or purchase event.
   router.put('/account/ebooks/:bookId', auth, async (req, res, next) => {
     try {
       const bookId = toObjectId(req.params.bookId), body = req.body;
@@ -447,15 +434,12 @@ module.exports = function customerAccountRoutes(getDb) {
         userId, status: 'delivered', paymentStatus: 'paid', isDemo: { $ne: true },
         'items.bookId': { $in: [bookId, String(bookId)] },
       }).toArray();
-      // Use the same settlement evidence as revenue/refunds/ebook entitlement.
-      // An email match, a pending order or a client-supplied "paid" flag is not proof.
       const realPurchase = purchases.some((order) => verifiedPaymentDate(order));
       const demoPurchase = purchases.some((order) => require('../middleware/demo-mode').paymentDate(db(),order));
       if (!realPurchase && !demoPurchase)
         return res.status(403).json({ message: 'Bạn chỉ đánh giá được sách đã nhận và đã xác minh thanh toán' });
       const book = await db().collection('books').findOne({ _id: bookId, isDemo: { $ne: true } }, { projection: { _id: 1 } });
       if (!book) return res.status(404).json({ message: 'Không tìm thấy sách hợp lệ để đánh giá' });
-      // Ảnh đính kèm: tối đa 3 link Cloudinary trong thư mục đánh giá của chính khách này
       const rawImages = req.body?.images ?? [];
       if (!Array.isArray(rawImages) || rawImages.length > 3 ||
         rawImages.some((url) => !cloudinary.isOwnImageUrl(url, 'review', userId)))
@@ -481,19 +465,16 @@ module.exports = function customerAccountRoutes(getDb) {
     }
   });
 
-  /** Ai đã vote hữu ích (1) / không hữu ích (-1) — lưu trong reviews.votes: [{ userId, value, at }] */
   const voteCounts = (votes) => ({
     helpfulCount: votes.filter((v) => v.value === 1).length,
     notHelpfulCount: votes.filter((v) => v.value === -1).length,
   });
 
-  /** Công khai — trang chi tiết sách dùng (BookService.getReviews). Có đăng nhập thì kèm myVote / isMine */
   router.get('/books/:bookId/reviews', optionalAuth, async (req, res, next) => {
     try {
       const bookId = toObjectId(req.params.bookId);
       if (!bookId) return res.json([]);
       const list = await db().collection('reviews').find({ bookId: { $in: [bookId, String(bookId)] } }).sort({ createdAt: -1 }).limit(50).toArray();
-      // Ảnh đại diện lấy từ hồ sơ hiện tại của người viết (đổi avatar thì review cũng đổi theo)
       const authorIds = [...new Set(list.filter((r) => r.userId && !r.anonymous).map((r) => String(r.userId)))]
         .map(toObjectId).filter(Boolean);
       const authors = authorIds.length
@@ -526,7 +507,6 @@ module.exports = function customerAccountRoutes(getDb) {
     }
   });
 
-  /** Đánh dấu một đánh giá là hữu ích (1) / không hữu ích (-1) / bỏ vote (0). Không tự vote đánh giá của mình */
   router.post('/reviews/:id/vote', auth, async (req, res, next) => {
     try {
       const reviewId = toObjectId(req.params.id);
@@ -538,7 +518,6 @@ module.exports = function customerAccountRoutes(getDb) {
       if (!review) return res.status(404).json({ message: 'Không tìm thấy đánh giá' });
       if (String(review.userId) === String(userId)) return res.status(403).json({ message: 'Bạn không thể tự đánh giá nhận xét của mình' });
 
-      // Bỏ vote cũ của người này rồi thêm vote mới (nếu có) — mỗi người tối đa 1 vote / đánh giá
       await reviews.updateOne({ _id: reviewId }, { $pull: { votes: { userId: { $in: [userId, String(userId)] } } } });
       if (value) await reviews.updateOne({ _id: reviewId }, { $push: { votes: { userId, value, at: new Date() } } });
 
@@ -560,7 +539,6 @@ module.exports = function customerAccountRoutes(getDb) {
         .find({ $or: [
           { userId: { $in: owners } },
           { userId: null, sellerId: { $in: owners } },
-          // Legacy email-only requests may be read only when no owner is assigned.
           { userId: null, sellerId: null, 'customer.email': email },
           { userId: null, sellerId: null, email },
           { userId: null, sellerId: null, customerEmail: email },
@@ -573,8 +551,6 @@ module.exports = function customerAccountRoutes(getDb) {
           bookCount: Array.isArray(r.books) ? r.books.length : r.quantity || 1,
           status: text(r.status) || 'unknown',
           quote: [r.offerPrice, r.offeredPrice, r.quote].find((price) => Number.isSafeInteger(price) && price >= 0) ?? null,
-          // Admin appends internal annotations to the legacy note field. Never
-          // echo that mixed field, adminNote, valuation metadata or operator names.
           note: '',
         })),
       );

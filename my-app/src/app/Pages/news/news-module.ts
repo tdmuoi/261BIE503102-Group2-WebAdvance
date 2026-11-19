@@ -20,7 +20,6 @@ const routes: Routes = [
   { path: ':id', component: NewsDetail },
 ];
 
-/** Lightbook News /news, /news/:id — tải riêng khi vào trang (xem app-routing-module.ts) */
 @NgModule({
   declarations: [
     NewsList,

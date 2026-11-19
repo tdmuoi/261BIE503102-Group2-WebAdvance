@@ -6,7 +6,6 @@ import { EngagementService, EngagementUnavailableError } from '../../../services
 import { longDate, placeLabel, seatsLeft } from '../../../shared/event-utils';
 
 const PHONE_PATTERN = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
-/** Mỗi lượt giữ tối đa 5 chỗ */
 const MAX_SEATS = 5;
 
 const MESSAGES: Record<string, Record<string, string>> = {
@@ -16,7 +15,6 @@ const MESSAGES: Record<string, Record<string, string>> = {
   seats: { required: 'Vui lòng chọn số chỗ.', min: 'Ít nhất 1 chỗ.', max: 'Vượt quá số chỗ còn lại.' },
 };
 
-/** Hộp thoại "Giữ chỗ miễn phí" cho một sự kiện */
 @Component({
   selector: 'app-event-reserve',
   standalone: false,
@@ -33,7 +31,6 @@ export class EventReserve {
   protected readonly state = signal<'idle' | 'sending' | 'done' | 'unavailable' | 'error'>('idle');
   protected readonly when = computed(() => longDate(this.event()));
   protected readonly place = computed(() => placeLabel(this.event()));
-  /** Số chỗ chọn được: không vượt chỗ còn lại */
   protected readonly seatOptions = computed(() => {
     const left = seatsLeft(this.event()) ?? MAX_SEATS;
     return Array.from({ length: Math.max(Math.min(left, MAX_SEATS), 1) }, (_, i) => i + 1);
@@ -46,7 +43,6 @@ export class EventReserve {
     seats: new FormControl(1, { nonNullable: true, validators: [Validators.required, Validators.min(1), Validators.max(MAX_SEATS)] }),
   });
 
-  /** Lỗi đầu tiên của ô (chỉ hiện sau khi đã chạm vào ô hoặc bấm gửi) */
   protected error(name: 'fullName' | 'email' | 'phone' | 'seats'): string {
     const control = this.form.controls[name];
     if (!control.errors || !control.touched) return '';

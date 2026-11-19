@@ -5,7 +5,6 @@ import { catchError, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AdminAuthService } from './admin-auth-service';
 
-/** Handles direct resource reads as well as requests wrapped in withSession. */
 export const adminSessionInterceptor: HttpInterceptorFn = (request, next) => {
   const injector = inject(Injector);
   const prefix = `${environment.apiUrl}/admin/`;

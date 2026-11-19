@@ -1,4 +1,3 @@
-/* Pop-up báo kết quả đăng ký bản tin (Figma chưa có thiết kế, dùng khung giống pop-up tài khoản) */
 .np-overlay {
   position: fixed;
   inset: 0;

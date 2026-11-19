@@ -1,5 +1,3 @@
-/* Thẻ sách — Figma "Book card" trong section Gợi ý cho bạn */
-
 :host { display: block; min-width: 0; }
 
 .book-card { display: flex; flex-direction: column; gap: 3px; }

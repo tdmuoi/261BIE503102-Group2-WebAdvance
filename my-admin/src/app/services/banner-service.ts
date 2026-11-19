@@ -6,7 +6,6 @@ import { AdminAuthService } from './admin-auth-service';
 import { environment } from '../../environments/environment';
 import { Banner, BannerListResponse, BannerPayload } from '../models/banner';
 
-/** Gọi API Banner & quảng cáo — my-server/routes/admin-banners.js */
 @Injectable({ providedIn: 'root' })
 export class BannerService {
   private readonly http = inject(HttpClient);
@@ -25,12 +24,10 @@ export class BannerService {
     return this.auth.withSession((csrfToken) => this.http.put<Banner>(`${this.baseUrl}/${id}`, data, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  /** Bật / tắt nhanh */
   setActive(id: string, active: boolean, revision: string | null = null): Observable<Banner> {
     return this.auth.withSession((csrfToken) => this.http.patch<Banner>(`${this.baseUrl}/${id}`, { active, revision }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }
 
-  /** Lưu thứ tự mới của các banner trong cùng 1 vị trí */
   reorder(ids: string[], revisions: Record<string, string | null> = {}): Observable<{ reordered: number }> {
     return this.auth.withSession((csrfToken) => this.http.patch<{ reordered: number }>(`${this.baseUrl}/reorder`, { ids, revisions }, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }

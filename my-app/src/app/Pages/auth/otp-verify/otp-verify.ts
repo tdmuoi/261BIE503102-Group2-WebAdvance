@@ -7,19 +7,11 @@ import { OtpChallenge, OtpError, VerifiedResponse } from '../../../models/user';
 import { AuthService } from '../../../services/auth-service';
 import { ToastService } from '../../../services/toast-service';
 
-/**
- * Bước nhập mã OTP 6 số gửi qua email — dùng chung cho trang Đăng ký (xác minh email)
- * và Đăng nhập (chưa xác minh email / xác thực 2 lớp).
- *   <app-otp-verify [challenge]="otp" (verified)="onVerified($event)" (back)="otp.set(null)" />
- * Nhập đúng mã thì phát (verified) kèm token; trang cha tự lưu phiên.
- */
 @Component({
   selector: 'app-otp-verify',
   standalone: false,
   styleUrls: ['../auth-form.css', './otp-verify.css'],
   templateUrl: './otp-verify.html',
-  // Bộ gõ tiếng Việt (Unikey/Telex) có thể để Angular kẹt ở trạng thái "đang gõ dở"
-  // khiến ô nhập không cập nhật vào form → tắt chờ composition, luôn đồng bộ theo sự kiện input.
   providers: [{ provide: COMPOSITION_BUFFER_MODE, useValue: false }],
 })
 export class OtpVerify implements OnInit {
@@ -37,9 +29,7 @@ export class OtpVerify implements OnInit {
   readonly resending = signal(false);
   readonly submitted = signal(false);
   readonly error = signal<string | null>(null);
-  /** Phiên OTP hết hạn / gửi lại quá nhiều lần → chỉ còn cách quay lại làm từ đầu */
   readonly expired = signal(false);
-  /** Số giây còn lại trước khi được bấm "Gửi lại mã" */
   readonly countdown = signal(0);
 
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -61,7 +51,6 @@ export class OtpVerify implements OnInit {
     return this.code.hasError('required') ? 'Vui lòng nhập mã OTP' : 'Mã OTP gồm đúng 6 chữ số';
   }
 
-  /** Chỉ giữ chữ số (dán "123 456" vẫn được), tối đa 6 số */
   onInput(): void {
     const digits = this.code.value.replace(/\D/g, '').slice(0, 6);
     if (digits !== this.code.value) this.code.setValue(digits);

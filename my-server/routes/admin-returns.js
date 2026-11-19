@@ -1,41 +1,6 @@
 // =====================================================================
 // API Đổi trả & hoàn tiền cho my-admin  (gắn vào index.js: app.use('/api/admin', adminReturnsRoutes(() => database)))
-// Dữ liệu: collection "return_requests"
-//
-//   GET   /api/admin/returns              danh sách + lọc + phân trang + thống kê
-//           ?q=       mã yêu cầu, mã đơn, tên / SĐT khách
-//           ?status=  pending | approved | received | refunded | exchanged | rejected | open (= 3 trạng thái đang xử lý)
-//           ?type=    refund | exchange
-//           ?from=YYYY-MM-DD&to=YYYY-MM-DD   ngày gửi yêu cầu (giờ VN)
-//           ?page=1&limit=10
-//   GET   /api/admin/returns/:id          chi tiết + nextStatuses
-//   PATCH /api/admin/returns/:id/status   { status, note?, refundAmount?, restock? }
-//   PATCH /api/admin/returns/:id          { adminNote }
-//
-// Luồng xử lý:
-//   pending  (Chờ duyệt)        -> approved | rejected
-//   approved (Chờ nhận sách)    -> received | rejected
-//   received (Đã nhận sách)     -> refunded (type refund) | exchanged (type exchange)
-//   refunded / exchanged / rejected: kết thúc
-// - Từ chối bắt buộc có lý do (note).
-// - Nhận sách: restock = true thì cộng lại tồn kho (sách còn bán được).
-// - Hoàn tiền: refundAmount > 0 và không vượt giá trị sách trả; đơn gốc (nếu có) được đánh dấu
-//   paymentStatus = 'refunded' và status = 'returned'.
-//
 // ---------------------------------------------------------------------
-// CẤU TRÚC 1 YÊU CẦU — trang "Trả hàng" của web khách nên lưu theo mẫu này:
-// {
-//   requestCode: 'RR-261028-0001',
-//   orderId: ObjectId, orderCode: 'LB-...',
-//   userId: ObjectId | null, customer: { name, phone, email },
-//   items: [{ bookId, title, image, price, quantity }],     // sách muốn trả
-//   type: 'refund' | 'exchange',                            // hoàn tiền hay đổi sách khác
-//   reason: 'damaged' | 'wrong_item' | 'not_as_described' | 'missing' | 'changed_mind' | 'other',
-//   description: 'mô tả của khách', images: ['url ảnh chụp lỗi'],
-//   refundMethod: 'original' | 'bank_transfer', bankInfo: { bankName, accountName, accountNumber } | null,
-//   status: 'pending', statusHistory: [{ status, at, note }],
-//   refundAmount: null, adminNote: '', createdAt, updatedAt
-// }
 // =====================================================================
 const express = require('express');
 const { ObjectId } = require('mongodb');
@@ -75,7 +40,6 @@ function normalizeStatus(value) {
   return STATUSES.includes(s) ? s : aliases[s] || 'pending';
 }
 
-/** Đổi document thành dạng thống nhất (đọc được cả vài tên field khác) */
 function present(doc) {
   const items = (Array.isArray(doc.items) ? doc.items : doc.bookId ? [doc] : []).map((it) => ({
     bookId: it.bookId ? String(it.bookId) : null,
@@ -166,7 +130,6 @@ module.exports = function adminReturnsRoutes(getDb, getClient) {
         req.query.status === 'open' ? { status: { $in: OPEN } } : STATUSES.includes(req.query.status) ? { status: req.query.status } : {};
       const listFilter = { ...base, ...statusFilter };
 
-      // Thống kê tính trên toàn bộ yêu cầu khớp ô tìm kiếm / loại / ngày (không theo tab trạng thái)
       const [docs, total, all] = await Promise.all([
         returns().find(listFilter).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).toArray(),
         returns().countDocuments(listFilter),
@@ -208,7 +171,6 @@ module.exports = function adminReturnsRoutes(getDb, getClient) {
       const doc = await findRequest(req.params.id);
       if (!doc) return res.status(404).json({ message: 'Không tìm thấy yêu cầu' });
       const result = await presentOne(doc);
-      // Kèm thông tin đơn gốc (nếu tìm được)
       let order = null;
       if (result.orderId && ObjectId.isValid(result.orderId)) {
         order = await orders().findOne({ _id: new ObjectId(result.orderId) });
@@ -227,14 +189,12 @@ module.exports = function adminReturnsRoutes(getDb, getClient) {
     }
   });
 
-  // Safety gate: no mutation of demo/unowned documents. No validator changes.
   router.use('/returns/:id', async (req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     try {
       const doc = await findRequest(req.params.id);
       if (!doc) return res.status(404).json({ message: 'Not found' });
       if (doc.isDemo === true || doc.userId == null) return res.status(409).json({ message: 'Demo/owner policy is not approved; read only' });
-      // Status transitions below require a transactional client.
 
       return next();
     } catch { return res.status(503).json({ message: 'Cannot verify safe ownership' }); }

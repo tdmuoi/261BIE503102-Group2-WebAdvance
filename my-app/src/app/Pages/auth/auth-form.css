@@ -1,9 +1,7 @@
 /* =====================================================================
    Style dùng chung cho các trang Pages/auth (login, register, forgot-password).
-   Mỗi component khai báo: styleUrls: ['../auth-form.css', './<trang>.css']
    ===================================================================== */
 
-/* Bố cục: thẻ form 560 + minh hoạ 592, cách nhau 64 (Figma "Main – Auth") */
 .auth {
   display: flex; gap: 64px; align-items: flex-start; justify-content: center;
   max-width: calc(var(--layout-container) + 2 * var(--layout-gutter));
@@ -34,7 +32,6 @@
 .auth-alert p { margin: 0; }
 .auth-alert .auth-alert-title { color: var(--color-feedback-error); margin-bottom: var(--space-2); }
 
-/* Icon tròn lớn ở màn hình thành công / đã gửi */
 .status-icon {
   display: flex; align-items: center; justify-content: center; width: 72px; height: 72px;
   background: var(--color-feedback-success-bg); border: var(--border-strong) solid var(--color-border-strong);
@@ -43,7 +40,6 @@
 .status-icon--pink { background: var(--color-tint-pink); }
 .auth-tag--yellow { background: var(--color-tint-yellow); }
 
-/* Chip (Email / Số điện thoại) */
 .auth-segment { display: flex; gap: var(--space-8); }
 .chip {
   padding: var(--space-8) var(--space-16); background: var(--color-bg-surface);
@@ -52,7 +48,6 @@
 }
 .chip--on { background: var(--color-bg-inverse); color: var(--color-text-inverse); box-shadow: var(--shadow-offset-sm); }
 
-/* Ô nhập: thường / focus / lỗi / hợp lệ */
 .field { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
 .field-box {
   display: flex; align-items: center; gap: var(--space-10); height: 48px; padding: 0 var(--space-14);
@@ -106,7 +101,6 @@
 }
 .auth-switch .auth-link { color: var(--color-text-primary); }
 
-/* Màn hẹp: ẩn minh hoạ, form chiếm hết chiều ngang */
 @media (max-width: 1100px) {
   .auth app-auth-art { display: none; }
   .auth-card { flex: 1 1 auto; max-width: 560px; }

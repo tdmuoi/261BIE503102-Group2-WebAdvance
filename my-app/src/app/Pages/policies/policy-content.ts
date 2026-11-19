@@ -1,14 +1,8 @@
-/**
- * Nội dung 3 chính sách — lấy nguyên văn từ "Content 1.docx" do nhóm cung cấp
- * (đổi tên "Lightbooks" trong tài liệu thành "Lightbook" cho đúng tên thương hiệu trên web).
- * Trang Chính sách (/policies), link ở chân trang và ô đồng ý khi đăng ký đều dùng dữ liệu này.
- */
 export type PolicyId = 'bao-mat' | 'thanh-toan' | 'doi-tra';
 
 export interface Policy {
   id: PolicyId;
   title: string;
-  /** Nhãn ngắn ở chân trang (tiếng Anh như Figma footer) */
   footerLabel: string;
   paragraphs: string[];
 }
@@ -43,7 +37,6 @@ export const POLICIES: Policy[] = [
   },
 ];
 
-/** Đoạn "Sứ Mệnh & Tầm Nhìn" cho trang Về chúng tôi (Content 1.docx) */
 export const MISSION_VISION = [
   'Lightbook ra đời với sứ mệnh xóa bỏ rào cản chi phí trong việc tiếp cận tri thức, giúp mọi đối tượng độc giả dễ dàng tìm thấy cuốn sách phù hợp với nhu cầu của bản thân. Bằng cách kết hợp linh hoạt giữa các mô hình sách mới, sách cũ tuyển chọn và kho ebook hiện đại, cùng sự hỗ trợ thông minh từ công nghệ AI tư vấn cá nhân hóa, Lightbook đem đến trải nghiệm tìm kiếm và thưởng thức tri thức tối ưu nhất cho từng khách hàng.',
   'Trong tương lai, Lightbook hướng tới mục tiêu trở thành nền tảng sách tiêu dùng xanh hàng đầu tại Việt Nam, góp phần giảm thiểu rác thải giấy và lan tỏa lối sống bền vững trong cộng đồng. Chúng tôi không chỉ đơn thuần là một trang thương mại điện tử, mà còn hướng đến việc xây dựng một hệ sinh thái kết nối chặt chẽ giữa người đọc, người bán sách cũ và các tác giả, cùng nhau nuôi dưỡng tình yêu văn hóa đọc và gìn giữ màu xanh cho hành tinh.',

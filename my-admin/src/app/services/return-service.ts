@@ -6,7 +6,6 @@ import { AdminAuthService } from './admin-auth-service';
 import { environment } from '../../environments/environment';
 import { ReturnListResponse, ReturnQuery, ReturnRequest, ReturnStatus } from '../models/return-request';
 
-/** Gọi API Đổi trả & hoàn tiền — my-server/routes/admin-returns.js */
 @Injectable({ providedIn: 'root' })
 export class ReturnService {
   private readonly http = inject(HttpClient);
@@ -25,7 +24,6 @@ export class ReturnService {
     return this.http.get<ReturnRequest>(`${this.baseUrl}/${id}`, { withCredentials: true });
   }
 
-  /** Từ chối cần note; hoàn tiền cần refundAmount; nhận sách có thể restock (cộng lại kho) */
   changeStatus(id: string, body: { status: ReturnStatus; note?: string; refundAmount?: number; restock?: boolean }): Observable<ReturnRequest> {
     return this.auth.withSession((csrfToken) => this.http.patch<ReturnRequest>(`${this.baseUrl}/${id}/status`, body, { withCredentials: true, headers: { 'X-Admin-CSRF': csrfToken } }));
   }

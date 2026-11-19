@@ -25,7 +25,6 @@ describe('HomeBestsellers', () => {
 
   it('hiện top 5, mặc định chọn dòng đầu', () => {
     expect(fixture.nativeElement.querySelectorAll('.best-row').length).toBe(5);
-    // Sách cập nhật gần nhất đứng đầu
     expect(selectedTitle()).toBe('Sách số 8');
   });
 

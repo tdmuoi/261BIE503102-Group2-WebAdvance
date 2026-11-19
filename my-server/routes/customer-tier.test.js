@@ -17,9 +17,9 @@ test('admin in-memory spend uses the same orders as the customer query', () => {
   const userId = 'u1';
   const orders = [
     { userId: 'u1', status: 'delivered', total: 600000 },
-    { userId: 'u2', customer: { email: 'a@b.vn' }, status: 'delivered', total: 500000 }, // guest order by email
-    { userId: 'u1', status: 'pending', total: 9000000 }, // not delivered → ignored
-    { userId: 'u3', status: 'delivered', total: 7000000 }, // someone else
+    { userId: 'u2', customer: { email: 'a@b.vn' }, status: 'delivered', total: 500000 },
+    { userId: 'u1', status: 'pending', total: 9000000 },
+    { userId: 'u3', status: 'delivered', total: 7000000 },
   ];
   assert.equal(spentFromOrders(orders, userId, 'a@b.vn'), 1100000);
   assert.equal(tierName(spentFromOrders(orders, userId, 'a@b.vn')), 'Bạc');

@@ -22,7 +22,6 @@ interface FilterField {
   templateUrl: './home-search.html',
 })
 export class HomeSearch {
-  /** Thể loại lấy từ API, dùng cho dropdown "Thể loại" */
   readonly categories = input<Category[]>([]);
 
   private readonly router = inject(Router);
@@ -61,7 +60,6 @@ export class HomeSearch {
     ],
   };
 
-  /** Chuyển sang trang Browse Book kèm các bộ lọc đã chọn */
   protected onSearch(event: Event): void {
     event.preventDefault();
     const data = new FormData(event.target as HTMLFormElement);

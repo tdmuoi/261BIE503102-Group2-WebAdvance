@@ -11,12 +11,10 @@ interface NavItem {
   label: string;
   icon: string;
   link: string;
-  /** Các trang con được tính là đang ở mục này */
   match: string[];
   badge?: boolean;
 }
 
-/** "Nguyễn Thùy Dung" → "TD" (2 chữ cuối) */
 export function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   return words
@@ -26,15 +24,10 @@ export function initialsOf(name: string): string {
     .toUpperCase();
 }
 
-/** "Nguyễn Thùy Dung" → "Thùy Dung" */
 export function shortNameOf(name: string): string {
   return name.trim().split(/\s+/).slice(-2).join(' ');
 }
 
-/**
- * Khung trang Tài khoản: menu bên (thông tin người dùng, điều hướng, đăng xuất, thẻ thanh lý sách)
- * + vùng nội dung con <router-outlet>. Route đã chặn bằng authGuard nên ở đây luôn có người đăng nhập.
- */
 @Component({
   selector: 'app-account',
   standalone: false,
@@ -59,7 +52,6 @@ export class Account implements OnInit {
   readonly profile = this.account.profile;
   readonly unreadCount = this.account.unreadCount;
 
-  /** Khi hồ sơ chưa tải xong thì lấy tạm tên từ phiên đăng nhập */
   readonly displayName = computed(() => this.profile()?.fullName ?? this.auth.user()?.fullName ?? '');
   readonly shortName = computed(() => shortNameOf(this.displayName()));
   readonly initials = computed(() => initialsOf(this.displayName()));
@@ -91,14 +83,12 @@ export class Account implements OnInit {
         if (!this.auth.isLoggedIn()) this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
       },
     });
-    // Số thông báo chưa đọc cho badge ở menu bên
     this.account
       .getNotifications('all', 1)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: (res) => this.account.setUnreadCount(res.unread), error: () => this.account.setUnreadCount(0) });
   }
 
-  /** Hộp xác nhận trước khi đăng xuất */
   readonly confirmingLogout = signal(false);
 
   logout(): void {

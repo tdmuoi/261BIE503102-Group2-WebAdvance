@@ -11,7 +11,6 @@
 
 .price-value { font: 700 11px/normal var(--font-sans); color: var(--color-text-secondary); }
 
-/* Thanh trượt 2 đầu: 2 input range chồng lên nhau */
 .range { position: relative; height: 24px; }
 
 .range::before,

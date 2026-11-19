@@ -1,4 +1,3 @@
-// Isolated HTTP tests. Fixtures live only in memory; no MongoDB connection is opened.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { scryptSync } = require("node:crypto");

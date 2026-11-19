@@ -1,11 +1,5 @@
 import { Province } from './account';
 
-/**
- * 34 đơn vị hành chính cấp tỉnh (cập nhật 20/9/2026): 9 thành phố trực thuộc Trung ương + 25 tỉnh.
- * - Đồng Nai lên thành phố từ 30/4/2026; Bắc Ninh, Quảng Ninh lên thành phố từ 20/9/2026.
- * Phường/xã: chưa có nguồn dữ liệu đầy đủ (hơn 3.000 đơn vị) nên form cho tự nhập,
- * vài thành phố có sẵn gợi ý dưới đây. TODO: thay bằng API địa giới hành chính khi có.
- */
 const city = (code: string, name: string, wards: string[] = []): Province => ({ code, name: `TP. ${name}`, wards });
 const province = (code: string, name: string): Province => ({ code, name, wards: [] });
 
@@ -49,7 +43,6 @@ export const PROVINCES_ONLY: Province[] = [
   province('AG', 'An Giang'),
 ];
 
-/** 9 thành phố trước (Hà Nội, TP.HCM lên đầu), sau đó 25 tỉnh theo bảng chữ cái */
 export const PROVINCES: Province[] = [
   ...CITIES,
   ...[...PROVINCES_ONLY].sort((a, b) => a.name.localeCompare(b.name, 'vi')),
